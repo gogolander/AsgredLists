@@ -29,6 +29,8 @@ public class AsgredLists {
         try {
             Main mainFrame = new Main();
             JFrame frame = new JFrame();
+            frame.setTitle("AsgredLists");
+            frame.setResizable(false);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.add(mainFrame);
             frame.pack();
