@@ -34,9 +34,10 @@ import javax.swing.table.DefaultTableModel;
  */
 public class Main extends javax.swing.JPanel {
 
-    protected boolean conflicts = false;
-    protected ImageList imageList;
-    protected String basePath;
+    private int selectedAction = 0;
+    private boolean conflicts = false;
+    private ImageList imageList;
+    private String basePath;
     private ImageList list_obj;
     private ImageList list_lamp;
     private ImageList wlcalList;
@@ -152,6 +153,7 @@ public class Main extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        groupAction = new javax.swing.ButtonGroup();
         jTabbedPane1 = new javax.swing.JTabbedPane();
         jPanel3 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
@@ -178,15 +180,18 @@ public class Main extends javax.swing.JPanel {
         jNext = new javax.swing.JButton();
         jPanel4 = new javax.swing.JPanel();
         jPrevious = new javax.swing.JButton();
-        jGenerateLists = new javax.swing.JButton();
-        jAll = new javax.swing.JButton();
         jPanel5 = new javax.swing.JPanel();
         jScrollPane2 = new javax.swing.JScrollPane();
         jTable2 = new javax.swing.JTable();
         jLabel3 = new javax.swing.JLabel();
-        jExec = new javax.swing.JButton();
-
-        jTabbedPane1.setEnabled(false);
+        jPanel7 = new javax.swing.JPanel();
+        jPanel12 = new javax.swing.JPanel();
+        jRadioListsOnly = new javax.swing.JRadioButton();
+        jRadioListsAndOneScript = new javax.swing.JRadioButton();
+        jRadioListsAndMultipleScripts = new javax.swing.JRadioButton();
+        jRadioAllAndExec = new javax.swing.JRadioButton();
+        jDoIt = new javax.swing.JButton();
+        jLabel10 = new javax.swing.JLabel();
 
         jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder("STEP 2"));
 
@@ -324,7 +329,7 @@ public class Main extends javax.swing.JPanel {
             .addGap(0, 12, Short.MAX_VALUE)
         );
 
-        jSolve.setText("Try to autoresolve conflicts");
+        jSolve.setText("Try to resolve conflicts");
         jSolve.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jSolveActionPerformed(evt);
@@ -393,10 +398,12 @@ public class Main extends javax.swing.JPanel {
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel9, javax.swing.GroupLayout.Alignment.TRAILING)
                             .addComponent(jPanel10, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(40, 40, 40)
-                        .addComponent(jSolve))
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 233, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jSolve, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 233, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addContainerGap())
         );
 
         jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("STEP 1"));
@@ -472,7 +479,7 @@ public class Main extends javax.swing.JPanel {
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jNext)
-                .addContainerGap())
+                .addGap(232, 232, 232))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -492,22 +499,6 @@ public class Main extends javax.swing.JPanel {
         jPrevious.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jPreviousActionPerformed(evt);
-            }
-        });
-
-        jGenerateLists.setText("Generate lists only");
-        jGenerateLists.setEnabled(false);
-        jGenerateLists.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jGenerateListsActionPerformed(evt);
-            }
-        });
-
-        jAll.setText("Generate both lists and scripts");
-        jAll.setEnabled(false);
-        jAll.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jAllActionPerformed(evt);
             }
         });
 
@@ -551,9 +542,10 @@ public class Main extends javax.swing.JPanel {
                 .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel5Layout.createSequentialGroup()
                         .addComponent(jLabel3)
-                        .addGap(0, 0, Short.MAX_VALUE))
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.TRAILING))
-                .addContainerGap())
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGroup(jPanel5Layout.createSequentialGroup()
+                        .addComponent(jScrollPane2)
+                        .addContainerGap())))
         );
         jPanel5Layout.setVerticalGroup(
             jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -561,17 +553,110 @@ public class Main extends javax.swing.JPanel {
                 .addContainerGap()
                 .addComponent(jLabel3)
                 .addGap(18, 18, 18)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 333, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jExec.setText("Generate all and exec the scripts");
-        jExec.setEnabled(false);
-        jExec.addActionListener(new java.awt.event.ActionListener() {
+        jPanel7.setBorder(javax.swing.BorderFactory.createTitledBorder("STEP 4"));
+
+        groupAction.add(jRadioListsOnly);
+        jRadioListsOnly.setSelected(true);
+        jRadioListsOnly.setText("Generate only lists to be used within IRAF");
+        jRadioListsOnly.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jExecActionPerformed(evt);
+                jRadioListsOnlyActionPerformed(evt);
             }
         });
+
+        groupAction.add(jRadioListsAndOneScript);
+        jRadioListsAndOneScript.setText("Geneare lists and only one PyRAF script for all objects");
+        jRadioListsAndOneScript.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jRadioListsAndOneScriptActionPerformed(evt);
+            }
+        });
+
+        groupAction.add(jRadioListsAndMultipleScripts);
+        jRadioListsAndMultipleScripts.setText("Generate lists and one PyRAF script per object");
+        jRadioListsAndMultipleScripts.setEnabled(false);
+        jRadioListsAndMultipleScripts.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jRadioListsAndMultipleScriptsActionPerformed(evt);
+            }
+        });
+
+        groupAction.add(jRadioAllAndExec);
+        jRadioAllAndExec.setText("Generate lists, one PyRAF script and execute it");
+        jRadioAllAndExec.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jRadioAllAndExecActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel12Layout = new javax.swing.GroupLayout(jPanel12);
+        jPanel12.setLayout(jPanel12Layout);
+        jPanel12Layout.setHorizontalGroup(
+            jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel12Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jRadioListsOnly)
+                    .addComponent(jRadioListsAndOneScript)
+                    .addComponent(jRadioAllAndExec)
+                    .addComponent(jRadioListsAndMultipleScripts))
+                .addContainerGap(114, Short.MAX_VALUE))
+        );
+        jPanel12Layout.setVerticalGroup(
+            jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel12Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jRadioListsOnly)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jRadioListsAndOneScript)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jRadioListsAndMultipleScripts)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jRadioAllAndExec)
+                .addContainerGap(20, Short.MAX_VALUE))
+        );
+
+        jDoIt.setText("Do it");
+        jDoIt.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jDoItActionPerformed(evt);
+            }
+        });
+
+        jLabel10.setText("Select what you want to obtain:");
+
+        javax.swing.GroupLayout jPanel7Layout = new javax.swing.GroupLayout(jPanel7);
+        jPanel7.setLayout(jPanel7Layout);
+        jPanel7Layout.setHorizontalGroup(
+            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel7Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel7Layout.createSequentialGroup()
+                        .addComponent(jPanel12, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(jDoIt, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jLabel10))
+                .addContainerGap(180, Short.MAX_VALUE))
+        );
+        jPanel7Layout.setVerticalGroup(
+            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel7Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel10)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel7Layout.createSequentialGroup()
+                        .addComponent(jPanel12, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap())
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel7Layout.createSequentialGroup()
+                        .addComponent(jDoIt, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(78, 78, 78))))
+        );
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
@@ -581,30 +666,23 @@ public class Main extends javax.swing.JPanel {
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel4Layout.createSequentialGroup()
                         .addContainerGap()
-                        .addComponent(jPrevious))
+                        .addComponent(jPrevious)
+                        .addGap(0, 0, Short.MAX_VALUE))
                     .addGroup(jPanel4Layout.createSequentialGroup()
-                        .addGap(156, 156, 156)
-                        .addComponent(jGenerateLists)
-                        .addGap(46, 46, 46)
-                        .addComponent(jAll)
-                        .addGap(48, 48, 48)
-                        .addComponent(jExec)))
-                .addContainerGap(96, Short.MAX_VALUE))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addGap(12, 12, 12)
+                        .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jPanel5, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
+                .addContainerGap())
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jGenerateLists, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jAll, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jExec, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 34, Short.MAX_VALUE)
                 .addComponent(jPrevious)
                 .addContainerGap())
         );
@@ -615,17 +693,16 @@ public class Main extends javax.swing.JPanel {
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(15, Short.MAX_VALUE)
                 .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(15, 15, 15))
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
                 .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
+                .addGap(0, 24, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -694,46 +771,64 @@ public class Main extends javax.swing.JPanel {
         this.jTabbedPane1.setSelectedIndex(0);
     }//GEN-LAST:event_jPreviousActionPerformed
 
-    private void jGenerateListsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jGenerateListsActionPerformed
-        generateAllLists();
-    }//GEN-LAST:event_jGenerateListsActionPerformed
-
-    private void jAllActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jAllActionPerformed
-        generateAllLists();
-        writeOneGiantScript();
-    }//GEN-LAST:event_jAllActionPerformed
-
     private void jSolveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jSolveActionPerformed
         this.imageList.fixLamps();
         this.imageList.fixStandards();
         this.updateImagesTable();
     }//GEN-LAST:event_jSolveActionPerformed
 
-    private void jExecActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jExecActionPerformed
+    private void jRadioListsOnlyActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jRadioListsOnlyActionPerformed
+        this.selectedAction = 0;
+    }//GEN-LAST:event_jRadioListsOnlyActionPerformed
+
+    private void jRadioListsAndOneScriptActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jRadioListsAndOneScriptActionPerformed
+        this.selectedAction = 1;
+    }//GEN-LAST:event_jRadioListsAndOneScriptActionPerformed
+
+    private void jRadioListsAndMultipleScriptsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jRadioListsAndMultipleScriptsActionPerformed
+        this.selectedAction = 2;
+    }//GEN-LAST:event_jRadioListsAndMultipleScriptsActionPerformed
+
+    private void jRadioAllAndExecActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jRadioAllAndExecActionPerformed
+        this.selectedAction = 3;
+    }//GEN-LAST:event_jRadioAllAndExecActionPerformed
+
+    private void jDoItActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jDoItActionPerformed
         try {
-            generateAllLists();
-            writeOneGiantScript();
-            Process p = Runtime.getRuntime().exec("python " + this.basePath + File.separator + "execAsgred.py");
+            this.generateAllLists();
+            switch (this.selectedAction) {
+                case 0:
+                    break;
+                case 1:
+                    this.writeOneGiantScript();
+                    break;
+                case 2:
+                    break;
+                case 3:
+                    this.writeOneGiantScript();
+                    Process p = Runtime.getRuntime().exec("python " + this.basePath + File.separator + "execAsgred.py");
 
-            while (p.isAlive()) {
-                if (p.getInputStream().available() != 0) {
-                    while (p.getInputStream().available() != 0) {
-                        byte[] character = new byte[1];
-                        p.getInputStream().read(character);
-                        System.out.print(character);
+                    while (p.isAlive()) {
+                        if (p.getInputStream().available() != 0) {
+                            while (p.getInputStream().available() != 0) {
+                                byte[] character = new byte[1];
+                                p.getInputStream().read(character);
+                                System.out.print(character);
+                            }
+                        }
                     }
-                }
-            }
 
-            if (p.getErrorStream().available() != 0) {
-                byte[] buffer = new byte[p.getErrorStream().available()];
-                p.getErrorStream().read(buffer);
-                System.out.print(new String(buffer));
+                    if (p.getErrorStream().available() != 0) {
+                        byte[] buffer = new byte[p.getErrorStream().available()];
+                        p.getErrorStream().read(buffer);
+                        System.out.print(new String(buffer));
+                    }
+
             }
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }//GEN-LAST:event_jExecActionPerformed
+    }//GEN-LAST:event_jDoItActionPerformed
 
     public void parseFile(String filePath) throws FileNotFoundException, IOException {
         String line = "";
@@ -788,10 +883,6 @@ public class Main extends javax.swing.JPanel {
         if (imageList == null || imageList.size() == 0) {
             return;
         }
-
-        this.jGenerateLists.setEnabled(true);
-        this.jAll.setEnabled(true);
-        this.jExec.setEnabled(true);
 
         if (((DefaultTableModel) this.jTable2.getModel()).getRowCount() > 0) {
             for (int i = ((DefaultTableModel) this.jTable2.getModel()).getRowCount() - 1; i > -1; i--) {
@@ -967,7 +1058,7 @@ public class Main extends javax.swing.JPanel {
             writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "execAsgred.py"));
             writer.println("#!/usr/bin/env python");
             writer.println("import os");
-            writer.println("os.chdir(\""+this.irafPath+"\")");
+            writer.println("os.chdir(\"" + this.irafPath + "\")");
             writer.println("import sys");
             writer.println("from pyraf import iraf");
             writer.println("iraf.epar(\"display\")");
@@ -1044,11 +1135,11 @@ public class Main extends javax.swing.JPanel {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jAll;
-    private javax.swing.JButton jExec;
+    private javax.swing.ButtonGroup groupAction;
+    private javax.swing.JButton jDoIt;
     private javax.swing.JButton jExplore;
-    private javax.swing.JButton jGenerateLists;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -1062,15 +1153,21 @@ public class Main extends javax.swing.JPanel {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel10;
     private javax.swing.JPanel jPanel11;
+    private javax.swing.JPanel jPanel12;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
+    private javax.swing.JPanel jPanel7;
     private javax.swing.JPanel jPanel8;
     private javax.swing.JPanel jPanel9;
     private javax.swing.JTextField jPath;
     private javax.swing.JButton jPrevious;
+    private javax.swing.JRadioButton jRadioAllAndExec;
+    private javax.swing.JRadioButton jRadioListsAndMultipleScripts;
+    private javax.swing.JRadioButton jRadioListsAndOneScript;
+    private javax.swing.JRadioButton jRadioListsOnly;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JButton jSolve;
