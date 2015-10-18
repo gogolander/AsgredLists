@@ -12,4 +12,4 @@ In particular, it still is care of the operator to make the wavelenght mask for 
 AsgredLists requires: IRAF, PyRAF, asgred, python (>=2.7), JDK (>=1.8).
 
 # Installation
-No installation is needed: you'll find the executable jar file in dist/ directory, just download it and run it.
+No installation is needed: you can either download the executable jar file in the release section (https://github.com/gogolander/AsgredLists/releases) or download the source code and compile it.
