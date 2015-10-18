@@ -9,7 +9,7 @@ The goal of this tool is NOT to substitute the operator but just to relieve him/
 In particular, it still is care of the operator to make the wavelenght mask for lamps and the actual spectrum extraction, done using the apall task.
 
 # Pre-requirements
-AsgredLists requires: IRAF, PyRAF, python (>=2.7), JDK (>=1.8).
+AsgredLists requires: IRAF, PyRAF, asgred, python (>=2.7), JDK (>=1.8).
 
 # Installation
 No installation is needed: you'll find the executable jar file in dist/ directory, just download it and run it.
