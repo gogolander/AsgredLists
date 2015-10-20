@@ -1,28 +1,42 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2015 Vincenzo Abate <gogolander@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package unipd.astro;
 
 import java.io.IOException;
 
 /**
+ * Image class represent the images *.fits.
  *
- * @author Vincenzo Abate
+ * @author Vincenzo Abate <gogolander@gmail.com>
  */
 public class Image {
 
     public static StandardList standardList;
 
     /**
+     * Constructor
      *
-     * @param fileName
-     * @param targetName
-     * @param expTime
-     * @param lampName
-     * @param standardName
-     * @param isStandard
+     * @param fileName name of the file "IMA******.fits"
+     * @param targetName name of the target, read from the header
+     * @param expTime exposure time, read from the header
+     * @param lampName reference lamp image name
+     * @param standardName reference standard star image name
+     * @param isStandard is the target name a standard star? default must be:
+     * false
      */
     public Image(String fileName, String targetName, String type, float expTime, String lampName, String standardName, boolean isStandard) {
         this.fileName = fileName;
@@ -98,6 +112,15 @@ public class Image {
         this.isStandard = isStandard;
     }
 
+    /**
+     * Parse an Image from a given line, tipically read from the fits_list.
+     * Lines wich starts with "#" are comments and hence will be skipped.
+     *
+     * @param image line that contains the image properties read from the image
+     * header
+     * @return
+     * @throws IOException
+     */
     public static Image parseImage(String image) throws IOException {
         if (standardList == null) {
             standardList = new StandardList();

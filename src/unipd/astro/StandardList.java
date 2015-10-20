@@ -1,7 +1,18 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2015 Vincenzo Abate <gogolander@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package unipd.astro;
 
@@ -14,8 +25,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * StandardList stores all the spectro-photometric standard stars in the Asiago
+ * atlas and makes the necessary query.
  *
- * @author Vincenzo Abate
+ * @author Vincenzo Abate <gogolander@gmail.com>
  */
 public class StandardList extends ArrayList<Standard> {
 
@@ -36,6 +49,13 @@ public class StandardList extends ArrayList<Standard> {
         }
     }
 
+    /**
+     * This method determines if the given target name is relative to a standard
+     * star.
+     *
+     * @param name Target name of the image.
+     * @return
+     */
     public boolean isStandard(String name) {
         for (Standard star : this) {
             if (star.getStandardName().equals(name)) {
@@ -45,6 +65,13 @@ public class StandardList extends ArrayList<Standard> {
         return false;
     }
 
+    /**
+     * This method determines the name of the .dat file of the given standard
+     * star.
+     *
+     * @param name Name of the standard star whose data you want to get.
+     * @return
+     */
     public String getDatName(String name) {
         for (Standard star : this) {
             if (star.getStandardName().equals(name) || (!star.getAliasName().isEmpty() && star.getAliasName().equals(name))) {
@@ -60,6 +87,13 @@ public class StandardList extends ArrayList<Standard> {
         return "";
     }
 
+    /**
+     * This method determines the name of the catalogue in onedspec$ which
+     * contains data of the given standard star.
+     *
+     * @param stdName Name of the standard star whose data you want to get.
+     * @return
+     */
     public String getCatalogue(String stdName) {
         for (Standard star : this) {
             if (star.getStandardName().equals(stdName) || (!star.getAliasName().isEmpty() && star.getAliasName().equals(stdName))) {
