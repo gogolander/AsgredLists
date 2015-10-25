@@ -119,7 +119,7 @@ public class Main extends javax.swing.JPanel {
         }
 
         initComponents();
-
+        this.jIrafHome.setText(this.irafPath);
         this.jTable1.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
@@ -169,6 +169,7 @@ public class Main extends javax.swing.JPanel {
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        bindingGroup = new org.jdesktop.beansbinding.BindingGroup();
 
         groupAction = new javax.swing.ButtonGroup();
         jTabbedPane1 = new javax.swing.JTabbedPane();
@@ -209,6 +210,25 @@ public class Main extends javax.swing.JPanel {
         jRadioAllAndExec = new javax.swing.JRadioButton();
         jDoIt = new javax.swing.JButton();
         jLabel10 = new javax.swing.JLabel();
+        jPanel13 = new javax.swing.JPanel();
+        jPanel14 = new javax.swing.JPanel();
+        jLabel17 = new javax.swing.JLabel();
+        jLabel18 = new javax.swing.JLabel();
+        jImcopyEnd = new javax.swing.JSpinner();
+        jImcopyStart = new javax.swing.JSpinner();
+        jPanel15 = new javax.swing.JPanel();
+        jBackgroundStart = new javax.swing.JSpinner();
+        jBackgroundEnd = new javax.swing.JSpinner();
+        jLabel15 = new javax.swing.JLabel();
+        jLabel14 = new javax.swing.JLabel();
+        jPanel16 = new javax.swing.JPanel();
+        jWlcalThreshold = new javax.swing.JSlider();
+        jLabel12 = new javax.swing.JLabel();
+        jLabel13 = new javax.swing.JLabel();
+        jPanel17 = new javax.swing.JPanel();
+        jIrafHome = new javax.swing.JTextField();
+        jLabel11 = new javax.swing.JLabel();
+        jSave = new javax.swing.JButton();
 
         jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder("STEP 2"));
 
@@ -658,7 +678,7 @@ public class Main extends javax.swing.JPanel {
                         .addGap(18, 18, 18)
                         .addComponent(jDoIt, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jLabel10))
-                .addContainerGap(180, Short.MAX_VALUE))
+                .addContainerGap(189, Short.MAX_VALUE))
         );
         jPanel7Layout.setVerticalGroup(
             jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -699,28 +719,233 @@ public class Main extends javax.swing.JPanel {
                 .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 34, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 22, Short.MAX_VALUE)
                 .addComponent(jPrevious)
                 .addContainerGap())
         );
 
         jTabbedPane1.addTab("Data lists and Python scripts generation", jPanel4);
 
+        jPanel14.setBorder(javax.swing.BorderFactory.createTitledBorder("imcopy"));
+
+        jLabel17.setText("Spectrum starts at column:");
+
+        jLabel18.setText("ends at:");
+
+        jImcopyEnd.setModel(new javax.swing.SpinnerNumberModel(2048, 0, 2048, 1));
+        jImcopyEnd.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
+            public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
+                jImcopyEndMouseWheelMoved(evt);
+            }
+        });
+
+        jImcopyStart.setModel(new javax.swing.SpinnerNumberModel(50, 0, 2048, 1));
+        jImcopyStart.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
+            public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
+                jImcopyStartMouseWheelMoved(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel14Layout = new javax.swing.GroupLayout(jPanel14);
+        jPanel14.setLayout(jPanel14Layout);
+        jPanel14Layout.setHorizontalGroup(
+            jPanel14Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel14Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel17)
+                .addGap(18, 18, 18)
+                .addComponent(jImcopyStart, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jLabel18)
+                .addGap(18, 18, 18)
+                .addComponent(jImcopyEnd, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel14Layout.setVerticalGroup(
+            jPanel14Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel14Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel14Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel17)
+                    .addComponent(jImcopyStart, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel18)
+                    .addComponent(jImcopyEnd, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        jPanel15.setBorder(javax.swing.BorderFactory.createTitledBorder("background"));
+
+        jBackgroundStart.setModel(new javax.swing.SpinnerNumberModel(1000, 0, 2048, 1));
+        jBackgroundStart.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
+            public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
+                jBackgroundStartMouseWheelMoved(evt);
+            }
+        });
+
+        jBackgroundEnd.setModel(new javax.swing.SpinnerNumberModel(1010, 0, 2048, 1));
+        jBackgroundEnd.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
+            public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
+                jBackgroundEndMouseWheelMoved(evt);
+            }
+        });
+
+        jLabel15.setText("and column");
+
+        jLabel14.setText("Get background from column");
+
+        javax.swing.GroupLayout jPanel15Layout = new javax.swing.GroupLayout(jPanel15);
+        jPanel15.setLayout(jPanel15Layout);
+        jPanel15Layout.setHorizontalGroup(
+            jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel15Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel14)
+                .addGap(18, 18, 18)
+                .addComponent(jBackgroundStart, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jLabel15)
+                .addGap(18, 18, 18)
+                .addComponent(jBackgroundEnd, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(301, Short.MAX_VALUE))
+        );
+        jPanel15Layout.setVerticalGroup(
+            jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel15Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jBackgroundStart, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jBackgroundEnd, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel14)
+                    .addComponent(jLabel15))
+                .addContainerGap())
+        );
+
+        jPanel16.setBorder(javax.swing.BorderFactory.createTitledBorder("wlcal"));
+
+        jWlcalThreshold.setPaintLabels(true);
+        jWlcalThreshold.setPaintTicks(true);
+        jWlcalThreshold.setSnapToTicks(true);
+        jWlcalThreshold.setValue(10);
+        jWlcalThreshold.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
+            public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
+                jWlcalThresholdMouseWheelMoved(evt);
+            }
+        });
+
+        jLabel12.setText("wlcal RMS threshold");
+
+        org.jdesktop.beansbinding.Binding binding = org.jdesktop.beansbinding.Bindings.createAutoBinding(org.jdesktop.beansbinding.AutoBinding.UpdateStrategy.READ_WRITE, jWlcalThreshold, org.jdesktop.beansbinding.ELProperty.create("${value}"), jLabel13, org.jdesktop.beansbinding.BeanProperty.create("text"));
+        bindingGroup.addBinding(binding);
+
+        javax.swing.GroupLayout jPanel16Layout = new javax.swing.GroupLayout(jPanel16);
+        jPanel16.setLayout(jPanel16Layout);
+        jPanel16Layout.setHorizontalGroup(
+            jPanel16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel16Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel12)
+                .addGap(30, 30, 30)
+                .addComponent(jWlcalThreshold, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel16Layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jLabel13)
+                .addGap(376, 376, 376))
+        );
+        jPanel16Layout.setVerticalGroup(
+            jPanel16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel16Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel13)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jWlcalThreshold, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel12))
+                .addContainerGap())
+        );
+
+        jWlcalThreshold.setMinorTickSpacing(1);
+        jWlcalThreshold.setMajorTickSpacing(10);
+
+        jPanel17.setBorder(javax.swing.BorderFactory.createTitledBorder("IRAF home"));
+
+        jLabel11.setText("IRAF home");
+
+        javax.swing.GroupLayout jPanel17Layout = new javax.swing.GroupLayout(jPanel17);
+        jPanel17.setLayout(jPanel17Layout);
+        jPanel17Layout.setHorizontalGroup(
+            jPanel17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel17Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel11)
+                .addGap(18, 18, 18)
+                .addComponent(jIrafHome)
+                .addContainerGap())
+        );
+        jPanel17Layout.setVerticalGroup(
+            jPanel17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel17Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel11)
+                    .addComponent(jIrafHome, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap())
+        );
+
+        jSave.setText("Save as Default");
+
+        javax.swing.GroupLayout jPanel13Layout = new javax.swing.GroupLayout(jPanel13);
+        jPanel13.setLayout(jPanel13Layout);
+        jPanel13Layout.setHorizontalGroup(
+            jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel13Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jPanel14, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel15, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel16, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel17, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel13Layout.createSequentialGroup()
+                        .addGap(0, 0, Short.MAX_VALUE)
+                        .addComponent(jSave)))
+                .addContainerGap())
+        );
+        jPanel13Layout.setVerticalGroup(
+            jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel13Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jPanel17, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jPanel16, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jPanel14, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 42, Short.MAX_VALUE)
+                .addComponent(jSave)
+                .addContainerGap())
+        );
+
+        jTabbedPane1.addTab("Advanced Options for PyRAF tasks", jPanel13);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(15, Short.MAX_VALUE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 24, Short.MAX_VALUE))
+                .addContainerGap()
+                .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 558, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(24, Short.MAX_VALUE))
         );
+
+        bindingGroup.bind();
     }// </editor-fold>//GEN-END:initComponents
 
     private void jTable1PropertyChange(java.beans.PropertyChangeEvent evt) {//GEN-FIRST:event_jTable1PropertyChange
@@ -856,6 +1081,30 @@ public class Main extends javax.swing.JPanel {
         }
     }//GEN-LAST:event_jDoItActionPerformed
 
+    private void jWlcalThresholdMouseWheelMoved(java.awt.event.MouseWheelEvent evt) {//GEN-FIRST:event_jWlcalThresholdMouseWheelMoved
+        this.jWlcalThreshold.setValue(this.jWlcalThreshold.getValue() - evt.getWheelRotation());
+    }//GEN-LAST:event_jWlcalThresholdMouseWheelMoved
+
+    private void jBackgroundStartMouseWheelMoved(java.awt.event.MouseWheelEvent evt) {//GEN-FIRST:event_jBackgroundStartMouseWheelMoved
+        if (((int) this.jBackgroundStart.getValue() > 0 && evt.getWheelRotation() > 0) || ((int) this.jBackgroundStart.getValue() < 2048 && evt.getWheelRotation() < 0))
+            this.jBackgroundStart.setValue((int)this.jBackgroundStart.getValue() - evt.getWheelRotation());
+    }//GEN-LAST:event_jBackgroundStartMouseWheelMoved
+
+    private void jBackgroundEndMouseWheelMoved(java.awt.event.MouseWheelEvent evt) {//GEN-FIRST:event_jBackgroundEndMouseWheelMoved
+        if (((int) this.jBackgroundEnd.getValue() > 0 && evt.getWheelRotation() > 0) || ((int) this.jBackgroundEnd.getValue() < 2048 && evt.getWheelRotation() < 0))
+            this.jBackgroundEnd.setValue((int)this.jBackgroundEnd.getValue() - evt.getWheelRotation());
+    }//GEN-LAST:event_jBackgroundEndMouseWheelMoved
+
+    private void jImcopyStartMouseWheelMoved(java.awt.event.MouseWheelEvent evt) {//GEN-FIRST:event_jImcopyStartMouseWheelMoved
+        if (((int) this.jImcopyStart.getValue() > 0 && evt.getWheelRotation() > 0) || ((int) this.jImcopyStart.getValue() < 2048 && evt.getWheelRotation() < 0))
+            this.jImcopyStart.setValue((int)this.jImcopyStart.getValue() - evt.getWheelRotation());
+    }//GEN-LAST:event_jImcopyStartMouseWheelMoved
+
+    private void jImcopyEndMouseWheelMoved(java.awt.event.MouseWheelEvent evt) {//GEN-FIRST:event_jImcopyEndMouseWheelMoved
+        if (((int) this.jImcopyEnd.getValue() > 0 && evt.getWheelRotation() > 0) || ((int) this.jImcopyEnd.getValue() < 2048 && evt.getWheelRotation() < 0))
+            this.jImcopyEnd.setValue((int)this.jImcopyEnd.getValue() - evt.getWheelRotation());
+    }//GEN-LAST:event_jImcopyEndMouseWheelMoved
+
     public void parseFile(String filePath) throws FileNotFoundException, IOException {
         String line = "";
         imageList = new ImageList();
@@ -931,7 +1180,10 @@ public class Main extends javax.swing.JPanel {
             fcalList = new ImageList();
             backgroundList = new ImageList();
             apallList = new ImageList();
+            imcopyList = new ImageList();
+            scombineList = new ImageList();
 
+            String lastTarget = "";
             //Generate lists to write
             for (int i = 0; i < this.jTable2.getModel().getRowCount(); i++) {
                 if ((boolean) this.jTable2.getModel().getValueAt(i, 0)) {
@@ -959,6 +1211,14 @@ public class Main extends javax.swing.JPanel {
                         //Apply apall?
                         if ((boolean) this.jTable2.getModel().getValueAt(i, 6)) {
                             apallList.add(image);
+                        }
+                        //Apply scombine?
+                        if ((boolean) this.jTable2.getModel().getValueAt(i, 7) && !lastTarget.equals(image.getTargetName())) {
+                            scombineList.add(image);
+                        }
+                        //Apply imcopy?
+                        if ((boolean) this.jTable2.getModel().getValueAt(i, 8) && !lastTarget.equals(image.getTargetName())) {
+                            imcopyList.add(image);
                         }
                     }
                 }
@@ -1139,6 +1399,8 @@ public class Main extends javax.swing.JPanel {
                     writer.println("iraf.asgred.scombine(input=\"@md" + temp + "\",output=\"" + temp + ".md\")");
                 }
             }
+            String start = this.jImcopyStart.getValue().toString();
+            String end = this.jImcopyEnd.getValue().toString();
             // exec imcopy
             if (imcopyList != null) {
                 for (String target : imcopyList.generateTargetsList()) {
@@ -1149,7 +1411,8 @@ public class Main extends javax.swing.JPanel {
                     if (temp.contains("-")) {
                         temp = temp.replaceAll("-", "m");
                     }
-                    writer.println("iraf.asgred.imcopy(input=\"" + temp + ".md[50:2048]\",output=\"" + temp + ".obj\")");
+
+                    writer.println("iraf.asgred.imcopy(input=\"" + temp + ".md[" + start + ":" + end +"]\",output=\"" + temp + ".obj\")");
                 }
             }
             writer.close();
@@ -1164,10 +1427,22 @@ public class Main extends javax.swing.JPanel {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup groupAction;
+    private javax.swing.JSpinner jBackgroundEnd;
+    private javax.swing.JSpinner jBackgroundStart;
     private javax.swing.JButton jDoIt;
     private javax.swing.JButton jExplore;
+    private javax.swing.JSpinner jImcopyEnd;
+    private javax.swing.JSpinner jImcopyStart;
+    private javax.swing.JTextField jIrafHome;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
+    private javax.swing.JLabel jLabel11;
+    private javax.swing.JLabel jLabel12;
+    private javax.swing.JLabel jLabel13;
+    private javax.swing.JLabel jLabel14;
+    private javax.swing.JLabel jLabel15;
+    private javax.swing.JLabel jLabel17;
+    private javax.swing.JLabel jLabel18;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -1182,6 +1457,11 @@ public class Main extends javax.swing.JPanel {
     private javax.swing.JPanel jPanel10;
     private javax.swing.JPanel jPanel11;
     private javax.swing.JPanel jPanel12;
+    private javax.swing.JPanel jPanel13;
+    private javax.swing.JPanel jPanel14;
+    private javax.swing.JPanel jPanel15;
+    private javax.swing.JPanel jPanel16;
+    private javax.swing.JPanel jPanel17;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
@@ -1196,11 +1476,14 @@ public class Main extends javax.swing.JPanel {
     private javax.swing.JRadioButton jRadioListsAndMultipleScripts;
     private javax.swing.JRadioButton jRadioListsAndOneScript;
     private javax.swing.JRadioButton jRadioListsOnly;
+    private javax.swing.JButton jSave;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JButton jSolve;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JTable jTable1;
     private javax.swing.JTable jTable2;
+    private javax.swing.JSlider jWlcalThreshold;
+    private org.jdesktop.beansbinding.BindingGroup bindingGroup;
     // End of variables declaration//GEN-END:variables
 }
