@@ -32,6 +32,7 @@ public class Image {
      *
      * @param fileName name of the file "IMA******.fits"
      * @param targetName name of the target, read from the header
+     * @param type type of the image. Can be: "FLATFIELD", "LAMP" or "IMAGE"
      * @param expTime exposure time, read from the header
      * @param lampName reference lamp image name
      * @param standardName reference standard star image name

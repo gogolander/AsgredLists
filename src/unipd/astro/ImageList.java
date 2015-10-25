@@ -63,7 +63,7 @@ public class ImageList extends ArrayList<Image> {
 
     /**
      * This method gets all the images regarding to spectro-photometric standard
-     * stars in     * this list.
+     * stars in this list.
      *
      * @return All the images of standard stars.
      */
@@ -94,7 +94,7 @@ public class ImageList extends ArrayList<Image> {
 
     /**
      * This method generates the list of the targets names in this list images.
-     * The targets     * list contains both objects and standard stars, but it doesn't contain
+     * The targets list contains both objects and standard stars, but it doesn't contain
      * lamps nor flat field.
      *
      * @return String list of images wich type is "IMAGE".
@@ -111,7 +111,7 @@ public class ImageList extends ArrayList<Image> {
 
     /**
      * This method enerates the file name list of objects having the given file
-     * name as     * standard star. You have to provide the file name of standard instead of
+     * name as standard star. You have to provide the file name of standard instead of
      * the name of the standard beacause different images of the same standard
      * have to be treated as different objects.
      *
@@ -132,7 +132,7 @@ public class ImageList extends ArrayList<Image> {
 
     /**
      * This method generates the images list of objects having the given file
-     * name as     * standard star.
+     * name as standard star.
      *
      * @param standardImageName The file name of the standard that has to be
      * used for the flux calibration of a object.
@@ -199,7 +199,7 @@ public class ImageList extends ArrayList<Image> {
 
     /**
      * This method generates a string containing the file name of all the images
-     * having type     * "FLATFIELD". File names are separated by a new-line.
+     * having type "FLATFIELD". File names are separated by a new-line.
      *
      * @return One string containing all the flat field images.
      */
@@ -218,13 +218,14 @@ public class ImageList extends ArrayList<Image> {
      * standard star and tries to determine which standard star to use.
      * Tipically it uses the first standard star after the image that misses it.
      */
+    @SuppressWarnings("empty-statement")
     public void fixStandards() {
         for (Image image : this) {
             if (image.getType().equals("IMAGE") && image.getStandardName().equals("")) {
                 Iterator<Image> scrollList = this.iterator();
-                //Scorri fino a trovare l'immagine corrente
+                //Scroll the list until the current image is found
                 while (scrollList.hasNext() && !scrollList.next().equals(image));
-                //Vai alla prima stella standard successiva all'immagine corrente
+                //Scroll the list once again to get the image next to the current one
                 while (scrollList.hasNext()) {
                     Image standard = scrollList.next();
                     if (standard.getType().equals("IMAGE") && standard.isStandard()) {
@@ -241,13 +242,14 @@ public class ImageList extends ArrayList<Image> {
      * got a reference lamp and tries to determine which lamp to use. Tipically
      * it uses the first lamp after the image that misses it.
      */
+    @SuppressWarnings("empty-statement")
     public void fixLamps() {
         for (Image image : this) {
             if (image.getType().equals("IMAGE") && image.getLampName().equals("")) {
                 Iterator<Image> scrollList = this.iterator();
-                //Scorri fino a trovare l'immagine corrente
+                //Scroll the list until the current image is found
                 while (scrollList.hasNext() && !scrollList.next().equals(image));
-                //Vai alla prima lampada successiva all'immagine corrente
+                //Scroll the list once again to get the image next to the current one
                 while (scrollList.hasNext()) {
                     Image lamp = scrollList.next();
                     if (lamp.getType().equals("LAMP")) {
@@ -260,8 +262,8 @@ public class ImageList extends ArrayList<Image> {
     }
 
     /**
-     * This method returns the given file name with the given extension append
-     * to it, e.g. "IMA??????.*extension*".
+     * This method returns all file name of the images in the list with the given extension append
+     * to it, e.g. "IMA000001.*extension*\nIMA000002.*extension*\nIMA000003.*extension*".
      *
      * @param imageName
      * @param extension

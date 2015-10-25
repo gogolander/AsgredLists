@@ -20,13 +20,11 @@ import java.awt.Color;
 import java.awt.Component;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import javax.swing.filechooser.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -62,7 +60,7 @@ public class Main extends javax.swing.JPanel {
     /**
      * Creates new form Main
      */
-    public Main() throws IOException {
+    public Main() {
         BufferedReader irafPathRead;
         try {
             irafPathRead = new BufferedReader(new FileReader(System.getProperty("user.home") + File.separator + ".irafPath"));
@@ -89,6 +87,7 @@ public class Main extends javax.swing.JPanel {
                     }
                 }
             } catch (Exception ex) {
+                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
                 JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         } catch (FileNotFoundException ex) {
@@ -106,9 +105,16 @@ public class Main extends javax.swing.JPanel {
             });
 
             if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                PrintWriter write = new PrintWriter(new FileWriter(System.getProperty("user.home") + File.separator + ".irafPath"));
-                write.print(fileChooser.getSelectedFile().getParent());
-                write.close();
+                PrintWriter write = null;
+                try {
+                    write = new PrintWriter(new FileWriter(System.getProperty("user.home") + File.separator + ".irafPath"));
+                    write.print(fileChooser.getSelectedFile().getParent());
+                    write.close();
+                } catch (IOException ex1) {
+                    write.close();
+                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, ex1.getMessage(), ex1);
+                    JOptionPane.showMessageDialog(this, ex1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
             }
         }
 
@@ -128,9 +134,9 @@ public class Main extends javax.swing.JPanel {
                     Image image = imageList.get(row);
                     this.setForeground(Color.BLACK);
                     //Lamps
-                    if (image.getType().equals("LAMP")) {
+                    if (image.getType().equals("LAMP"))
                         hsv = Color.RGBtoHSB(255, 243, 115, hsv);
-                    } //Conflicts
+                    //Conflicts
                     else if (image.getType().equals("IMAGE") && (image.getLampName().isEmpty() || image.getStandardName().isEmpty())) {
                         hsv = Color.RGBtoHSB(255, 54, 0, hsv);
                         this.setForeground(Color.WHITE);
@@ -768,7 +774,8 @@ public class Main extends javax.swing.JPanel {
             this.updateImagesTable();
             this.jNext.setEnabled(true);
         } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_jLoadActionPerformed
 
@@ -809,11 +816,17 @@ public class Main extends javax.swing.JPanel {
             this.generateAllLists();
             switch (this.selectedAction) {
                 case 0:
+                    Logger.getLogger(Main.class.getName()).log(Level.INFO, "Lists created.");
+                    JOptionPane.showMessageDialog(this, "Lists have been created correctly.", "All done", JOptionPane.INFORMATION_MESSAGE);
                     break;
                 case 1:
                     this.writeOneGiantScript();
+                    Logger.getLogger(Main.class.getName()).log(Level.INFO, "Lists and one script created.");
+                    JOptionPane.showMessageDialog(this, "Lists and the PyRAF script have been created correctly.", "All done", JOptionPane.INFORMATION_MESSAGE);
                     break;
                 case 2:
+                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, "Unauthorized access to option \"Create lists and one script for each object\"");
+                    JOptionPane.showMessageDialog(this, "Not implemented yet! How did you get here?!", "Nothing done", JOptionPane.WARNING_MESSAGE);
                     break;
                 case 3:
                     this.writeOneGiantScript();
@@ -834,10 +847,12 @@ public class Main extends javax.swing.JPanel {
                         p.getErrorStream().read(buffer);
                         System.out.print(new String(buffer));
                     }
-
+                    Logger.getLogger(Main.class.getName()).log(Level.INFO, "Lists and one script created. The script was executed.");
+                    JOptionPane.showMessageDialog(this, "Lists and the PyRAF script have been created correctly. The script was executed.", "All done", JOptionPane.INFORMATION_MESSAGE);
             }
         } catch (Exception ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_jDoItActionPerformed
 
@@ -919,30 +934,30 @@ public class Main extends javax.swing.JPanel {
 
             //Generate lists to write
             for (int i = 0; i < this.jTable2.getModel().getRowCount(); i++) {
-                if ((Boolean) this.jTable2.getModel().getValueAt(i, 0)) {
+                if ((boolean) this.jTable2.getModel().getValueAt(i, 0)) {
                     //Get all images for the target
                     for (Image image : this.imageList.getImagesWhoseTargetIs((String) this.jTable2.getModel().getValueAt(i, 1))) {
                         //Apply prered2?
-                        if ((Boolean) this.jTable2.getModel().getValueAt(i, 2)) {
+                        if ((boolean) this.jTable2.getModel().getValueAt(i, 2)) {
                             list_obj.add(image);
                             if (!list_lamp.contains(imageList.getImageWhoseFileNameIs(image.getLampName()))) {
                                 list_lamp.add(imageList.getImageWhoseFileNameIs(image.getLampName()));
                             }
                         }
                         //Apply wlcal?
-                        if ((Boolean) this.jTable2.getModel().getValueAt(i, 3)) {
+                        if ((boolean) this.jTable2.getModel().getValueAt(i, 3)) {
                             wlcalList.add(image);
                         }
                         //Apply fcal?
-                        if ((Boolean) this.jTable2.getModel().getValueAt(i, 4)) {
+                        if ((boolean) this.jTable2.getModel().getValueAt(i, 4)) {
                             fcalList.add(image);
                         }
                         //Apply background?
-                        if ((Boolean) this.jTable2.getModel().getValueAt(i, 5)) {
+                        if ((boolean) this.jTable2.getModel().getValueAt(i, 5)) {
                             backgroundList.add(image);
                         }
                         //Apply apall?
-                        if ((Boolean) this.jTable2.getModel().getValueAt(i, 6)) {
+                        if ((boolean) this.jTable2.getModel().getValueAt(i, 6)) {
                             apallList.add(image);
                         }
                     }
@@ -1055,6 +1070,7 @@ public class Main extends javax.swing.JPanel {
                 writer.close();
             }
         } catch (IOException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
         if (writer != null) {
@@ -1087,7 +1103,7 @@ public class Main extends javax.swing.JPanel {
             // exec background
             if (backgroundList != null) {
                 for (String target : backgroundList.generateTargetsList()) {
-                    String temp = "";
+                    String temp = target;
                     if (target.contains("+")) {
                         temp = target.replaceAll("+", "p");
                     }
@@ -1100,7 +1116,7 @@ public class Main extends javax.swing.JPanel {
             // exec apall
             if (apallList != null) {
                 for (String target : apallList.generateTargetsList()) {
-                    String temp = "";
+                    String temp = target;
                     if (target.contains("+")) {
                         temp = target.replaceAll("+", "p");
                     }
@@ -1113,7 +1129,7 @@ public class Main extends javax.swing.JPanel {
             // exec scombine
             if (scombineList != null) {
                 for (String target : scombineList.generateTargetsList()) {
-                    String temp = "";
+                    String temp = target;
                     if (target.contains("+")) {
                         temp = target.replaceAll("+", "p");
                     }
@@ -1126,7 +1142,7 @@ public class Main extends javax.swing.JPanel {
             // exec imcopy
             if (imcopyList != null) {
                 for (String target : imcopyList.generateTargetsList()) {
-                    String temp = "";
+                    String temp = target;
                     if (target.contains("+")) {
                         temp = target.replaceAll("+", "p");
                     }
@@ -1138,6 +1154,7 @@ public class Main extends javax.swing.JPanel {
             }
             writer.close();
         } catch (IOException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
         if (writer != null) {
