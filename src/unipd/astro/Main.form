@@ -1127,8 +1127,12 @@
                     <Property name="paintTicks" type="boolean" value="true"/>
                     <Property name="snapToTicks" type="boolean" value="true"/>
                     <Property name="value" type="int" value="10"/>
+                    <Property name="cursor" type="java.awt.Cursor" editor="org.netbeans.modules.form.editors2.CursorEditor">
+                      <Color id="Cursore predefinito"/>
+                    </Property>
                   </Properties>
                   <Events>
+                    <EventHandler event="stateChanged" listener="javax.swing.event.ChangeListener" parameters="javax.swing.event.ChangeEvent" handler="jWlcalThresholdStateChanged"/>
                     <EventHandler event="mouseWheelMoved" listener="java.awt.event.MouseWheelListener" parameters="java.awt.event.MouseWheelEvent" handler="jWlcalThresholdMouseWheelMoved"/>
                   </Events>
                   <AuxValues>
@@ -1141,9 +1145,6 @@
                   </Properties>
                 </Component>
                 <Component class="javax.swing.JLabel" name="jLabel13">
-                  <BindingProperties>
-                    <BindingProperty name="text" source="jWlcalThreshold" sourcePath="${value}" target="jLabel13" targetPath="text" updateStrategy="0" immediately="false"/>
-                  </BindingProperties>
                 </Component>
               </SubComponents>
             </Container>

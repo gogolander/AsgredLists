@@ -33,7 +33,10 @@ import javax.swing.DefaultCellEditor;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.JSlider;
 import javax.swing.JTable;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
@@ -120,6 +123,7 @@ public class Main extends javax.swing.JPanel {
 
         initComponents();
         this.jIrafHome.setText(this.irafPath);
+        this.jLabel13.setText(String.valueOf(this.jWlcalThreshold.getValue()));
         this.jTable1.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
@@ -169,7 +173,6 @@ public class Main extends javax.swing.JPanel {
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
-        bindingGroup = new org.jdesktop.beansbinding.BindingGroup();
 
         groupAction = new javax.swing.ButtonGroup();
         jTabbedPane1 = new javax.swing.JTabbedPane();
@@ -826,6 +829,12 @@ public class Main extends javax.swing.JPanel {
         jWlcalThreshold.setPaintTicks(true);
         jWlcalThreshold.setSnapToTicks(true);
         jWlcalThreshold.setValue(10);
+        jWlcalThreshold.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        jWlcalThreshold.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                jWlcalThresholdStateChanged(evt);
+            }
+        });
         jWlcalThreshold.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
             public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
                 jWlcalThresholdMouseWheelMoved(evt);
@@ -833,9 +842,6 @@ public class Main extends javax.swing.JPanel {
         });
 
         jLabel12.setText("wlcal RMS threshold");
-
-        org.jdesktop.beansbinding.Binding binding = org.jdesktop.beansbinding.Bindings.createAutoBinding(org.jdesktop.beansbinding.AutoBinding.UpdateStrategy.READ_WRITE, jWlcalThreshold, org.jdesktop.beansbinding.ELProperty.create("${value}"), jLabel13, org.jdesktop.beansbinding.BeanProperty.create("text"));
-        bindingGroup.addBinding(binding);
 
         javax.swing.GroupLayout jPanel16Layout = new javax.swing.GroupLayout(jPanel16);
         jPanel16.setLayout(jPanel16Layout);
@@ -944,8 +950,6 @@ public class Main extends javax.swing.JPanel {
                 .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 558, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(24, Short.MAX_VALUE))
         );
-
-        bindingGroup.bind();
     }// </editor-fold>//GEN-END:initComponents
 
     private void jTable1PropertyChange(java.beans.PropertyChangeEvent evt) {//GEN-FIRST:event_jTable1PropertyChange
@@ -1104,6 +1108,10 @@ public class Main extends javax.swing.JPanel {
         if (((int) this.jImcopyEnd.getValue() > 0 && evt.getWheelRotation() > 0) || ((int) this.jImcopyEnd.getValue() < 2048 && evt.getWheelRotation() < 0))
             this.jImcopyEnd.setValue((int)this.jImcopyEnd.getValue() - evt.getWheelRotation());
     }//GEN-LAST:event_jImcopyEndMouseWheelMoved
+
+    private void jWlcalThresholdStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_jWlcalThresholdStateChanged
+        this.jLabel13.setText(String.valueOf(this.jWlcalThreshold.getValue()));
+    }//GEN-LAST:event_jWlcalThresholdStateChanged
 
     public void parseFile(String filePath) throws FileNotFoundException, IOException {
         String line = "";
@@ -1485,6 +1493,5 @@ public class Main extends javax.swing.JPanel {
     private javax.swing.JTable jTable1;
     private javax.swing.JTable jTable2;
     private javax.swing.JSlider jWlcalThreshold;
-    private org.jdesktop.beansbinding.BindingGroup bindingGroup;
     // End of variables declaration//GEN-END:variables
 }
