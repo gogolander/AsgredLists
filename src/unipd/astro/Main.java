@@ -1345,8 +1345,9 @@ public class Main extends javax.swing.JPanel {
             writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "execAsgred.py"));
             writer.println("#!/usr/bin/env python");
             writer.println("import os");
-            writer.println("os.chdir(\"" + this.irafPath + "\")");
             writer.println("import sys");
+            if(!this.irafPath.equals(""))
+                writer.println("os.chdir(\"" + this.irafPath + "\")");
             writer.println("from pyraf import iraf");
             writer.println("iraf.epar(\"display\")");
             // exec prered2
@@ -1356,7 +1357,7 @@ public class Main extends javax.swing.JPanel {
             // exec fcal
             if (fcalList != null) {
                 for (Image standard : fcalList.getStandards()) {
-                    writer.println("iraf.asgred.fcal(obj=\"std" + standard.getFileName() + "\",stand=\"" + standard.getFileName() + "\", dir=\"onedstds$" + Image.standardList.getCatalogue(standard.getTargetName()) + "\")");
+                    writer.println("iraf.asgred.fcal(obj=\"std" + standard.getFileName() + "\", stand=\"" + standard.getFileName() + "\", dir=\"onedstds$" + Image.standardList.getCatalogue(standard.getTargetName()) + "\")");
                 }
             }
 
@@ -1370,7 +1371,7 @@ public class Main extends javax.swing.JPanel {
                     if (temp.contains("-")) {
                         temp = temp.replaceAll("-", "m");
                     }
-                    writer.println("iraf.asgred.background(input=\"@fc" + temp + "\",output=\"@bg" + temp + "\")");
+                    writer.println("iraf.asgred.background(input=\"fc" + temp + "\", output=\"bg" + temp + "\")");
                 }
             }
             // exec apall
@@ -1396,7 +1397,7 @@ public class Main extends javax.swing.JPanel {
                     if (temp.contains("-")) {
                         temp = temp.replaceAll("-", "m");
                     }
-                    writer.println("iraf.asgred.scombine(input=\"@md" + temp + "\",output=\"" + temp + ".md\")");
+                    writer.println("iraf.asgred.scombine(input=\"md" + temp + "\", output=\"" + temp + ".md\")");
                 }
             }
             String start = this.jImcopyStart.getValue().toString();
@@ -1412,7 +1413,7 @@ public class Main extends javax.swing.JPanel {
                         temp = temp.replaceAll("-", "m");
                     }
 
-                    writer.println("iraf.asgred.imcopy(input=\"" + temp + ".md[" + start + ":" + end +"]\",output=\"" + temp + ".obj\")");
+                    writer.println("iraf.asgred.imcopy(input=\"" + temp + ".md[" + start + ":" + end + "]\", output=\"" + temp + ".obj\")");
                 }
             }
             writer.close();
