@@ -112,6 +112,18 @@ public class Image {
     public void setIsStandard(boolean isStandard) {
         this.isStandard = isStandard;
     }
+    
+    public boolean isBroken() {
+        return (this.type.equals("IMAGE") && (this.lampName.equals("") || this.standardName.equals("")));
+    }
+    
+    public boolean lampMissing() {
+        return this.lampName.equals("");
+    }
+    
+    public boolean standardMissing() {
+        return this.standardName.equals("");
+    }
 
     /**
      * Parse an Image from a given line, tipically read from the fits_list.

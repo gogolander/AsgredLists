@@ -299,4 +299,28 @@ public class ImageList extends ArrayList<Image> {
         }
         return temp;
     }
+    
+    public boolean containsConflicts() {
+        for(Image image : this) {
+            if(image.isBroken())
+                return true;
+        }
+        return false;
+    }
+    
+    public boolean lampsMissing() {
+        for(Image image : this) {
+            if(image.lampMissing())
+                return true;
+        }
+        return false;
+    }
+    
+    public boolean standardsMissing() {
+        for(Image image : this) {
+            if(image.standardMissing())
+                return true;
+        }
+        return false;
+    }
 }
