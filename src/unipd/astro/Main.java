@@ -39,8 +39,10 @@ import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
+import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 
 /**
  *
@@ -108,11 +110,43 @@ public class Main extends javax.swing.JPanel {
                     setBackground(Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
                 }
                 super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
+                super.setHorizontalAlignment(SwingConstants.CENTER);
                 return this;
             }
         });
         this.jTable1.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(new JComboBox(new String[]{"IMAGE", "FLATFIELD", "LAMP"})));
-//        this.jTable2.setDefaultRenderer(Object.class, this.jTable1.getDefaultRenderer(Object.class));
+       
+        this.jTable2.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+                /**
+                 * Color legend: 1. standards: HSV=217,100,100; RGB=0,96,255 2.
+                 * objects: HSV=130,92,100; RGB=20,255,59 3. lamps:
+                 * HSV=55,75,100; RGB=255,239,64 4. conflicts: HSV=37,100,100;
+                 * RGB=255,156,0 5. flat: HSV=55,15,100; RGB=255,252,216
+                 */
+                float[] hsv = new float[3];
+                TableModel model = table.getModel();
+                String target = (String) model.getValueAt(row, 1);
+                if (target != null) {
+                    this.setForeground(Color.BLACK);
+                    try {
+                        if (new StandardList().isStandard(target)) {
+                            hsv = Color.RGBtoHSB(102, 161, 255, hsv);
+                        } else {
+                            hsv = Color.RGBtoHSB(20, 255, 59, hsv);
+                        }
+                    } catch (IOException ex) {
+                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+
+                    setBackground(Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+                }                
+                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
+                super.setHorizontalAlignment(SwingConstants.CENTER);
+                return this;
+            }
+        });
     }
 
     /**
@@ -225,7 +259,7 @@ public class Main extends javax.swing.JPanel {
         jFitsListPanel.getContentPane().setLayout(jFitsListPanelLayout);
         jFitsListPanelLayout.setHorizontalGroup(
             jFitsListPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 957, Short.MAX_VALUE)
+            .addGap(0, 0, Short.MAX_VALUE)
             .addGroup(jFitsListPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(jFitsListPanelLayout.createSequentialGroup()
                     .addContainerGap()
@@ -245,7 +279,7 @@ public class Main extends javax.swing.JPanel {
         );
         jFitsListPanelLayout.setVerticalGroup(
             jFitsListPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 114, Short.MAX_VALUE)
+            .addGap(0, 125, Short.MAX_VALUE)
             .addGroup(jFitsListPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(jFitsListPanelLayout.createSequentialGroup()
                     .addGap(18, 18, 18)
@@ -297,7 +331,7 @@ public class Main extends javax.swing.JPanel {
         jDirectoryPanel.getContentPane().setLayout(jDirectoryPanelLayout);
         jDirectoryPanelLayout.setHorizontalGroup(
             jDirectoryPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 957, Short.MAX_VALUE)
+            .addGap(0, 0, Short.MAX_VALUE)
             .addGroup(jDirectoryPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(jDirectoryPanelLayout.createSequentialGroup()
                     .addContainerGap()
@@ -317,7 +351,7 @@ public class Main extends javax.swing.JPanel {
         );
         jDirectoryPanelLayout.setVerticalGroup(
             jDirectoryPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 114, Short.MAX_VALUE)
+            .addGap(0, 125, Short.MAX_VALUE)
             .addGroup(jDirectoryPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(jDirectoryPanelLayout.createSequentialGroup()
                     .addGap(18, 18, 18)
@@ -362,7 +396,7 @@ public class Main extends javax.swing.JPanel {
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jShowStep1.setText("Hide Step 1");
+        jShowStep1.setText("Show Step 1");
         this.jShowStep1.addActionListener(this.jStep1.getActionMap().get(org.jdesktop.swingx.JXCollapsiblePane.TOGGLE_ACTION));
         jShowStep1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -406,13 +440,13 @@ public class Main extends javax.swing.JPanel {
         });
         jScrollPane1.setViewportView(jTable1);
         if (jTable1.getColumnModel().getColumnCount() > 0) {
-            jTable1.getColumnModel().getColumn(0).setPreferredWidth(55);
+            jTable1.getColumnModel().getColumn(0).setPreferredWidth(60);
             jTable1.getColumnModel().getColumn(1).setPreferredWidth(200);
             jTable1.getColumnModel().getColumn(2).setPreferredWidth(60);
-            jTable1.getColumnModel().getColumn(3).setPreferredWidth(55);
-            jTable1.getColumnModel().getColumn(4).setPreferredWidth(40);
-            jTable1.getColumnModel().getColumn(5).setPreferredWidth(55);
-            jTable1.getColumnModel().getColumn(6).setPreferredWidth(55);
+            jTable1.getColumnModel().getColumn(3).setPreferredWidth(60);
+            jTable1.getColumnModel().getColumn(4).setPreferredWidth(55);
+            jTable1.getColumnModel().getColumn(5).setPreferredWidth(60);
+            jTable1.getColumnModel().getColumn(6).setPreferredWidth(60);
         }
 
         jLabel2.setText("Verify the data association and correct all conflicts:");
@@ -552,7 +586,7 @@ public class Main extends javax.swing.JPanel {
                                 .addComponent(jSolve))))
                     .addGroup(jOptionsPanelLayout.createSequentialGroup()
                         .addContainerGap()
-                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 82, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jOptionsPanelLayout.setVerticalGroup(
@@ -625,7 +659,7 @@ public class Main extends javax.swing.JPanel {
         );
 
         jShowStep2.setSelected(true);
-        jShowStep2.setText("Show Step 2");
+        jShowStep2.setText("Hide Step 2");
         this.jShowStep2.addActionListener(this.jStep2.getActionMap().get(org.jdesktop.swingx.JXCollapsiblePane.TOGGLE_ACTION));
         jShowStep2.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -719,7 +753,7 @@ public class Main extends javax.swing.JPanel {
         );
 
         jShowStep3.setSelected(true);
-        jShowStep3.setText("Show Step 3");
+        jShowStep3.setText("Hide Step 3");
         jShowStep3.addActionListener(this.jStep3.getActionMap().get(org.jdesktop.swingx.JXCollapsiblePane.TOGGLE_ACTION));
         jShowStep3.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -827,7 +861,7 @@ public class Main extends javax.swing.JPanel {
         );
 
         jShowStep4.setSelected(true);
-        jShowStep4.setText("Show Step 4");
+        jShowStep4.setText("Hide Step 4");
         jShowStep4.addActionListener(this.jStep4.getActionMap().get(org.jdesktop.swingx.JXCollapsiblePane.TOGGLE_ACTION));
         jShowStep4.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1036,6 +1070,8 @@ public class Main extends javax.swing.JPanel {
 
         jLabel12.setText("wlcal RMS threshold");
 
+        jLabel13.setText("00");
+
         javax.swing.GroupLayout jPanel16Layout = new javax.swing.GroupLayout(jPanel16);
         jPanel16.setLayout(jPanel16Layout);
         jPanel16Layout.setHorizontalGroup(
@@ -1044,12 +1080,12 @@ public class Main extends javax.swing.JPanel {
                 .addContainerGap()
                 .addComponent(jLabel12)
                 .addGap(30, 30, 30)
-                .addComponent(jWlcalThreshold, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jWlcalThreshold, javax.swing.GroupLayout.DEFAULT_SIZE, 892, Short.MAX_VALUE)
                 .addContainerGap())
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel16Layout.createSequentialGroup()
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jLabel13)
-                .addGap(376, 376, 376))
+                .addGap(488, 488, 488))
         );
         jPanel16Layout.setVerticalGroup(
             jPanel16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1400,73 +1436,73 @@ public class Main extends javax.swing.JPanel {
 
     private void jShowStep1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jShowStep1ActionPerformed
         if(!this.jShowStep1.isSelected()) {
-            this.jShowStep1.setText("Hide Step 1");
+            this.jShowStep1.setText("Show Step 1");
             this.jStep2.setCollapsed(true);
             this.jShowStep2.setSelected(true);
-            this.jShowStep2.setText("Show Step 2");
+            this.jShowStep2.setText("Hide Step 2");
             this.jStep3.setCollapsed(true);
             this.jShowStep3.setSelected(true);
-            this.jShowStep3.setText("Show Step 3");
+            this.jShowStep3.setText("Hide Step 3");
             this.jStep4.setCollapsed(true);
             this.jShowStep4.setSelected(true);
-            this.jShowStep4.setText("Show Step 4");
+            this.jShowStep4.setText("Hide Step 4");
         }
         else {
-            this.jShowStep1.setText("Show Step 1");
+            this.jShowStep1.setText("Hide Step 1");
         }
     }//GEN-LAST:event_jShowStep1ActionPerformed
 
     private void jShowStep2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jShowStep2ActionPerformed
         if(!this.jShowStep2.isSelected()) {
-            this.jShowStep2.setText("Hide Step 2");
+            this.jShowStep2.setText("Show Step 2");
             this.jStep1.setCollapsed(true);
             this.jShowStep1.setSelected(true);
-            this.jShowStep1.setText("Show Step 1");
+            this.jShowStep1.setText("Hide Step 1");
             this.jStep3.setCollapsed(true);
             this.jShowStep3.setSelected(true);
-            this.jShowStep3.setText("Show Step 3");
+            this.jShowStep3.setText("Hide Step 3");
             this.jStep4.setCollapsed(true);
             this.jShowStep4.setSelected(true);
-            this.jShowStep4.setText("Show Step 4");
+            this.jShowStep4.setText("Hide Step 4");
         }
         else {
-            this.jShowStep2.setText("Show Step 1");
+            this.jShowStep2.setText("Hide Step 1");
         }
     }//GEN-LAST:event_jShowStep2ActionPerformed
 
     private void jShowStep3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jShowStep3ActionPerformed
         if(!this.jShowStep3.isSelected()) {
-            this.jShowStep3.setText("Hide Step 3");
+            this.jShowStep3.setText("Show Step 3");
             this.jStep1.setCollapsed(true);
             this.jShowStep1.setSelected(true);
-            this.jShowStep1.setText("Show Step 1");
+            this.jShowStep1.setText("Hide Step 1");
             this.jStep2.setCollapsed(true);
             this.jShowStep2.setSelected(true);
-            this.jShowStep2.setText("Show Step 2");
+            this.jShowStep2.setText("Hide Step 2");
             this.jStep4.setCollapsed(true);
             this.jShowStep4.setSelected(true);
-            this.jShowStep4.setText("Show Step 4");
+            this.jShowStep4.setText("Hide Step 4");
         }
         else {
-            this.jShowStep3.setText("Show Step 1");
+            this.jShowStep3.setText("Hide Step 1");
         }
     }//GEN-LAST:event_jShowStep3ActionPerformed
 
     private void jShowStep4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jShowStep4ActionPerformed
         if(!this.jShowStep4.isSelected()) {
-            this.jShowStep4.setText("Hide Step 4");
+            this.jShowStep4.setText("Show Step 4");
             this.jStep1.setCollapsed(true);
             this.jShowStep1.setSelected(true);
-            this.jShowStep1.setText("Show Step 1");
+            this.jShowStep1.setText("Hide Step 1");
             this.jStep2.setCollapsed(true);
             this.jShowStep2.setSelected(true);
-            this.jShowStep2.setText("Show Step 2");
+            this.jShowStep2.setText("Hide Step 2");
             this.jStep3.setCollapsed(true);
             this.jShowStep3.setSelected(true);
-            this.jShowStep3.setText("Show Step 3");
+            this.jShowStep3.setText("Hide Step 3");
         }
         else {
-            this.jShowStep4.setText("Show Step 1");
+            this.jShowStep4.setText("Hide Step 4");
         }
     }//GEN-LAST:event_jShowStep4ActionPerformed
 
