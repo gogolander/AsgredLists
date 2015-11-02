@@ -19,6 +19,7 @@ package unipd.astro;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
+import javax.swing.UIManager;
 
 /**
  *
@@ -31,6 +32,7 @@ public class AsgredLists {
      */
     public static void main(String[] args) {
         try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             Main mainFrame = new Main();
             JFrame frame = new JFrame();
             frame.setTitle("AsgredLists");
