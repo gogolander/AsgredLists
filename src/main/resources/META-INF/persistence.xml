@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="2.1" xmlns="http://xmlns.jcp.org/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd">
+  <persistence-unit name="persistence" transaction-type="RESOURCE_LOCAL">
+    <class>unipd.astro.entity.ImageEntity</class>
+    <class>unipd.astro.entity.StandardEntity</class>
+    <class>unipd.astro.entity.FlatfieldImage</class>
+    <class>unipd.astro.entity.LampImage</class>
+    <class>unipd.astro.entity.ObservationEntity</class>
+    <class>unipd.astro.entity.ScienceImage</class>
+    <class>unipd.astro.entity.StandardImage</class>
+  </persistence-unit>
+</persistence>

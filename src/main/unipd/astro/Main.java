@@ -28,8 +28,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -65,6 +63,7 @@ public class Main extends javax.swing.JPanel {
     private ImageList scombineList;
     private String irafPath = "";
     private Process python;
+    private PythonRunnable process;
     private BufferedReader fromPython;
     private BufferedWriter toPython;
 
@@ -115,7 +114,7 @@ public class Main extends javax.swing.JPanel {
             }
         });
         this.jTable1.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(new JComboBox(new String[]{"IMAGE", "FLATFIELD", "LAMP"})));
-       
+
         this.jTable2.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
@@ -141,7 +140,7 @@ public class Main extends javax.swing.JPanel {
                     }
 
                     setBackground(Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
-                }                
+                }
                 super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
                 super.setHorizontalAlignment(SwingConstants.CENTER);
                 return this;
@@ -1283,21 +1282,15 @@ public class Main extends javax.swing.JPanel {
     }//GEN-LAST:event_jImcopyEndMouseWheelMoved
 
     private void jSendActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jSendActionPerformed
-        if (python.isAlive()) {
-            try {
-                String message = this.jCommand.getText() + "\n";
-                this.jConsole.append("> " + message);
-                toPython.write(message);
-                toPython.flush();
-                this.jConsole.append("> " + fromPython.readLine() + "\n");
-                if (message.equals("quit\n") || message.equals("break\n")) {
-                    toPython.close();
-                    fromPython.close();
-                }
-                this.jCommand.setText("");
-            } catch (IOException ex) {
-                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+        if (process.getProcess().isAlive()) {
+            String message = this.jCommand.getText() + "\n";
+            this.jConsole.append("> " + message);
+            process.toPython(message);
+            this.jConsole.append("> " + process.fromPython() + "\n");
+            if (message.equals("quit\n") || message.equals("break\n")) {
+                process.dispose();
             }
+            this.jCommand.setText("");
         }
     }//GEN-LAST:event_jSendActionPerformed
 
@@ -1312,39 +1305,43 @@ public class Main extends javax.swing.JPanel {
             this.generateAllLists();
             switch (this.selectedAction) {
                 case 0:
-                Logger.getLogger(Main.class.getName()).log(Level.INFO, "Lists created.");
-                JOptionPane.showMessageDialog(this, "Lists have been created correctly.", "All done", JOptionPane.INFORMATION_MESSAGE);
-                break;
+                    Logger.getLogger(Main.class.getName()).log(Level.INFO, "Lists created.");
+                    JOptionPane.showMessageDialog(this, "Lists have been created correctly.", "All done", JOptionPane.INFORMATION_MESSAGE);
+                    break;
                 case 1:
-                this.writeOneGiantScript();
-                Logger.getLogger(Main.class.getName()).log(Level.INFO, "Lists and one script created.");
-                JOptionPane.showMessageDialog(this, "Lists and the PyRAF script have been created correctly.", "All done", JOptionPane.INFORMATION_MESSAGE);
-                break;
+                    this.writeOneGiantScript();
+                    Logger.getLogger(Main.class.getName()).log(Level.INFO, "Lists and one script created.");
+                    JOptionPane.showMessageDialog(this, "Lists and the PyRAF script have been created correctly.", "All done", JOptionPane.INFORMATION_MESSAGE);
+                    break;
                 case 2:
-                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, "Unauthorized access to option \"Create lists and one script for each object\"");
-                JOptionPane.showMessageDialog(this, "Not implemented yet! How did you get here?!", "Nothing done", JOptionPane.WARNING_MESSAGE);
-                break;
+                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, "Unauthorized access to option \"Create lists and one script for each object\"");
+                    JOptionPane.showMessageDialog(this, "Not implemented yet! How did you get here?!", "Nothing done", JOptionPane.WARNING_MESSAGE);
+                    TableModel data = this.jTable2.getModel();
+                    for (int i = 0; i < data.getRowCount(); i++) {
+                        for (int j = 0; j < data.getRowCount(); j++) {
+                            if (i != j) {
+                                data.setValueAt(false, j, 0);
+                            }
+                        }
+
+                    }
+                    break;
                 case 3:
-                this.writeOneGiantScript();
-                this.jTabbedPane1.setSelectedIndex(1);
-                this.jConsole.setText("C:\\python27\\python.exe " + this.basePath + File.separator + "execPython.py\n");
+                    this.writeOneGiantScript();
+                    this.jTabbedPane1.setSelectedIndex(1);
+                    this.jConsole.setText("C:\\python27\\python.exe " + this.basePath + File.separator + "execPython.py\n");
 
-                if (python != null && python.isAlive()) {
-                    python.destroy();
-                }
+                    process = new PythonRunnable();
+                    process.run();                    
+                    Thread.sleep(100);
+                    if (process.getProcess().getInputStream().available() != 0) {
+                        byte[] buffer = new byte[process.getProcess().getInputStream().available()];
+                        process.getProcess().getInputStream().read(buffer);
+                        this.jConsole.append("\n> " + (new String(buffer)).trim().replaceAll("\n", "\n> ") + "\n");
+                    }
 
-                python = Runtime.getRuntime().exec("C:\\python27\\python.exe");// + this.basePath + File.separator + "execPython.py");
-                fromPython = new BufferedReader(new InputStreamReader(python.getInputStream()));
-                toPython = new BufferedWriter(new OutputStreamWriter(python.getOutputStream()));
-                Thread.sleep(100);
-                if (python.getInputStream().available() != 0) {
-                    byte[] buffer = new byte[python.getInputStream().available()];
-                    python.getInputStream().read(buffer);
-                    this.jConsole.append("\n> " + (new String(buffer)).trim().replaceAll("\n", "\n> ") + "\n");
-                }
-
-                Logger.getLogger(Main.class.getName()).log(Level.INFO, "Lists and one script created. The script was executed.");
-                JOptionPane.showMessageDialog(this, "Lists and the PyRAF script have been created correctly. The script was executed.", "All done", JOptionPane.INFORMATION_MESSAGE);
+                    Logger.getLogger(Main.class.getName()).log(Level.INFO, "Lists and one script created. The script was executed.");
+                    JOptionPane.showMessageDialog(this, "Lists and the PyRAF script have been created correctly. The script was executed.", "All done", JOptionPane.INFORMATION_MESSAGE);
             }
         } catch (Exception ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
@@ -1367,7 +1364,7 @@ public class Main extends javax.swing.JPanel {
     private void jRadioListsOnlyActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jRadioListsOnlyActionPerformed
         this.selectedAction = 0;
     }//GEN-LAST:event_jRadioListsOnlyActionPerformed
-        
+
     private void jSolveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jSolveActionPerformed
         this.imageList.fixLamps();
         this.imageList.fixStandards();
@@ -1379,16 +1376,16 @@ public class Main extends javax.swing.JPanel {
         int y = this.jTable1.getSelectedColumn();
         switch (y) {
             case 2:
-            this.imageList.get(x).setType((String) this.jTable1.getValueAt(x, y));
-            break;
+                this.imageList.get(x).setType((String) this.jTable1.getValueAt(x, y));
+                break;
             case 3:
-            this.imageList.get(x).setIsStandard((Boolean) this.jTable1.getValueAt(x, y));
-            break;
+                this.imageList.get(x).setIsStandard((Boolean) this.jTable1.getValueAt(x, y));
+                break;
             case 5:
-            this.imageList.get(x).setLampName((String) this.jTable1.getValueAt(x, y));
-            break;
+                this.imageList.get(x).setLampName((String) this.jTable1.getValueAt(x, y));
+                break;
             case 6:
-            this.imageList.get(x).setStandardName((String) this.jTable1.getValueAt(x, y));
+                this.imageList.get(x).setStandardName((String) this.jTable1.getValueAt(x, y));
         }
         this.jTable1.clearSelection();
     }//GEN-LAST:event_jTable1PropertyChange
@@ -1415,9 +1412,10 @@ public class Main extends javax.swing.JPanel {
 
     private void jLoadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jLoadActionPerformed
         try {
-            if(this.jPath.equals(""))
+            if (this.jPath.getText().equals("")) {
                 return;
-            
+            }
+
             if (this.jPath.getText().startsWith("file://")) {
                 this.jPath.setText(this.jPath.getText().replace("file://", "").trim());
                 this.basePath = this.jPath.getText().replace("fits_list", "");
@@ -1435,7 +1433,7 @@ public class Main extends javax.swing.JPanel {
     }//GEN-LAST:event_jLoadActionPerformed
 
     private void jShowStep1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jShowStep1ActionPerformed
-        if(!this.jShowStep1.isSelected()) {
+        if (!this.jShowStep1.isSelected()) {
             this.jShowStep1.setText("Show Step 1");
             this.jStep2.setCollapsed(true);
             this.jShowStep2.setSelected(true);
@@ -1446,14 +1444,13 @@ public class Main extends javax.swing.JPanel {
             this.jStep4.setCollapsed(true);
             this.jShowStep4.setSelected(true);
             this.jShowStep4.setText("Hide Step 4");
-        }
-        else {
+        } else {
             this.jShowStep1.setText("Hide Step 1");
         }
     }//GEN-LAST:event_jShowStep1ActionPerformed
 
     private void jShowStep2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jShowStep2ActionPerformed
-        if(!this.jShowStep2.isSelected()) {
+        if (!this.jShowStep2.isSelected()) {
             this.jShowStep2.setText("Show Step 2");
             this.jStep1.setCollapsed(true);
             this.jShowStep1.setSelected(true);
@@ -1464,14 +1461,13 @@ public class Main extends javax.swing.JPanel {
             this.jStep4.setCollapsed(true);
             this.jShowStep4.setSelected(true);
             this.jShowStep4.setText("Hide Step 4");
-        }
-        else {
+        } else {
             this.jShowStep2.setText("Hide Step 1");
         }
     }//GEN-LAST:event_jShowStep2ActionPerformed
 
     private void jShowStep3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jShowStep3ActionPerformed
-        if(!this.jShowStep3.isSelected()) {
+        if (!this.jShowStep3.isSelected()) {
             this.jShowStep3.setText("Show Step 3");
             this.jStep1.setCollapsed(true);
             this.jShowStep1.setSelected(true);
@@ -1482,14 +1478,13 @@ public class Main extends javax.swing.JPanel {
             this.jStep4.setCollapsed(true);
             this.jShowStep4.setSelected(true);
             this.jShowStep4.setText("Hide Step 4");
-        }
-        else {
+        } else {
             this.jShowStep3.setText("Hide Step 1");
         }
     }//GEN-LAST:event_jShowStep3ActionPerformed
 
     private void jShowStep4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jShowStep4ActionPerformed
-        if(!this.jShowStep4.isSelected()) {
+        if (!this.jShowStep4.isSelected()) {
             this.jShowStep4.setText("Show Step 4");
             this.jStep1.setCollapsed(true);
             this.jShowStep1.setSelected(true);
@@ -1500,13 +1495,21 @@ public class Main extends javax.swing.JPanel {
             this.jStep3.setCollapsed(true);
             this.jShowStep3.setSelected(true);
             this.jShowStep3.setText("Hide Step 3");
-        }
-        else {
+        } else {
             this.jShowStep4.setText("Hide Step 4");
         }
     }//GEN-LAST:event_jShowStep4ActionPerformed
 
     private void jStep2NextActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jStep2NextActionPerformed
+//        for(Image image : imageList) {
+//            ImageEntity node = new ImageEntity();
+//            node.setFileName(image.getFileName());
+//            node.setTargetName(image.getTargetName());
+//            node.setExpTime(image.getExpTime());
+//            node.setType(image.getType());
+//            node.setIsStandard(image.isStandard());
+//            imagesRepository.save(node);
+//        }
         this.jShowStep3.doClick();
         this.updateTasksTable();
     }//GEN-LAST:event_jStep2NextActionPerformed
@@ -1519,19 +1522,19 @@ public class Main extends javax.swing.JPanel {
             String message = "";
             switch (y) {
                 case 0:
-                if (selected.containsConflicts()) {
-                    message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, 1) + " contain conflicts: this could lead to errors in the next step.\nWe suggest you either to return to STEP 2 and solve them or to leave this target disabled.\nDo you want to enable it anyway?";
-                }
-                break;
+                    if (selected.containsConflicts()) {
+                        message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, 1) + " contain conflicts: this could lead to errors in the next step.\nWe suggest you either to return to STEP 2 and solve them or to leave this target disabled.\nDo you want to enable it anyway?";
+                    }
+                    break;
                 case 3:
-                if (selected.lampsMissing()) {
-                    message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, 1) + " are missing lamps: this could lead to errors in the next step.\nWe suggest you either to return to STEP 2 and solve them or to leave wlcal for this target disabled.\nDo you want to enable it anyway?";
-                }
-                break;
+                    if (selected.lampsMissing()) {
+                        message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, 1) + " are missing lamps: this could lead to errors in the next step.\nWe suggest you either to return to STEP 2 and solve them or to leave wlcal for this target disabled.\nDo you want to enable it anyway?";
+                    }
+                    break;
                 case 4:
-                if (selected.standardsMissing()) {
-                    message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, 1) + " are missing standard stars: this could lead to errors in the next step.\nWe suggest you either to return to STEP 2 and solve them or to leave fcal for this target disabled.\nDo you want to enable this target anyway?";
-                }
+                    if (selected.standardsMissing()) {
+                        message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, 1) + " are missing standard stars: this could lead to errors in the next step.\nWe suggest you either to return to STEP 2 and solve them or to leave fcal for this target disabled.\nDo you want to enable this target anyway?";
+                    }
             }
             if (!message.equals("") && (boolean) this.jTable2.getModel().getValueAt(x, y)) {
                 if (JOptionPane.showConfirmDialog(this, message, "Wait!", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) {
@@ -1567,7 +1570,7 @@ public class Main extends javax.swing.JPanel {
     private void jStep3NextActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jStep3NextActionPerformed
         this.jShowStep4.doClick();
     }//GEN-LAST:event_jStep3NextActionPerformed
-    
+
     public void parseFile(String filePath) throws FileNotFoundException, IOException {
         String line = "";
         imageList = new ImageList();
@@ -1632,16 +1635,16 @@ public class Main extends javax.swing.JPanel {
         if (imageList == null || imageList.size() == 0) {
             return;
         }
-        DefaultTableModel model = (DefaultTableModel)this.jTable2.getModel();
+        DefaultTableModel model = (DefaultTableModel) this.jTable2.getModel();
         if (model.getRowCount() > 0) {
             for (int i = model.getRowCount() - 1; i > -1; i--) {
                 model.removeRow(i);
             }
         }
-        
+
         for (String target : imageList.generateTargetsList()) {
             ImageList temp = imageList.getImagesWhoseTargetIs(target);
-            Object[] row = new Object[] { !temp.containsConflicts(), target, true, !temp.lampsMissing(), !temp.standardsMissing(), true, true, true, true};
+            Object[] row = new Object[]{!temp.containsConflicts(), target, true, !temp.lampsMissing(), !temp.standardsMissing(), true, true, true, true};
             model.addRow(row);
         }
         this.jTable2.setModel(model);
@@ -1815,6 +1818,22 @@ public class Main extends javax.swing.JPanel {
         }
     }
 
+    public void writeScriptForTarget(String targetName) {
+        //TODO: Optimization
+        PrintWriter writer = null;
+        try {
+            ImageList objList = imageList.getImagesWhoseTargetIs(targetName);
+            Image standard = imageList.getStandardForTarget(targetName);
+
+        } catch (Exception ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        if (writer != null) {
+            writer.close();
+        }
+    }
+
     public void writeOneGiantScript() {
         PrintWriter writer = null;
         try {
@@ -1827,7 +1846,7 @@ public class Main extends javax.swing.JPanel {
                 writer.println("os.chdir(\"" + this.irafPath + "\")");
             }
             writer.println("from pyraf import iraf");
-            writer.println("iraf.epar(\"display\")");
+            writer.println("iraf.epar(\"display\") #TODO: remove it");
             // exec prered2
             writer.println("iraf.asgred.prered2(flat=\"list_flat\", comp=\"list_lamps\", object=\"list_obj\", order=11)");
             // exec wlcal
@@ -1985,6 +2004,6 @@ public class Main extends javax.swing.JPanel {
     // End of variables declaration//GEN-END:variables
 
     private void myInitComponents() {
-        
+
     }
 }

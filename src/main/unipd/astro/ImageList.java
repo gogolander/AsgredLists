@@ -323,4 +323,26 @@ public class ImageList extends ArrayList<Image> {
         }
         return false;
     }
+
+    public Image getStandardForTarget(String targetName) {
+        for (Image image : getImagesWhoseTargetIs(targetName)) {
+            for (Image standard : this) {
+                if (standard.isStandard() && standard.getFileName().equals(image.getStandardName())) {
+                    return image;
+                }
+            }
+        }
+        return null;
+    }
+
+    public ImageList getLampsForTarget(String targetName) {
+        ImageList lamps = (ImageList) getLamps();
+        ImageList temp = new ImageList();
+        for (Image image : getImagesWhoseTargetIs(targetName)) {
+            if (!temp.contains(lamps.getImageWhoseFileNameIs(image.getLampName()))) {
+                temp.add(lamps.getImageWhoseFileNameIs(image.getLampName()));
+            }
+        }
+        return temp;
+    }
 }

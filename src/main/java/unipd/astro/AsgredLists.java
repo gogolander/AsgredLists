@@ -16,8 +16,11 @@
  */
 package unipd.astro;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import javax.swing.JFrame;
 import javax.swing.UIManager;
 
@@ -26,14 +29,27 @@ import javax.swing.UIManager;
  * @author Vincenzo Abate <gogolander@gmail.com>
  */
 public class AsgredLists {
-
+	//private static SplashScreen splashScreen;
+	private static Logger log = Logger.getLogger(AsgredLists.class.getName());
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
         try {
+        	SplashScreen.getInstance().setProgress("Creating standard.list...", 0);
             UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-            Main mainFrame = new Main();
+            log.info("Does ${user.home}/standard.list exist?");
+    		String path = Paths.get(System.getProperty("user.home"), "standard.list").toString();
+    		File atlas = new File(path);
+    		if(!atlas.exists()) {
+    			log.info("No. Copying the default one to the home...");
+    			Files.copy(Main.class.getClassLoader().getResourceAsStream("standard.list"), Paths.get(System.getProperty("user.home"), "standard.list"));
+    			log.info("Copied.");
+    		}
+    		else log.info("Yes. Nothing to do.");
+    		log.info("Done.");
+    		Main mainFrame = new Main();
+            mainFrame.initDatabase();
             JFrame frame = new JFrame();
             frame.setTitle("AsgredLists");
             frame.setResizable(false);
@@ -41,8 +57,9 @@ public class AsgredLists {
             frame.add(mainFrame);
             frame.pack();
             frame.setVisible(true);
+            SplashScreen.getInstance().close();
         } catch (Exception ex) {
-            Logger.getLogger(AsgredLists.class.getName()).log(Level.SEVERE, null, ex);
+        	Logger.getLogger(AsgredLists.class.getName()).fatal(ex.getMessage(), ex);
         }
     }
 }
