@@ -21,61 +21,115 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PipedOutputStream;
+import java.lang.ProcessBuilder.Redirect;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.swing.SwingUtilities;
+
+import unipd.astro.service.DataService;
 
 /**
  *
  * @author Enzo
  */
-public class PythonRunnable implements Runnable {
-    private Process python;
-    private BufferedReader getResponse;
-    private BufferedWriter passCommand;
-    @Override
-    public void run() {
-        try {
-            python = Runtime.getRuntime().exec("C:\\python27\\python.exe");// + this.basePath + File.separator + "execPython.py");
-            passCommand = new BufferedWriter(new OutputStreamWriter(python.getOutputStream()));
-            getResponse = new BufferedReader(new InputStreamReader(python.getInputStream()));
-        } catch (IOException ex) {
-            Logger.getLogger(PythonRunnable.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
+public class PythonRunnable {
+	private Process python;
+	private BufferedReader getResponse;
+	private BufferedReader getError;
+	private BufferedWriter passCommand;
 
-    public Process getProcess() {
-        return python;
-    }
-    
-    public String fromPython() {
-        if(getResponse != null) {
-            try {
-                return getResponse.readLine();
-            } catch (IOException ex) {
-                Logger.getLogger(PythonRunnable.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        return "";
-    }
+	public void mimeWlcal(final String scriptPath, final AsyncCallback callback) {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					System.setProperty("user.dir", DataService.getInstance().getProperty("iraf.home"));
+					ProcessBuilder pr = new ProcessBuilder("python", scriptPath);
+					python = pr.start();
+					passCommand = new BufferedWriter(new OutputStreamWriter(python.getOutputStream()));
+					getResponse = new BufferedReader(new InputStreamReader(python.getInputStream()));
+					getError = new BufferedReader(new InputStreamReader(python.getErrorStream()));
+					while (python.isAlive()) {
+						while (!getResponse.ready() && !getError.ready() && python.isAlive())
+							Thread.sleep(50);
+						while (getResponse.ready())
+							callback.OnResponseReceived(getResponse.readLine().trim());
+						while (getError.ready())
+							callback.OnErrorReceived(getError.readLine().trim());
+					}
+					callback.OnResponseReceived("terminated");
+					dispose();
+				} catch (Exception ex) {
+					Logger.getLogger(PythonRunnable.class.getName()).log(Level.SEVERE, null, ex);
+				}
+			}
+		}).start();
+	}
 
-    public void toPython(String message) {
-        if(passCommand != null) {
-            try {
-                passCommand.write(message);
-                passCommand.flush();
-            } catch (IOException ex) {
-                Logger.getLogger(PythonRunnable.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-    }
-    
-    public void dispose() {
-        try {
-            this.passCommand.close();
-            this.getResponse.close();
-            this.python.destroy();
-        } catch (IOException ex) {
-            Logger.getLogger(PythonRunnable.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
+	public void execCommand(final String command, final AsyncCallback callback) {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					System.setProperty("user.dir", DataService.getInstance().getProperty("iraf.home"));
+					ProcessBuilder pr = new ProcessBuilder(command.trim().split(" "));
+					python = pr.start();
+					passCommand = new BufferedWriter(new OutputStreamWriter(python.getOutputStream()));
+					getResponse = new BufferedReader(new InputStreamReader(python.getInputStream()));
+					getError = new BufferedReader(new InputStreamReader(python.getErrorStream()));
+					while (python.isAlive()) {
+						while (!(getResponse.ready() || getError.ready()) && python.isAlive())
+							Thread.sleep(50);
+						while (getResponse.ready()) {
+							String response = getResponse.readLine();
+							callback.OnResponseReceived(response);
+						}
+						while (getError.ready())
+							callback.OnErrorReceived(getError.readLine().trim());
+					}
+					callback.OnResponseReceived("terminated");
+				} catch (Exception ex) {
+					Logger.getLogger(PythonRunnable.class.getName()).log(Level.SEVERE, null, ex);
+				}
+			}
+		}).start();
+	}
+
+	public boolean isAlive() {
+		return (python != null && python.isAlive());
+	}
+
+	public Process getProcess() {
+		return python;
+	}
+
+	public void toPython(final String message) {
+		if (passCommand != null) {
+			try {
+				if (python.isAlive()) {
+					passCommand.write(message + "\n");
+					passCommand.flush();
+				} else
+					throw new Exception("process not running.");
+			} catch (Exception ex) {
+				Logger.getLogger(PythonRunnable.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
+	}
+
+	public void dispose() {
+		try {
+			this.passCommand.close();
+			this.passCommand = null;
+			this.getResponse.close();
+			this.getResponse = null;
+			this.python.destroy();
+			this.python = null;
+		} catch (IOException ex) {
+			Logger.getLogger(PythonRunnable.class.getName()).log(Level.SEVERE, null, ex);
+		}
+	}
 }

@@ -20,7 +20,6 @@ import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 
 import javax.swing.filechooser.FileFilter;
@@ -30,8 +29,11 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.file.Paths;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -47,6 +49,7 @@ import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
+import javax.swing.text.DefaultCaret;
 
 import unipd.astro.entity.FlatfieldImage;
 import unipd.astro.entity.ImageEntity;
@@ -59,6 +62,10 @@ import unipd.astro.service.DataService;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.GroupLayout.Alignment;
+import javax.swing.GroupLayout;
+import javax.swing.LayoutStyle.ComponentPlacement;
 
 /**
  *
@@ -71,14 +78,12 @@ public class Main extends javax.swing.JPanel {
 	private List<ImageEntity> images; // used just for jTable1 cell renderer
 										// purposes
 	private String basePath;
-	private Process python;
 	private PythonRunnable process;
-	private BufferedReader fromPython;
-	private BufferedWriter toPython;
 
 	public Main() {
 		initComponents();
 		dataService = DataService.getInstance();
+		
 		this.jIrafHome.setText(dataService.getProperty("iraf.home"));
 		this.jBackgroundStart.setValue(Integer.valueOf(dataService.getProperty("iraf.bg.col1")));
 		this.jBackgroundEnd.setValue(Integer.valueOf(dataService.getProperty("iraf.bg.col2")));
@@ -231,6 +236,7 @@ public class Main extends javax.swing.JPanel {
 		jLoad1 = new javax.swing.JButton();
 		jExplore1 = new javax.swing.JButton();
 		jShowStep1 = new javax.swing.JToggleButton();
+		jShowStep1.setSelected(true);
 		groupSteps.add(jShowStep1);
 		jStep2 = new org.jdesktop.swingx.JXCollapsiblePane();
 		jScrollPane1 = new javax.swing.JScrollPane();
@@ -262,6 +268,7 @@ public class Main extends javax.swing.JPanel {
 		jStep4 = new org.jdesktop.swingx.JXCollapsiblePane();
 		jPanel12 = new javax.swing.JPanel();
 		jRadioListsOnly = new javax.swing.JRadioButton();
+		jRadioListsOnly.setSelected(true);
 		jRadioListsAndOneScript = new javax.swing.JRadioButton();
 		jRadioListsAndMultipleScripts = new javax.swing.JRadioButton();
 		jRadioAllAndExec = new javax.swing.JRadioButton();
@@ -706,8 +713,6 @@ public class Main extends javax.swing.JPanel {
 												javax.swing.GroupLayout.DEFAULT_SIZE,
 												javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
 						.addContainerGap()));
-
-		jShowStep2.setSelected(true);
 		jShowStep2.setText("Go to step 2");
 		this.jShowStep2
 				.addActionListener(this.jStep2.getActionMap().get(org.jdesktop.swingx.JXCollapsiblePane.TOGGLE_ACTION));
@@ -790,8 +795,6 @@ public class Main extends javax.swing.JPanel {
 						.addComponent(jStep3Next, javax.swing.GroupLayout.PREFERRED_SIZE,
 								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
 						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
-
-		jShowStep3.setSelected(true);
 		jShowStep3.setText("Go to step 3");
 		jShowStep3
 				.addActionListener(this.jStep3.getActionMap().get(org.jdesktop.swingx.JXCollapsiblePane.TOGGLE_ACTION));
@@ -901,8 +904,6 @@ public class Main extends javax.swing.JPanel {
 								.addComponent(jDoIt, javax.swing.GroupLayout.PREFERRED_SIZE, 52,
 										javax.swing.GroupLayout.PREFERRED_SIZE))
 						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
-
-		jShowStep4.setSelected(true);
 		jShowStep4.setText("Go to step 4");
 		jShowStep4
 				.addActionListener(this.jStep4.getActionMap().get(org.jdesktop.swingx.JXCollapsiblePane.TOGGLE_ACTION));
@@ -1151,43 +1152,49 @@ public class Main extends javax.swing.JPanel {
 						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 
 		jSave.setText("Save as Default");
+		
+		JButton btnRestoreDefaults = new JButton("Restore Defaults");
+		btnRestoreDefaults.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				btnRestoreDefaultsMouseClicked(e);
+			}
+		});
 
 		javax.swing.GroupLayout jAdvancedOptionsPanelLayout = new javax.swing.GroupLayout(jAdvancedOptionsPanel);
-		jAdvancedOptionsPanel.setLayout(jAdvancedOptionsPanelLayout);
 		jAdvancedOptionsPanelLayout.setHorizontalGroup(
-				jAdvancedOptionsPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-						.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup().addContainerGap()
-								.addGroup(jAdvancedOptionsPanelLayout
-										.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-										.addComponent(jPanel14, javax.swing.GroupLayout.DEFAULT_SIZE,
-												javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(jPanel15, javax.swing.GroupLayout.DEFAULT_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(jPanel16, javax.swing.GroupLayout.DEFAULT_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(jPanel17, javax.swing.GroupLayout.DEFAULT_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addGroup(javax.swing.GroupLayout.Alignment.TRAILING,
-										jAdvancedOptionsPanelLayout.createSequentialGroup()
-												.addGap(0, 0, Short.MAX_VALUE).addComponent(jSave)))
-						.addContainerGap()));
+			jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup()
+					.addContainerGap()
+					.addGroup(jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
+						.addComponent(jPanel14, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
+						.addComponent(jPanel15, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
+						.addComponent(jPanel16, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
+						.addComponent(jPanel17, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
+						.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup()
+							.addComponent(btnRestoreDefaults)
+							.addGap(18)
+							.addComponent(jSave)))
+					.addContainerGap())
+		);
 		jAdvancedOptionsPanelLayout.setVerticalGroup(
-				jAdvancedOptionsPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-						.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup().addContainerGap()
-								.addComponent(jPanel17, javax.swing.GroupLayout.PREFERRED_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-								.addGap(18, 18, 18)
-								.addComponent(jPanel16, javax.swing.GroupLayout.PREFERRED_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addGap(18, 18, 18)
-						.addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addGap(18, 18, 18)
-						.addComponent(jPanel14, javax.swing.GroupLayout.PREFERRED_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED,
-								javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE).addComponent(jSave)
-						.addContainerGap()));
+			jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup()
+					.addContainerGap()
+					.addComponent(jPanel17, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addGap(18)
+					.addComponent(jPanel16, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addGap(18)
+					.addComponent(jPanel15, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addGap(18)
+					.addComponent(jPanel14, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED, 59, Short.MAX_VALUE)
+					.addGroup(jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.BASELINE)
+						.addComponent(jSave)
+						.addComponent(btnRestoreDefaults))
+					.addContainerGap())
+		);
+		jAdvancedOptionsPanel.setLayout(jAdvancedOptionsPanelLayout);
 
 		jTabbedPane1.addTab("Advanced Options for PyRAF tasks", jAdvancedOptionsPanel);
 
@@ -1205,7 +1212,7 @@ public class Main extends javax.swing.JPanel {
 								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
 						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 	}// </editor-fold>//GEN-END:initComponents
-
+	
 	private void jSaveMouseClicked(MouseEvent e) {
 		Properties properties = new Properties();
 		try {
@@ -1217,10 +1224,21 @@ public class Main extends javax.swing.JPanel {
 			properties.setProperty("iraf.wlcal.rms_threshold", String.valueOf(this.jWlcalThreshold.getValue()));
 			properties.store(new FileOutputStream(
 					Paths.get(System.getProperty("user.home"), "asgredLists.properties").toString()), "");
+			JOptionPane.showMessageDialog(this, "Saved.", "All done", JOptionPane.INFORMATION_MESSAGE);
 		} catch (IOException ex) {
 			log.error(ex);
 			ex.printStackTrace();
 		}
+	}
+	
+	private void btnRestoreDefaultsMouseClicked(MouseEvent e) {
+		dataService.restoreProperties();
+		this.jIrafHome.setText(dataService.getProperty("iraf.home"));
+		this.jBackgroundStart.setValue(Integer.valueOf(dataService.getProperty("iraf.bg.col1")));
+		this.jBackgroundEnd.setValue(Integer.valueOf(dataService.getProperty("iraf.bg.col2")));
+		this.jImcopyStart.setValue(Integer.valueOf(dataService.getProperty("iraf.imcopy.start")));
+		this.jImcopyEnd.setValue(Integer.valueOf(dataService.getProperty("iraf.imcopy.end")));
+		this.jWlcalThreshold.setValue(Integer.valueOf(dataService.getProperty("iraf.wlcal.rms_threshold")));
 	}
 
 	private void jSelectIrafActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jSelectIrafActionPerformed
@@ -1286,16 +1304,48 @@ public class Main extends javax.swing.JPanel {
 	}// GEN-LAST:event_jImcopyEndMouseWheelMoved
 
 	private void jSendActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jSendActionPerformed
-		if (process.getProcess().isAlive()) {
-			String message = this.jCommand.getText() + "\n";
-			this.jConsole.append("> " + message);
-			process.toPython(message);
-			this.jConsole.append("> " + process.fromPython() + "\n");
-			if (message.equals("quit\n") || message.equals("break\n")) {
-				process.dispose();
+		String message = this.jCommand.getText();
+		this.jConsole.append(">>\t" + message + "\n");
+		((DefaultCaret)jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+		if(process == null || !process.isAlive()) {
+			process = new PythonRunnable();
+			if(message.equals("mime wlcal")) {
+				message = this.getClass().getClassLoader().getResource("mimeWlcal.py").getPath();
+				process.mimeWlcal(message, new AsyncCallback() {
+					@Override
+					public void OnResponseReceived(String response) {
+						jConsole.append("<<\t" + response + "\n");
+						try {
+							Float.parseFloat(response);
+							process.toPython("accept");
+						}
+						catch (NumberFormatException ex) {
+							process.toPython("random");
+						}
+					}
+	
+					@Override
+					public void OnErrorReceived(String error) {
+						jConsole.append("<<\tERROR: " + error + "\n");
+					}
+				});
 			}
-			this.jCommand.setText("");
+			else
+				process.execCommand(message, new AsyncCallback() {
+					@Override
+					public void OnResponseReceived(String response) {
+						jConsole.append("<<\t" + response + "\n");
+					}
+	
+					@Override
+					public void OnErrorReceived(String error) {
+						jConsole.append("<<\tERROR: " + error + "\n");
+					}
+			});
 		}
+		else
+			process.toPython(message);
+		this.jCommand.setText("");
 	}// GEN-LAST:event_jSendActionPerformed
 
 	private void jCommandKeyTyped(java.awt.event.KeyEvent evt) {// GEN-FIRST:event_jCommandKeyTyped
@@ -1335,21 +1385,11 @@ public class Main extends javax.swing.JPanel {
 				this.writeOneGiantScript();
 				log.info("Lists and script generated. Executing it...");
 				this.jTabbedPane1.setSelectedIndex(1);
-				this.jConsole.setText("C:\\python27\\python.exe " + this.basePath + File.separator + "execPython.py\n");
-
-				process = new PythonRunnable();
-				process.run();
-				Thread.sleep(100);
-				if (process.getProcess().getInputStream().available() != 0) {
-					byte[] buffer = new byte[process.getProcess().getInputStream().available()];
-					process.getProcess().getInputStream().read(buffer);
-					this.jConsole.append("\n> " + (new String(buffer)).trim().replaceAll("\n", "\n> ") + "\n");
-				}
-
+				this.jConsole.setText("Ready to execute: insert a command below to execute it...\n");				
 				log.info("Done.");
 				JOptionPane.showMessageDialog(this,
 						"Lists and the PyRAF script have been created correctly. The script was executed.", "All done",
-						JOptionPane.INFORMATION_MESSAGE);
+						JOptionPane.INFORMATION_MESSAGE);				
 			}
 		} catch (Exception ex) {
 			log.fatal(ex.getMessage(), ex);
@@ -1375,6 +1415,7 @@ public class Main extends javax.swing.JPanel {
 
 	private void jSolveActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jSolveActionPerformed
 		log.info("Attempting to fix conflicts...");
+		int lamp_fixed = 0, standard_fixed = 0;
 		// FIX LAMPS FIRST
 		String lampFileName = "";
 		int rowLastLamp = 0;
@@ -1386,6 +1427,7 @@ public class Main extends javax.swing.JPanel {
 					if (((String) model.getValueAt(i, 2)).equals("IMAGE")) {
 						if (((String) model.getValueAt(i, 5)).isEmpty()) {
 							model.setValueAt(lampFileName, i, 5);
+							lamp_fixed++;
 						}
 					}
 				}
@@ -1397,6 +1439,7 @@ public class Main extends javax.swing.JPanel {
 			if (((String) model.getValueAt(i, 2)).equals("IMAGE")) {
 				if (((String) model.getValueAt(i, 5)).isEmpty()) {
 					model.setValueAt(lampFileName, i, 5);
+					lamp_fixed++;
 				}
 			}
 		}
@@ -1410,6 +1453,7 @@ public class Main extends javax.swing.JPanel {
 					if ("IMAGE".equals(model.getValueAt(i, 2)) && (Boolean) model.getValueAt(i, 3) == false) {
 						if ("".equals(model.getValueAt(i, 6))) {
 							model.setValueAt(standardFileName, i, 6);
+							standard_fixed++;
 						}
 					}
 				}
@@ -1421,12 +1465,15 @@ public class Main extends javax.swing.JPanel {
 			if ("IMAGE".equals(model.getValueAt(i, 2)) && (Boolean) model.getValueAt(i, 3) == false) {
 				if ("".equals(model.getValueAt(i, 6))) {
 					model.setValueAt(standardFileName, i, 6);
+					standard_fixed++;
 				}
 			}
 		}
 
 		this.jTable1.updateUI();
 		log.info("Done.");
+		JOptionPane.showMessageDialog(this, String.valueOf(lamp_fixed+standard_fixed) + " conflicts solved (" + String.valueOf(lamp_fixed) +
+				" lamps; " + String.valueOf(standard_fixed) + " standards).");
 	}// GEN-LAST:event_jSolveActionPerformed
 
 	private void jTable1PropertyChange(java.beans.PropertyChangeEvent evt) {// GEN-FIRST:event_jTable1PropertyChange
@@ -1488,16 +1535,16 @@ public class Main extends javax.swing.JPanel {
 	}// GEN-LAST:event_jLoadActionPerformed
 
 	private void jShowStep1ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jShowStep1ActionPerformed
-		if (!this.jShowStep1.isSelected()) {
+		if (this.jShowStep1.isSelected()) {
 			this.jShowStep1.setText("Showing step 1");
 			this.jStep2.setCollapsed(true);
-			this.jShowStep2.setSelected(true);
+			this.jShowStep2.setSelected(false);
 			this.jShowStep2.setText("Go to step 2");
 			this.jStep3.setCollapsed(true);
-			this.jShowStep3.setSelected(true);
+			this.jShowStep3.setSelected(false);
 			this.jShowStep3.setText("Go to step 3");
 			this.jStep4.setCollapsed(true);
-			this.jShowStep4.setSelected(true);
+			this.jShowStep4.setSelected(false);
 			this.jShowStep4.setText("Go to step 4");
 		} else {
 			this.jShowStep1.setText("Go to step 1");
@@ -1505,50 +1552,50 @@ public class Main extends javax.swing.JPanel {
 	}// GEN-LAST:event_jShowStep1ActionPerformed
 
 	private void jShowStep2ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jShowStep2ActionPerformed
-		if (!this.jShowStep2.isSelected()) {
+		if (this.jShowStep2.isSelected()) {
 			this.jShowStep2.setText("Showing step 2");
 			this.jStep1.setCollapsed(true);
-			this.jShowStep1.setSelected(true);
+			this.jShowStep1.setSelected(false);
 			this.jShowStep1.setText("Go to step 1");
 			this.jStep3.setCollapsed(true);
-			this.jShowStep3.setSelected(true);
+			this.jShowStep3.setSelected(false);
 			this.jShowStep3.setText("Go to step 3");
 			this.jStep4.setCollapsed(true);
-			this.jShowStep4.setSelected(true);
+			this.jShowStep4.setSelected(false);
 			this.jShowStep4.setText("Go to step 4");
 		} else {
-			this.jShowStep2.setText("Go to step 1");
+			this.jShowStep2.setText("Go to step 2");
 		}
 	}// GEN-LAST:event_jShowStep2ActionPerformed
 
 	private void jShowStep3ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jShowStep3ActionPerformed
-		if (!this.jShowStep3.isSelected()) {
+		if (this.jShowStep3.isSelected()) {
 			this.jShowStep3.setText("Showing step 3");
 			this.jStep1.setCollapsed(true);
-			this.jShowStep1.setSelected(true);
+			this.jShowStep1.setSelected(false);
 			this.jShowStep1.setText("Go to step 1");
 			this.jStep2.setCollapsed(true);
-			this.jShowStep2.setSelected(true);
+			this.jShowStep2.setSelected(false);
 			this.jShowStep2.setText("Go to step 2");
 			this.jStep4.setCollapsed(true);
-			this.jShowStep4.setSelected(true);
+			this.jShowStep4.setSelected(false);
 			this.jShowStep4.setText("Go to step 4");
 		} else {
-			this.jShowStep3.setText("Go to step 1");
+			this.jShowStep3.setText("Go to step 3");
 		}
 	}// GEN-LAST:event_jShowStep3ActionPerformed
 
 	private void jShowStep4ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jShowStep4ActionPerformed
-		if (!this.jShowStep4.isSelected()) {
+		if (this.jShowStep4.isSelected()) {
 			this.jShowStep4.setText("Showing step 4");
 			this.jStep1.setCollapsed(true);
-			this.jShowStep1.setSelected(true);
+			this.jShowStep1.setSelected(false);
 			this.jShowStep1.setText("Go to step 1");
 			this.jStep2.setCollapsed(true);
-			this.jShowStep2.setSelected(true);
+			this.jShowStep2.setSelected(false);
 			this.jShowStep2.setText("Go to step 2");
 			this.jStep3.setCollapsed(true);
-			this.jShowStep3.setSelected(true);
+			this.jShowStep3.setSelected(false);
 			this.jShowStep3.setText("Go to step 3");
 		} else {
 			this.jShowStep4.setText("Go to step 4");
@@ -2274,5 +2321,4 @@ public class Main extends javax.swing.JPanel {
 	private javax.swing.JTable jTable2;
 	private javax.swing.JSlider jWlcalThreshold;
 	private final ButtonGroup groupSteps = new ButtonGroup();
-	// End of variables declaration//GEN-END:variables
 }

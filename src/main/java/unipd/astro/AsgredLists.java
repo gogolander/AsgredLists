@@ -29,7 +29,6 @@ import javax.swing.UIManager;
  * @author Vincenzo Abate <gogolander@gmail.com>
  */
 public class AsgredLists {
-	//private static SplashScreen splashScreen;
 	private static Logger log = Logger.getLogger(AsgredLists.class.getName());
     /**
      * @param args the command line arguments

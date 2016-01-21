@@ -186,4 +186,23 @@ public class DataService {
 			log.error(ex);
 		}
 	}
+
+	public void restoreProperties() {
+		try {
+			String[] params = new String[] { "iraf.home", "iraf.wlcal.rms_threshold", "iraf.bg.col1", "iraf.bg.col2",
+					"iraf.imcopy.start", "iraf.imcopy.end" };
+			String[] defaultValues = new String[] { System.getProperty("user.home"), "10", "1000", "1010", "50",
+					"2048" };
+			log.info("Restoring default values...");
+			Properties properties = new Properties();
+			for (int i = 0; i < params.length; i++)
+				properties.setProperty(params[i], defaultValues[i]);
+			log.info("Saving...");
+			properties.store(new FileOutputStream(path), "");
+			log.info("Done.");
+		} catch (Exception ex) {
+			log.error(ex);
+		}
+
+	}
 }
