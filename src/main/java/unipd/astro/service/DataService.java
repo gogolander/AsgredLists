@@ -19,7 +19,6 @@ public class DataService {
 	private static Logger log = Logger.getLogger(DataService.class.getName());
 	private static DataService instance = null;
 
-	private String path = Paths.get(System.getProperty("user.home"), "asgredLists.properties").toString();
 	private Properties appProperties = null;
 	private ApplicationContext context;
 	private ImageRepository imageRepository;
@@ -132,7 +131,10 @@ public class DataService {
 				initProperties();
 			appProperties.setProperty(key, value);
 			log.info("Saving...");
-			appProperties.store(new FileOutputStream(path), "Default value created by " + AsgredLists.class.getName());
+			appProperties.store(new FileOutputStream(
+										Paths.get(System.getProperty("user.home"),
+												"asgredLists.properties").toFile()),
+										"Default value created by " + AsgredLists.class.getName());
 			log.info("Done.");
 		} catch (FileNotFoundException e) {
 			log.error(e);
@@ -151,7 +153,8 @@ public class DataService {
 			log.info("Does the file ${user.home}/asgredLists.properties exist?");
 			try {
 				appProperties = new Properties();
-				appProperties.load(new FileInputStream(path));
+				appProperties.load(new FileInputStream(Paths.get(System.getProperty("user.home"),
+												"asgredLists.properties").toFile()));
 				try {
 					log.info("Yes. Is it valid?");
 					boolean conflicts = false;
@@ -164,7 +167,8 @@ public class DataService {
 						for (int i = 0; i < params.length; i++)
 							appProperties.setProperty(params[i], defaultValues[i]);
 						log.info("Saving...");
-						appProperties.store(new FileOutputStream(path),
+						appProperties.store(new FileOutputStream(
+								Paths.get(System.getProperty("user.home"), "asgredLists.properties").toFile()),
 								"Default value created by " + AsgredLists.class.getName());
 						log.info("Done.");
 					} else
@@ -178,7 +182,8 @@ public class DataService {
 				for (int i = 0; i < params.length; i++)
 					properties.setProperty(params[i], defaultValues[i]);
 				log.info("Saving...");
-				properties.store(new FileOutputStream(path), "");
+				properties.store(new FileOutputStream(Paths.get(System.getProperty("user.home"),
+																	"asgredLists.properties").toFile()), "");
 				log.info("Done.");
 			}
 			log.info("asgredLists.properties set.");
@@ -198,7 +203,8 @@ public class DataService {
 			for (int i = 0; i < params.length; i++)
 				properties.setProperty(params[i], defaultValues[i]);
 			log.info("Saving...");
-			properties.store(new FileOutputStream(path), "");
+			properties.store(new FileOutputStream(Paths.get(System.getProperty("user.home"),
+																"asgredLists.properties").toFile()), "");
 			log.info("Done.");
 		} catch (Exception ex) {
 			log.error(ex);

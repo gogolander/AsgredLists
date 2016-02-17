@@ -60,11 +60,6 @@
 		</dependency>
 		<dependency>
 			<groupId>org.hibernate</groupId>
-			<artifactId>hibernate-core</artifactId>
-			<version>4.3.5.Final</version>
-		</dependency>
-		<dependency>
-			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-entitymanager</artifactId>
 			<version>4.3.5.Final</version>
 		</dependency>
@@ -184,6 +179,7 @@
 				<configuration>
 					<source>1.8</source>
 					<target>1.8</target>
+					<skip>true</skip>
 				</configuration>
 				<executions>
 					<execution>

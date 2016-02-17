@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Enzo
+ * Copyright (C) 2015 Vincenzo Abate <gogolander@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,120 +16,232 @@
  */
 package unipd.astro;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PipedOutputStream;
-import java.lang.ProcessBuilder.Redirect;
-import java.nio.file.Paths;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.swing.SwingUtilities;
-
+import java.util.ArrayList;
+import org.apache.log4j.Logger;
 import unipd.astro.service.DataService;
 
 /**
- *
- * @author Enzo
+ * PythonRunnable is the interface between AsgredLists and any external process needed.
+ * The main duty of this class is of course to run PyRAF and let AsgredLists to control it.
+ * Every call to every process is ansynchronus.
+ * 
+ * @author Vincenzo Abate <gogolander@gmail.com>
  */
 public class PythonRunnable {
+	private static Logger log = Logger.getLogger(Main.class.getName());
 	private Process python;
-	private BufferedReader getResponse;
-	private BufferedReader getError;
-	private BufferedWriter passCommand;
+	private ArrayList<Thread> openThread;
 
+	public PythonRunnable() {
+		openThread = new ArrayList<>();
+	}
+
+	/**
+	 * This method mimes the respond from wlcal. Used to test the interaction between
+	 * PyRAF and AsgredLists.
+	 * 
+	 * @param scriptPath
+	 * @param callback
+	 */
 	public void mimeWlcal(final String scriptPath, final AsyncCallback callback) {
-		new Thread(new Runnable() {
+		Thread thread = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
+					int nBytes = 0;
+					log.info("Starting wlcal simulation...");
+					log.trace("Creating the process...");
 					System.setProperty("user.dir", DataService.getInstance().getProperty("iraf.home"));
 					ProcessBuilder pr = new ProcessBuilder("python", scriptPath);
+					log.trace("Done.");
+					log.trace("Starting it...");
 					python = pr.start();
-					passCommand = new BufferedWriter(new OutputStreamWriter(python.getOutputStream()));
-					getResponse = new BufferedReader(new InputStreamReader(python.getInputStream()));
-					getError = new BufferedReader(new InputStreamReader(python.getErrorStream()));
+					log.trace("Done.");
 					while (python.isAlive()) {
-						while (!getResponse.ready() && !getError.ready() && python.isAlive())
-							Thread.sleep(50);
-						while (getResponse.ready())
-							callback.OnResponseReceived(getResponse.readLine().trim());
-						while (getError.ready())
-							callback.OnErrorReceived(getError.readLine().trim());
+						log.trace("Waiting for activity...");
+						while (python.getInputStream().available() == 0 && python.getErrorStream().available() == 0
+								&& python.isAlive())
+							Thread.sleep(100);
+						while ((nBytes = python.getInputStream().available()) != 0) {
+							log.trace("Output received.");
+							byte[] buffer = new byte[nBytes];
+							python.getInputStream().read(buffer);
+							for (String response : new String(buffer, 0, nBytes).split("\n"))
+								callback.OnResponseReceived(response);
+						}
+						while ((nBytes = python.getErrorStream().available()) != 0) {
+							log.trace("Error received.");
+							byte[] buffer = new byte[nBytes];
+							python.getInputStream().read(buffer);
+							for (String response : new String(buffer, 0, nBytes).split("\n"))
+								callback.OnErrorReceived(response);
+						}
 					}
+					log.info("Done");
 					callback.OnResponseReceived("terminated");
 					dispose();
 				} catch (Exception ex) {
-					Logger.getLogger(PythonRunnable.class.getName()).log(Level.SEVERE, null, ex);
+					log.fatal(ex);
 				}
 			}
-		}).start();
+		});
+		openThread.add(thread);
+		thread.start();
 	}
 
-	public void execCommand(final String command, final AsyncCallback callback) {
-		new Thread(new Runnable() {
+	/**
+	 * Launch the given python script.
+	 * 
+	 * @param path
+	 * @param callback
+	 */
+	public void startScript(final String path, final AsyncCallback callback) {
+		if (!path.endsWith(".py")) {
+			callback.OnErrorReceived("Wrong path to PyRAF script. Must be: /path/to/script/scriptName.py");
+			return;
+		}
+		Thread thread = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
-					System.setProperty("user.dir", DataService.getInstance().getProperty("iraf.home"));
-					ProcessBuilder pr = new ProcessBuilder(command.trim().split(" "));
+					int nBytes = 0;
+					log.info("Begin to exec the PyRAF script...");
+					log.trace("Creating the process...");
+					ProcessBuilder pr = new ProcessBuilder("python", path);
+					log.trace("Done.");
+					log.trace("Starting it...");
 					python = pr.start();
-					passCommand = new BufferedWriter(new OutputStreamWriter(python.getOutputStream()));
-					getResponse = new BufferedReader(new InputStreamReader(python.getInputStream()));
-					getError = new BufferedReader(new InputStreamReader(python.getErrorStream()));
+					log.trace("Launching IRAF...");
 					while (python.isAlive()) {
-						while (!(getResponse.ready() || getError.ready()) && python.isAlive())
-							Thread.sleep(50);
-						while (getResponse.ready()) {
-							String response = getResponse.readLine();
-							callback.OnResponseReceived(response);
+						log.trace("Waiting for activity...");
+						while (python.getInputStream().available() == 0 && python.getErrorStream().available() == 0
+								&& python.isAlive())
+							Thread.sleep(100);
+						while ((nBytes = python.getInputStream().available()) != 0) {
+							log.trace("Output received.");
+							byte[] buffer = new byte[nBytes];
+							nBytes = python.getInputStream().read(buffer);
+							for (String response : new String(buffer, 0, nBytes).split("\n"))
+								callback.OnResponseReceived(response);
 						}
-						while (getError.ready())
-							callback.OnErrorReceived(getError.readLine().trim());
+						while ((nBytes = python.getErrorStream().available()) != 0) {
+							log.trace("Error received.");
+							byte[] buffer = new byte[nBytes];
+							nBytes = python.getInputStream().read(buffer);
+							for (String response : new String(buffer, 0, nBytes).split("\n"))
+								callback.OnErrorReceived(response);
+						}
 					}
+					log.info("Done");
 					callback.OnResponseReceived("terminated");
+					dispose();
 				} catch (Exception ex) {
-					Logger.getLogger(PythonRunnable.class.getName()).log(Level.SEVERE, null, ex);
+					log.fatal(ex);
 				}
 			}
-		}).start();
+		});
+		openThread.add(thread);
+		thread.start();
+	}
+	
+	/**
+	 * Start a single command.
+	 * 
+	 * @param command
+	 * @param callback
+	 */
+	public void startCommand(final String command, final AsyncCallback callback) {
+		Thread thread = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					int nBytes = 0;
+					log.info("Begin to exec the command...");
+					log.trace("Creating the process...");
+					ProcessBuilder pr = new ProcessBuilder(command.split(" "));
+					log.trace("Done.");
+					log.trace("Starting it...");
+					python = pr.start();
+					log.trace("Launching IRAF...");
+					while (python.isAlive()) {
+						log.trace("Waiting for activity...");
+						while (python.getInputStream().available() == 0 && python.getErrorStream().available() == 0
+								&& python.isAlive())
+							Thread.sleep(100);
+						while ((nBytes = python.getInputStream().available()) != 0) {
+							log.trace("Output received.");
+							byte[] buffer = new byte[nBytes];
+							nBytes = python.getInputStream().read(buffer);
+							for (String response : new String(buffer, 0, nBytes).split("\n"))
+								callback.OnResponseReceived(response);
+						}
+						while ((nBytes = python.getErrorStream().available()) != 0) {
+							log.trace("Error received.");
+							byte[] buffer = new byte[nBytes];
+							nBytes = python.getInputStream().read(buffer);
+							for (String response : new String(buffer, 0, nBytes).split("\n"))
+								callback.OnErrorReceived(response);
+						}
+					}
+					log.info("Done");
+					callback.OnResponseReceived("terminated");
+					dispose();
+				} catch (Exception ex) {
+					log.fatal(ex);
+				}
+			}
+		});
+		openThread.add(thread);
+		thread.start();
 	}
 
+	/**
+	 * Verify if the process is running and alive.
+	 * 
+	 * @return
+	 */
 	public boolean isAlive() {
 		return (python != null && python.isAlive());
 	}
-
+	
+	/**
+	 * Get the current instance of the process.
+	 * @return
+	 */
 	public Process getProcess() {
 		return python;
 	}
 
+	/**
+	 * Pass a request or a response to the running process. 
+	 * @param message
+	 */
 	public void toPython(final String message) {
-		if (passCommand != null) {
-			try {
-				if (python.isAlive()) {
-					passCommand.write(message + "\n");
-					passCommand.flush();
-				} else
-					throw new Exception("process not running.");
-			} catch (Exception ex) {
-				Logger.getLogger(PythonRunnable.class.getName()).log(Level.SEVERE, null, ex);
-			}
+		try {
+			log.info("Passing the command to the console...");
+			log.trace("Is it alive?");
+			if (python.isAlive()) {
+				log.trace("Yes.");
+				log.trace("Passing the command");
+				python.getOutputStream().write((message + "\r\n").getBytes());
+				python.getOutputStream().flush();
+				log.info("Done.");
+			} else
+				log.fatal("Process is not running.");
+		} catch (Exception ex) {
+			log.fatal(ex);
 		}
 	}
 
+	/**
+	 * Stop all running threads and destroy the process.
+	 */
 	public void dispose() {
-		try {
-			this.passCommand.close();
-			this.passCommand = null;
-			this.getResponse.close();
-			this.getResponse = null;
-			this.python.destroy();
-			this.python = null;
-		} catch (IOException ex) {
-			Logger.getLogger(PythonRunnable.class.getName()).log(Level.SEVERE, null, ex);
-		}
+		log.info("Disposing the process...");
+		for(Thread thread : openThread)
+			thread.interrupt();
+		this.python.destroy();
+		this.python = null;
+		log.info("Disposed.");
 	}
 }

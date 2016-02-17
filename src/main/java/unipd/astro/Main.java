@@ -29,12 +29,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.file.Paths;
-import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -50,7 +48,6 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.text.DefaultCaret;
-
 import unipd.astro.entity.FlatfieldImage;
 import unipd.astro.entity.ImageEntity;
 import unipd.astro.entity.LampImage;
@@ -71,115 +68,32 @@ import javax.swing.LayoutStyle.ComponentPlacement;
  *
  * @author Vincenzo Abate <gogolander@gmail.com>
  */
+@SuppressWarnings({ "serial", "unchecked", "rawtypes" })
 public class Main extends javax.swing.JPanel {
 	private static Logger log = Logger.getLogger(Main.class.getName());
 	private int selectedAction = 0;
+	private HashMap<String, Integer> jTable1Cols = new HashMap<>();
+	private HashMap<String, Integer> jTable2Cols = new HashMap<>();
 	private DataService dataService; // database container
 	private List<ImageEntity> images; // used just for jTable1 cell renderer
 										// purposes
 	private String basePath;
 	private PythonRunnable process;
+	private AsyncCallback callback = new AsyncCallback() {
+		@Override
+		public void OnResponseReceived(String response) {
+			jConsole.append("<<\t" + response);
+		}
+
+		@Override
+		public void OnErrorReceived(String error) {
+			jConsole.append("<<\tERROR: " + error);
+		}
+	};
 
 	public Main() {
 		initComponents();
-		dataService = DataService.getInstance();
-		
-		this.jIrafHome.setText(dataService.getProperty("iraf.home"));
-		this.jBackgroundStart.setValue(Integer.valueOf(dataService.getProperty("iraf.bg.col1")));
-		this.jBackgroundEnd.setValue(Integer.valueOf(dataService.getProperty("iraf.bg.col2")));
-		this.jImcopyStart.setValue(Integer.valueOf(dataService.getProperty("iraf.imcopy.start")));
-		this.jImcopyEnd.setValue(Integer.valueOf(dataService.getProperty("iraf.imcopy.end")));
-		this.jWlcalThreshold.setValue(Integer.valueOf(dataService.getProperty("iraf.wlcal.rms_threshold")));
-
-		this.groupExplore.add(this.jRadioFitsList);
-		this.groupExplore.add(this.jRadioButton2);
-		this.jLabel13.setText(String.valueOf(this.jWlcalThreshold.getValue()) + "%");
-		this.jTable1.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-			@Override
-			public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-					boolean hasFocus, int row, int col) {
-				/**
-				 * Color legend: 1. standards: HSV=217,100,100; RGB=0,96,255 2.
-				 * objects: HSV=130,92,100; RGB=20,255,59 3. lamps:
-				 * HSV=55,75,100; RGB=255,239,64 4. conflicts: HSV=37,100,100;
-				 * RGB=255,156,0 5. flat: HSV=55,15,100; RGB=255,252,216
-				 */
-				float[] hsv = new float[3];
-				if (images != null && images.size() != 0) {
-					// ImageEntity image =
-					// DataService.getInstance().getImageRepository().findByFileName((String)table.getValueAt(row,
-					// 0));
-					ImageEntity image = images.get(row);
-					this.setForeground(Color.BLACK);
-					// Lamps
-					if (image.getType().equals("LAMP")) {
-						hsv = Color.RGBtoHSB(255, 243, 115, hsv);
-					} // Conflicts
-					else if (image.getType().equals("IMAGE") && table.getValueAt(row, 5) != null
-							&& table.getValueAt(row, 6) != null
-							// && (image.getLampName().isEmpty() ||
-							// image.getStandardName().isEmpty())) {
-							/*
-							 * WORKAROUND HERE: disable the actual control on
-							 * the presence of conflicts
-							 */
-							&& ("".equals(table.getValueAt(row, 5)) || "".equals((String) table.getValueAt(row, 6)))) {
-						hsv = Color.RGBtoHSB(255, 54, 0, hsv);
-						this.setForeground(Color.WHITE);
-					} // Objects and standards
-					else if (image.getType().equals("IMAGE") && table.getValueAt(row, 5) != null
-							&& table.getValueAt(row, 6) != null // &&
-																// !image.getLampName().isEmpty()
-					// && !image.getStandardName().isEmpty()) {
-					/* WORKAROUND HERE: as above */
-							&& !((String) table.getValueAt(row, 5)).isEmpty()
-							&& !((String) table.getValueAt(row, 6)).isEmpty()) {
-						if (image.isStandard()) {
-							hsv = Color.RGBtoHSB(102, 161, 255, hsv);
-						} else {
-							hsv = Color.RGBtoHSB(20, 255, 59, hsv);
-						}
-					} // Flatfield
-					else if (image.getType().equals("FLATFIELD")) {
-						hsv = Color.RGBtoHSB(255, 252, 216, hsv);
-					}
-
-					setBackground(Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
-				}
-				super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
-				super.setHorizontalAlignment(SwingConstants.CENTER);
-				return this;
-			}
-		});
-		this.jTable1.getColumnModel().getColumn(2)
-				.setCellEditor(new DefaultCellEditor(new JComboBox(new String[] { "IMAGE", "FLATFIELD", "LAMP" })));
-
-		this.jTable2.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-			@Override
-			public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-					boolean hasFocus, int row, int col) {
-				/**
-				 * Color legend: 1. standards: HSV=217,100,100; RGB=0,96,255 2.
-				 * objects: HSV=130,92,100; RGB=20,255,59 3. lamps:
-				 * HSV=55,75,100; RGB=255,239,64 4. conflicts: HSV=37,100,100;
-				 * RGB=255,156,0 5. flat: HSV=55,15,100; RGB=255,252,216
-				 */
-				float[] hsv = new float[3];
-				TableModel model = table.getModel();
-				String target = (String) model.getValueAt(row, 1);
-				if (target != null) {
-					this.setForeground(Color.BLACK);
-					if (dataService.getStandardAtlas().findByStandardName(target) != null)
-						hsv = Color.RGBtoHSB(102, 161, 255, hsv);
-					else
-						hsv = Color.RGBtoHSB(20, 255, 59, hsv);
-					setBackground(Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
-				}
-				super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
-				super.setHorizontalAlignment(SwingConstants.CENTER);
-				return this;
-			}
-		});
+		finalInitComponents();
 	}
 
 	public void initDatabase() {
@@ -217,7 +131,6 @@ public class Main extends javax.swing.JPanel {
 	// <editor-fold defaultstate="collapsed" desc="Generated
 	// Code">//GEN-BEGIN:initComponents
 	private void initComponents() {
-
 		groupAction = new javax.swing.ButtonGroup();
 		groupExplore = new javax.swing.ButtonGroup();
 		jTabbedPane1 = new javax.swing.JTabbedPane();
@@ -462,11 +375,12 @@ public class Main extends javax.swing.JPanel {
 		jStep2.setCollapsed(true);
 
 		jTable1.setModel(new javax.swing.table.DefaultTableModel(
-				new Object[][] { { null, null, null, null, null, "", null } },
-				new String[] { "Image", "Target name", "Type", "Is standard?", "Exp Time", "Lamp", "Standard" }) {
-			Class[] types = new Class[] { java.lang.String.class, java.lang.String.class, java.lang.String.class,
-					java.lang.Boolean.class, java.lang.Float.class, java.lang.String.class, java.lang.String.class };
-			boolean[] canEdit = new boolean[] { false, false, true, true, false, true, true };
+				new Object[][] { { null, null, null, null, null, null, null, null } }, new String[] { "Enabled",
+						"Image", "Target name", "Type", "Is standard?", "Exp Time", "Lamp", "Standard" }) {
+			Class[] types = new Class[] { java.lang.Boolean.class, java.lang.String.class, java.lang.String.class,
+					java.lang.String.class, java.lang.Boolean.class, java.lang.Float.class, java.lang.String.class,
+					java.lang.String.class };
+			boolean[] canEdit = new boolean[] { true, false, false, true, true, false, true, true };
 
 			public Class getColumnClass(int columnIndex) {
 				return types[columnIndex];
@@ -476,6 +390,8 @@ public class Main extends javax.swing.JPanel {
 				return canEdit[columnIndex];
 			}
 		});
+		for (int i = 0; i < jTable1.getColumnCount(); i++)
+			jTable1Cols.put(jTable1.getModel().getColumnName(i), i);
 		jTable1.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_ALL_COLUMNS);
 		jTable1.setShowVerticalLines(false);
 		jTable1.getTableHeader().setReorderingAllowed(false);
@@ -487,12 +403,13 @@ public class Main extends javax.swing.JPanel {
 		jScrollPane1.setViewportView(jTable1);
 		if (jTable1.getColumnModel().getColumnCount() > 0) {
 			jTable1.getColumnModel().getColumn(0).setPreferredWidth(60);
-			jTable1.getColumnModel().getColumn(1).setPreferredWidth(200);
-			jTable1.getColumnModel().getColumn(2).setPreferredWidth(60);
+			jTable1.getColumnModel().getColumn(1).setPreferredWidth(60);
+			jTable1.getColumnModel().getColumn(2).setPreferredWidth(200);
 			jTable1.getColumnModel().getColumn(3).setPreferredWidth(60);
-			jTable1.getColumnModel().getColumn(4).setPreferredWidth(55);
-			jTable1.getColumnModel().getColumn(5).setPreferredWidth(60);
+			jTable1.getColumnModel().getColumn(4).setPreferredWidth(60);
+			jTable1.getColumnModel().getColumn(5).setPreferredWidth(55);
 			jTable1.getColumnModel().getColumn(6).setPreferredWidth(60);
+			jTable1.getColumnModel().getColumn(7).setPreferredWidth(60);
 		}
 
 		jLabel2.setText("Verify the data association and correct all conflicts:");
@@ -519,7 +436,7 @@ public class Main extends javax.swing.JPanel {
 		jPanel10Layout.setVerticalGroup(jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
 				.addGap(0, 12, Short.MAX_VALUE));
 
-		jSolve.setText("Try to resolve conflicts");
+		jSolve.setText("<html><center>Try to<br>resolve<br>conflicts</center></html>");
 		jSolve.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				jSolveActionPerformed(evt);
@@ -693,7 +610,7 @@ public class Main extends javax.swing.JPanel {
 								.addComponent(jOptionsPanel, javax.swing.GroupLayout.DEFAULT_SIZE,
 										javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
 						.addGroup(jStep2Layout.createSequentialGroup()
-								.addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 668,
+								.addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 728,
 										javax.swing.GroupLayout.PREFERRED_SIZE)
 								.addGap(90, 90, 90).addComponent(jStep2Next, javax.swing.GroupLayout.DEFAULT_SIZE,
 										javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
@@ -743,6 +660,8 @@ public class Main extends javax.swing.JPanel {
 				return canEdit[columnIndex];
 			}
 		});
+		for (int i = 0; i < jTable2.getColumnCount(); i++)
+			jTable2Cols.put(jTable2.getModel().getColumnName(i), i);
 		jTable2.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_LAST_COLUMN);
 		jTable2.setShowVerticalLines(false);
 		jTable2.addPropertyChangeListener(new java.beans.PropertyChangeListener() {
@@ -1152,7 +1071,7 @@ public class Main extends javax.swing.JPanel {
 						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 
 		jSave.setText("Save as Default");
-		
+
 		JButton btnRestoreDefaults = new JButton("Restore Defaults");
 		btnRestoreDefaults.addMouseListener(new MouseAdapter() {
 			@Override
@@ -1162,38 +1081,34 @@ public class Main extends javax.swing.JPanel {
 		});
 
 		javax.swing.GroupLayout jAdvancedOptionsPanelLayout = new javax.swing.GroupLayout(jAdvancedOptionsPanel);
-		jAdvancedOptionsPanelLayout.setHorizontalGroup(
-			jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
-						.addComponent(jPanel14, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
-						.addComponent(jPanel15, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
-						.addComponent(jPanel16, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
-						.addComponent(jPanel17, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
-						.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup()
-							.addComponent(btnRestoreDefaults)
-							.addGap(18)
-							.addComponent(jSave)))
-					.addContainerGap())
-		);
-		jAdvancedOptionsPanelLayout.setVerticalGroup(
-			jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup()
-					.addContainerGap()
-					.addComponent(jPanel17, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addGap(18)
-					.addComponent(jPanel16, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addGap(18)
-					.addComponent(jPanel15, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addGap(18)
-					.addComponent(jPanel14, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED, 59, Short.MAX_VALUE)
-					.addGroup(jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.BASELINE)
-						.addComponent(jSave)
-						.addComponent(btnRestoreDefaults))
-					.addContainerGap())
-		);
+		jAdvancedOptionsPanelLayout
+				.setHorizontalGroup(jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+						.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup().addContainerGap()
+								.addGroup(jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
+										.addComponent(jPanel14, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
+										.addComponent(jPanel15, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
+										.addComponent(jPanel16, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
+										.addComponent(jPanel17, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
+										.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup()
+												.addComponent(btnRestoreDefaults).addGap(18).addComponent(jSave)))
+						.addContainerGap()));
+		jAdvancedOptionsPanelLayout.setVerticalGroup(jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup().addContainerGap()
+						.addComponent(jPanel17, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE)
+						.addGap(18)
+						.addComponent(jPanel16, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE)
+						.addGap(18)
+						.addComponent(jPanel15, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE)
+						.addGap(18)
+						.addComponent(jPanel14, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE)
+						.addPreferredGap(ComponentPlacement.RELATED, 59, Short.MAX_VALUE)
+						.addGroup(jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.BASELINE)
+								.addComponent(jSave).addComponent(btnRestoreDefaults))
+						.addContainerGap()));
 		jAdvancedOptionsPanel.setLayout(jAdvancedOptionsPanelLayout);
 
 		jTabbedPane1.addTab("Advanced Options for PyRAF tasks", jAdvancedOptionsPanel);
@@ -1212,7 +1127,97 @@ public class Main extends javax.swing.JPanel {
 								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
 						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 	}// </editor-fold>//GEN-END:initComponents
-	
+
+	private void finalInitComponents() {
+		dataService = DataService.getInstance();
+
+		this.jIrafHome.setText(dataService.getProperty("iraf.home"));
+		this.jBackgroundStart.setValue(Integer.valueOf(dataService.getProperty("iraf.bg.col1")));
+		this.jBackgroundEnd.setValue(Integer.valueOf(dataService.getProperty("iraf.bg.col2")));
+		this.jImcopyStart.setValue(Integer.valueOf(dataService.getProperty("iraf.imcopy.start")));
+		this.jImcopyEnd.setValue(Integer.valueOf(dataService.getProperty("iraf.imcopy.end")));
+		this.jWlcalThreshold.setValue(Integer.valueOf(dataService.getProperty("iraf.wlcal.rms_threshold")));
+
+		this.groupExplore.add(this.jRadioFitsList);
+		this.groupExplore.add(this.jRadioButton2);
+		this.jLabel13.setText(String.valueOf(this.jWlcalThreshold.getValue()) + "%");
+		this.jTable1.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+			@Override
+			public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+					boolean hasFocus, int row, int col) {
+				/*
+				 * Color legend: 1. standards: HSV=217,100,100; RGB=0,96,255 2.
+				 * objects: HSV=130,92,100; RGB=20,255,59 3. lamps:
+				 * HSV=55,75,100; RGB=255,239,64 4. conflicts: HSV=37,100,100;
+				 * RGB=255,156,0 5. flat: HSV=55,15,100; RGB=255,252,216
+				 */
+				float[] hsv = new float[3];
+				if (images != null && images.size() != 0) {
+					ImageEntity image = images.get(row);
+					this.setForeground(Color.BLACK);
+					// Lamps
+					if (image.getType().equals("LAMP")) {
+						hsv = Color.RGBtoHSB(255, 243, 115, hsv);
+					} // Conflicts
+					else if (image.getType().equals("IMAGE") && table.getValueAt(row, jTable1Cols.get("Lamp")) != null
+							&& table.getValueAt(row, jTable1Cols.get("Standard")) != null
+							&& ("".equals(table.getValueAt(row, jTable1Cols.get("Lamp")))
+									|| "".equals((String) table.getValueAt(row, jTable1Cols.get("Standard"))))) {
+						hsv = Color.RGBtoHSB(255, 54, 0, hsv);
+						this.setForeground(Color.WHITE);
+					} // Objects and standards
+					else if (image.getType().equals("IMAGE") && table.getValueAt(row, jTable1Cols.get("Lamp")) != null
+							&& table.getValueAt(row, jTable1Cols.get("Standard")) != null
+							&& !((String) table.getValueAt(row, jTable1Cols.get("Lamp"))).isEmpty()
+							&& !((String) table.getValueAt(row, jTable1Cols.get("Standard"))).isEmpty()) {
+						if (image.isStandard()) {
+							hsv = Color.RGBtoHSB(102, 161, 255, hsv);
+						} else {
+							hsv = Color.RGBtoHSB(20, 255, 59, hsv);
+						}
+					} // Flatfield
+					else if (image.getType().equals("FLATFIELD")) {
+						hsv = Color.RGBtoHSB(255, 252, 216, hsv);
+					}
+
+					setBackground(Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+				}
+				super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
+				super.setHorizontalAlignment(SwingConstants.CENTER);
+				return this;
+			}
+		});
+		this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Type"))
+				.setCellEditor(new DefaultCellEditor(new JComboBox(new String[] { "IMAGE", "FLATFIELD", "LAMP" })));
+
+		this.jTable2.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+			@Override
+			public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+					boolean hasFocus, int row, int col) {
+				/**
+				 * Color legend: 1. standards: HSV=217,100,100; RGB=0,96,255 2.
+				 * objects: HSV=130,92,100; RGB=20,255,59 3. lamps:
+				 * HSV=55,75,100; RGB=255,239,64 4. conflicts: HSV=37,100,100;
+				 * RGB=255,156,0 5. flat: HSV=55,15,100; RGB=255,252,216
+				 */
+				float[] hsv = new float[3];
+				TableModel model = table.getModel();
+				String target = (String) model.getValueAt(row, jTable2Cols.get("Target"));
+				if (target != null) {
+					this.setForeground(Color.BLACK);
+					if (dataService.getStandardAtlas().findByStandardName(target) != null)
+						hsv = Color.RGBtoHSB(102, 161, 255, hsv);
+					else
+						hsv = Color.RGBtoHSB(20, 255, 59, hsv);
+					setBackground(Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+				}
+				super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
+				super.setHorizontalAlignment(SwingConstants.CENTER);
+				return this;
+			}
+		});
+	}
+
 	private void jSaveMouseClicked(MouseEvent e) {
 		Properties properties = new Properties();
 		try {
@@ -1230,7 +1235,7 @@ public class Main extends javax.swing.JPanel {
 			ex.printStackTrace();
 		}
 	}
-	
+
 	private void btnRestoreDefaultsMouseClicked(MouseEvent e) {
 		dataService.restoreProperties();
 		this.jIrafHome.setText(dataService.getProperty("iraf.home"));
@@ -1305,45 +1310,14 @@ public class Main extends javax.swing.JPanel {
 
 	private void jSendActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jSendActionPerformed
 		String message = this.jCommand.getText();
-		this.jConsole.append(">>\t" + message + "\n");
-		((DefaultCaret)jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
-		if(process == null || !process.isAlive()) {
+		((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+		if (process == null || !process.isAlive()) {
 			process = new PythonRunnable();
-			if(message.equals("mime wlcal")) {
-				message = this.getClass().getClassLoader().getResource("mimeWlcal.py").getPath();
-				process.mimeWlcal(message, new AsyncCallback() {
-					@Override
-					public void OnResponseReceived(String response) {
-						jConsole.append("<<\t" + response + "\n");
-						try {
-							Float.parseFloat(response);
-							process.toPython("accept");
-						}
-						catch (NumberFormatException ex) {
-							process.toPython("random");
-						}
-					}
-	
-					@Override
-					public void OnErrorReceived(String error) {
-						jConsole.append("<<\tERROR: " + error + "\n");
-					}
-				});
-			}
-			else
-				process.execCommand(message, new AsyncCallback() {
-					@Override
-					public void OnResponseReceived(String response) {
-						jConsole.append("<<\t" + response + "\n");
-					}
-	
-					@Override
-					public void OnErrorReceived(String error) {
-						jConsole.append("<<\tERROR: " + error + "\n");
-					}
-			});
-		}
-		else
+			if (message.equals("clear"))
+				this.jConsole.setText("");
+			else if (message.equals("start pyraf"))
+				process.startCommand(this.jCommand.getText(), callback);
+		} else
 			process.toPython(message);
 		this.jCommand.setText("");
 	}// GEN-LAST:event_jSendActionPerformed
@@ -1385,11 +1359,14 @@ public class Main extends javax.swing.JPanel {
 				this.writeOneGiantScript();
 				log.info("Lists and script generated. Executing it...");
 				this.jTabbedPane1.setSelectedIndex(1);
-				this.jConsole.setText("Ready to execute: insert a command below to execute it...\n");				
+				this.jConsole.append("Ready to execute: insert a command below to execute it...\n");
+				if (process.isAlive())
+					process.dispose();
+				process.startScript(basePath + "execAsgred.py", callback);
 				log.info("Done.");
 				JOptionPane.showMessageDialog(this,
 						"Lists and the PyRAF script have been created correctly. The script was executed.", "All done",
-						JOptionPane.INFORMATION_MESSAGE);				
+						JOptionPane.INFORMATION_MESSAGE);
 			}
 		} catch (Exception ex) {
 			log.fatal(ex.getMessage(), ex);
@@ -1421,12 +1398,12 @@ public class Main extends javax.swing.JPanel {
 		int rowLastLamp = 0;
 		TableModel model = this.jTable1.getModel();
 		for (int row = 0; row < model.getRowCount(); row++) {
-			if (((String) model.getValueAt(row, 2)).equals("LAMP")) {
-				lampFileName = (String) model.getValueAt(row, 0);
+			if (((String) model.getValueAt(row, jTable1Cols.get("Type"))).equals("LAMP")) {
+				lampFileName = (String) model.getValueAt(row, jTable1Cols.get("Image"));
 				for (int i = rowLastLamp + 1; i < row; i++) {
-					if (((String) model.getValueAt(i, 2)).equals("IMAGE")) {
-						if (((String) model.getValueAt(i, 5)).isEmpty()) {
-							model.setValueAt(lampFileName, i, 5);
+					if (((String) model.getValueAt(i, jTable1Cols.get("Type"))).equals("IMAGE")) {
+						if (((String) model.getValueAt(i, jTable1Cols.get("Lamp"))).isEmpty()) {
+							model.setValueAt(lampFileName, i, jTable1Cols.get("Lamp"));
 							lamp_fixed++;
 						}
 					}
@@ -1436,9 +1413,9 @@ public class Main extends javax.swing.JPanel {
 		}
 		// use the last lamp for all the remaining images without a lamp
 		for (int i = rowLastLamp + 1; i < model.getRowCount(); i++) {
-			if (((String) model.getValueAt(i, 2)).equals("IMAGE")) {
-				if (((String) model.getValueAt(i, 5)).isEmpty()) {
-					model.setValueAt(lampFileName, i, 5);
+			if (((String) model.getValueAt(i, jTable1Cols.get("Type"))).equals("IMAGE")) {
+				if (((String) model.getValueAt(i, jTable1Cols.get("Lamp"))).isEmpty()) {
+					model.setValueAt(lampFileName, i, jTable1Cols.get("Lamp"));
 					lamp_fixed++;
 				}
 			}
@@ -1447,12 +1424,13 @@ public class Main extends javax.swing.JPanel {
 		String standardFileName = "";
 		int rowLastStandard = 0;
 		for (int row = 0; row < model.getRowCount(); row++) {
-			if ((Boolean) model.getValueAt(row, 3) == true) {
-				standardFileName = (String) model.getValueAt(row, 0);
+			if ((Boolean) model.getValueAt(row, jTable1Cols.get("Is standard?")) == true) {
+				standardFileName = (String) model.getValueAt(row, jTable1Cols.get("Image"));
 				for (int i = rowLastStandard + 1; i < row; i++) {
-					if ("IMAGE".equals(model.getValueAt(i, 2)) && (Boolean) model.getValueAt(i, 3) == false) {
-						if ("".equals(model.getValueAt(i, 6))) {
-							model.setValueAt(standardFileName, i, 6);
+					if ("IMAGE".equals(model.getValueAt(i, jTable1Cols.get("Type")))
+							&& (Boolean) model.getValueAt(i, jTable1Cols.get("Is standard?")) == false) {
+						if ("".equals(model.getValueAt(i, jTable1Cols.get("Standard")))) {
+							model.setValueAt(standardFileName, i, jTable1Cols.get("Standard"));
 							standard_fixed++;
 						}
 					}
@@ -1462,9 +1440,10 @@ public class Main extends javax.swing.JPanel {
 		}
 		// use the last standard for all the remaining images without a standard
 		for (int i = rowLastStandard + 1; i < model.getRowCount(); i++) {
-			if ("IMAGE".equals(model.getValueAt(i, 2)) && (Boolean) model.getValueAt(i, 3) == false) {
-				if ("".equals(model.getValueAt(i, 6))) {
-					model.setValueAt(standardFileName, i, 6);
+			if ("IMAGE".equals(model.getValueAt(i, jTable1Cols.get("Type")))
+					&& (Boolean) model.getValueAt(i, jTable1Cols.get("Is standard?")) == false) {
+				if ("".equals(model.getValueAt(i, jTable1Cols.get("Standard")))) {
+					model.setValueAt(standardFileName, i, jTable1Cols.get("Standard"));
 					standard_fixed++;
 				}
 			}
@@ -1472,8 +1451,8 @@ public class Main extends javax.swing.JPanel {
 
 		this.jTable1.updateUI();
 		log.info("Done.");
-		JOptionPane.showMessageDialog(this, String.valueOf(lamp_fixed+standard_fixed) + " conflicts solved (" + String.valueOf(lamp_fixed) +
-				" lamps; " + String.valueOf(standard_fixed) + " standards).");
+		JOptionPane.showMessageDialog(this, String.valueOf(lamp_fixed + standard_fixed) + " conflicts solved ("
+				+ String.valueOf(lamp_fixed) + " lamps; " + String.valueOf(standard_fixed) + " standards).");
 	}// GEN-LAST:event_jSolveActionPerformed
 
 	private void jTable1PropertyChange(java.beans.PropertyChangeEvent evt) {// GEN-FIRST:event_jTable1PropertyChange
@@ -1481,15 +1460,19 @@ public class Main extends javax.swing.JPanel {
 		int y = this.jTable1.getSelectedColumn();
 		if (x != -1) {
 			ImageEntity image = DataService.getInstance().getImageRepository()
-					.findByFileName((String) (this.jTable1.getValueAt(x, 0)));
-			switch (y) {
-			case 2:
+					.findByFileName((String) (this.jTable1.getValueAt(x, jTable1Cols.get("Image"))));
+
+			if (y == jTable1Cols.get("Type"))
 				image.setType((String) this.jTable1.getValueAt(x, y));
-				break;
-			case 3:
+			else if (y == jTable1Cols.get("Is standard?")) {
 				image.setStandard((Boolean) this.jTable1.getValueAt(x, y));
-				break;
+				this.jTable1.setValueAt(true, x, jTable1Cols.get("Enabled"));
 			}
+			else if(y == jTable1Cols.get("Enabled") &&  (boolean)this.jTable1.getValueAt(x, jTable1Cols.get("Is standard?")) == true) {
+				JOptionPane.showMessageDialog(this, "Images realtive to standard stars cannot be disabled.");
+				this.jTable1.setValueAt(true, x, jTable1Cols.get("Enabled"));
+			}
+
 			this.jTable1.clearSelection();
 			DataService.getInstance().getImageRepository().save(image);
 		}
@@ -1662,11 +1645,50 @@ public class Main extends javax.swing.JPanel {
 	}// GEN-LAST:event_jTable2PropertyChange
 
 	private void jLoad1ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jLoad1ActionPerformed
-		// TODO add your handling code here:
+		PrintWriter writer = null;
+		try {
+			// Let's generate the PyRAF script
+			writer = new PrintWriter(new FileWriter(Paths.get(this.basePath, "createFitsList.py").toString()));
+			writer.println("#!/usr/bin/env python");
+			writer.println("import os");
+			writer.println("import sys");
+			writer.println("os.chdir(\"" + dataService.getProperty("iraf.home") + "\")");
+			writer.println("from pyraf import iraf");
+			writer.println("os.chdir(\"" + this.basePath + "\")");
+			writer.println(
+					"iraf.hselect(images=\"?????????.fits\", fields=\"$I,target,typ,exptime\", expr=\"yes\", Stdout=\"fits_list\")");
+		} catch (IOException ex) {
+			log.fatal(ex.getMessage(), ex);
+			JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+		} finally {
+			if (writer != null)
+				writer.close();
+		}
+		process = new PythonRunnable();
+		process.startScript(Paths.get(this.basePath + "/createFitsList.py").toString(), callback);
+		this.jPath.setText(basePath + "/fits_list");
+		this.jLoad.doClick();
 	}// GEN-LAST:event_jLoad1ActionPerformed
 
 	private void jExplore1ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jExplore1ActionPerformed
-		// TODO add your handling code here:
+		JFileChooser fileChooser = new JFileChooser(System.getProperty("user.home"));
+		fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		fileChooser.setFileFilter(new FileFilter() {
+			@Override
+			public boolean accept(File pathname) {
+				return (pathname.isDirectory());
+			}
+
+			@Override
+			public String getDescription() {
+				return "Select the directory containing the fits images";
+			}
+		});
+
+		if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+			this.basePath = fileChooser.getSelectedFile().getAbsolutePath();
+			this.jPath1.setText(fileChooser.getSelectedFile().getAbsolutePath());
+		}
 	}// GEN-LAST:event_jExplore1ActionPerformed
 
 	private void jRadioFitsListActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jRadioFitsListActionPerformed
@@ -1719,15 +1741,17 @@ public class Main extends javax.swing.JPanel {
 				((JComboBox) evt.getSource()).setSelectedIndex(-1);
 			}
 		};
-		log.info("Creating cell editors...");
-		log.info("Creating comboStd...");
+		log.trace("Creating cell editors...");
+		log.trace("Creating comboStd...");
 		JComboBox comboStd = new JComboBox(dataService.getImageRepository().getFileNameByIsStandard(true).toArray());
 		comboStd.addActionListener(autoHide);
-		log.info("Done. Creating comboLamps...");
+		log.trace("Done. Creating comboLamps...");
 		JComboBox comboLamps = new JComboBox(dataService.getImageRepository().getFileNameByType("LAMP").toArray());
 		comboLamps.addActionListener(autoHide);
-		this.jTable1.getColumnModel().getColumn(5).setCellEditor(new DefaultCellEditor(comboLamps));
-		this.jTable1.getColumnModel().getColumn(6).setCellEditor(new DefaultCellEditor(comboStd));
+		this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Lamp"))
+				.setCellEditor(new DefaultCellEditor(comboLamps));
+		this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Standard"))
+				.setCellEditor(new DefaultCellEditor(comboStd));
 		log.info("Done. Clearing the table...");
 		if (((DefaultTableModel) this.jTable1.getModel()).getRowCount() > 0) {
 			for (int i = ((DefaultTableModel) this.jTable1.getModel()).getRowCount() - 1; i > -1; i--) {
@@ -1738,10 +1762,10 @@ public class Main extends javax.swing.JPanel {
 		for (ImageEntity image : dataService.getImageRepository().findAll()) {
 			if (image.isStandard()) {
 				((DefaultTableModel) this.jTable1.getModel())
-						.addRow(new Object[] { image.getFileName(), image.getTargetName(), image.getType(),
+						.addRow(new Object[] { true, image.getFileName(), image.getTargetName(), image.getType(),
 								image.isStandard(), image.getExpTime(), "", image.getFileName() });
 			} else {
-				((DefaultTableModel) this.jTable1.getModel()).addRow(new Object[] { image.getFileName(),
+				((DefaultTableModel) this.jTable1.getModel()).addRow(new Object[] { true, image.getFileName(),
 						image.getTargetName(), image.getType(), image.isStandard(), image.getExpTime(), "", "" });
 			}
 		}
@@ -1778,34 +1802,36 @@ public class Main extends javax.swing.JPanel {
 
 	public void populateDatabase() {
 		log.info("Populating the database...");
-		log.info("Clearing the database...");
+		log.trace("Clearing the database...");
 		dataService.getObservationRepository().deleteAll();
 		dataService.getScienceRepository().deleteAll();
 		dataService.getStandardRepository().deleteAll();
 		dataService.getLampRepository().deleteAll();
 		dataService.getFlatRepository().deleteAll();
-		log.info("Database cleared.");
-		log.info("Creating the FLATFIELD entity...");
+		log.trace("Database cleared.");
+		log.info("FLATFIELD");
 		/*
 		 * Populate the FLATFIELD
 		 */
 		FlatfieldImage flat = new FlatfieldImage();
-		log.info("Associating with the images of type \"FLATFIELD\"...");
+		log.trace("Associating with the images of type \"FLATFIELD\"...");
 		List<ImageEntity> images = dataService.getImageRepository().findByType("FLATFIELD");
 		flat.setImages(images);
 		for (ImageEntity image : images)
 			image.setFlat(flat);
-		log.info("Done.");
-		log.info("Saving...");
+		log.trace("Done.");
+		log.trace("Saving...");
 		dataService.getFlatRepository().save(flat);
 		dataService.getImageRepository().save(images);
-		log.info("Saved.");
-		log.info("Created the LAMP entities...");
+		log.trace("Saved.");
+		log.trace("FLATFIELD created.");
+		
 		/*
 		 * Populate the LAMP
 		 */
+		log.info("LAMP");
 		images = dataService.getImageRepository().findByType("LAMP");
-		log.info("Associating with the images of type \"LAMP\"...");
+		log.trace("Associating with the images of type \"LAMP\"...");
 		for (ImageEntity image : images) {
 			LampImage lamp = new LampImage();
 			lamp.setFlat(flat);
@@ -1814,11 +1840,12 @@ public class Main extends javax.swing.JPanel {
 			dataService.getLampRepository().save(lamp);
 			dataService.getImageRepository().save(image);
 		}
-		log.info("Done and saved.");
+		log.trace("Done and saved.");
 
 		/*
 		 * Populate the STANDARD
 		 */
+		log.info("STANDARD");
 		images = dataService.getImageRepository().findByIsStandard(true);
 		for (ImageEntity image : images) {
 			StandardImage standard = new StandardImage();
@@ -1827,10 +1854,10 @@ public class Main extends javax.swing.JPanel {
 			TableModel model = this.jTable1.getModel();
 			standard.setFlat(flat);
 			for (int row = 0; row < model.getRowCount(); row++) {
-				if (image.getFileName().equals(model.getValueAt(row, 0))) {
-					if (model.getValueAt(row, 5) != null && !"".equals(model.getValueAt(row, 5))) {
+				if (image.getFileName().equals(model.getValueAt(row, jTable1Cols.get("Image")))) {
+					if (model.getValueAt(row, jTable1Cols.get("Lamp")) != null) {
 						ImageEntity lampImage = dataService.getImageRepository()
-								.findByFileName((String) model.getValueAt(row, 5));
+								.findByFileName((String) model.getValueAt(row, jTable1Cols.get("Lamp")));
 						standard.setLamp(lampImage.getLamp());
 						lampImage.getLamp().getStandardImages().add(standard);
 						dataService.getLampRepository().save(lampImage.getLamp());
@@ -1843,6 +1870,7 @@ public class Main extends javax.swing.JPanel {
 		/*
 		 * Populate the IMAGE
 		 */
+		log.info("IMAGE");
 		images = dataService.getImageRepository().findByType("IMAGE");
 		for (ImageEntity image : images) {
 			ScienceImage science = new ScienceImage();
@@ -1850,17 +1878,17 @@ public class Main extends javax.swing.JPanel {
 			TableModel model = this.jTable1.getModel();
 			science.setFlat(flat);
 			for (int row = 0; row < model.getRowCount(); row++) {
-				if (image.getFileName().equals(model.getValueAt(row, 0))) {
-					if (model.getValueAt(row, 5) != null && !"".equals(model.getValueAt(row, 5))) {
+				if (image.getFileName().equals(model.getValueAt(row, jTable1Cols.get("Image")))) {
+					if (model.getValueAt(row, jTable1Cols.get("Lamp")) != null) {
 						ImageEntity lampImage = dataService.getImageRepository()
-								.findByFileName((String) model.getValueAt(row, 5));
+								.findByFileName((String) model.getValueAt(row, jTable1Cols.get("Lamp")));
 						science.setLamp(lampImage.getLamp());
 						lampImage.getLamp().getScienceImages().add(science);
 						dataService.getLampRepository().save(lampImage.getLamp());
 					}
-					if (model.getValueAt(row, 6) != null && !"".equals(model.getValueAt(row, 6))) {
+					if (model.getValueAt(row, jTable1Cols.get("Standard")) != null) {
 						ImageEntity standardImage = dataService.getImageRepository()
-								.findByFileName((String) model.getValueAt(row, 6));
+								.findByFileName((String) model.getValueAt(row, jTable1Cols.get("Standard")));
 						science.setStandard(standardImage.getStandard());
 						standardImage.getStandard().getScienceImages().add(science);
 						dataService.getStandardRepository().save(standardImage.getStandard());
@@ -1873,6 +1901,7 @@ public class Main extends javax.swing.JPanel {
 		/*
 		 * Populate the OBSERVATION
 		 */
+		log.info("OBSERVATION");
 		List<Object[]> result = dataService.getImageRepository().getTargetNameAndStandardFileName();
 		for (Object[] data : result) {
 			Observation observation = new Observation();
@@ -1888,20 +1917,29 @@ public class Main extends javax.swing.JPanel {
 			dataService.getObservationRepository().save(observation);
 			dataService.getScienceRepository().save(science);
 		}
+		log.info("Database populated.");
 	}
 
 	public void generateAllLists() {
 		PrintWriter writer = null;
 		try {
+			log.info("Generating all lists...");
 			String temp = "", tempLamp = "";
 			// Write them down
-			writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "list_obj"));
+			log.info("list_obj");
+			writer = new PrintWriter(Paths.get(this.basePath, "list_obj").toFile());
 			List<Observation> observations = dataService.getObservationRepository().findByIsEnabled(true);
 			HashSet<String> lampName = new HashSet<String>();
 			for (Observation observation : observations)
 				for (ScienceImage science : observation.getScienceImages()) {
-					temp += science.getImage().getFileName() + "\t" + science.getLamp().getImage().getFileName() + "\n";
-					lampName.add(science.getLamp().getImage().getFileName());
+					TableModel model = jTable1.getModel();
+					for (int i = 0; i < model.getRowCount()
+							&& model.getValueAt(i, jTable1Cols.get("Image")) != science.getImage().getFileName(); i++)
+						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+							temp += science.getImage().getFileName() + "\t" + science.getLamp().getImage().getFileName()
+									+ "\n";
+							lampName.add(science.getLamp().getImage().getFileName());
+						}
 				}
 			for (String item : lampName)
 				tempLamp += item + "\n";
@@ -1910,11 +1948,13 @@ public class Main extends javax.swing.JPanel {
 			writer.close();
 
 			temp = "";
-			writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "list_lamps"));
+			log.info("list_lamps");
+			writer = new PrintWriter(Paths.get(this.basePath, "list_lamps").toFile());
 			writer.print(tempLamp.trim());
 			writer.close();
 
-			writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "list_flat"));
+			log.info("list_flat");
+			writer = new PrintWriter(Paths.get(this.basePath, "list_flat").toFile());
 			for (FlatfieldImage flat : dataService.getFlatRepository().findAll()) {
 				for (ImageEntity image : flat.getImages())
 					temp += image.getFileName() + "\n";
@@ -1930,10 +1970,16 @@ public class Main extends javax.swing.JPanel {
 						temp = temp.replaceAll("+", "p");
 					if (temp.contains("-"))
 						temp = temp.replaceAll("-", "m");
-					writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "wl" + temp));
+					log.info("wl" + temp);
+					writer = new PrintWriter(Paths.get(this.basePath, "wl" + temp).toFile());
 					temp = "";
-					for (ScienceImage item : observation.getScienceImages())
-						temp += item.getImage().getFileName() + ".wl\n";
+					for (ScienceImage item : observation.getScienceImages()) {
+						TableModel model = jTable1.getModel();
+						for (int i = 0; i < model.getRowCount()
+								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
+							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
+								temp += item.getImage().getFileName() + ".wl\n";
+					}
 					writer.print(temp.trim());
 					writer.close();
 				}
@@ -1948,10 +1994,16 @@ public class Main extends javax.swing.JPanel {
 						temp = temp.replaceAll("+", "p");
 					if (temp.contains("-"))
 						temp = temp.replaceAll("-", "m");
-					writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "fc" + temp));
+					log.info("fc" + temp);
+					writer = new PrintWriter(Paths.get(this.basePath, "fc" + temp).toFile());
 					temp = "";
-					for (ScienceImage item : observation.getScienceImages())
-						temp += item.getImage().getFileName() + ".fc\n";
+					for (ScienceImage item : observation.getScienceImages()) {
+						TableModel model = jTable1.getModel();
+						for (int i = 0; i < model.getRowCount()
+								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
+							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
+								temp += item.getImage().getFileName() + ".fc\n";
+					}
 					writer.print(temp.trim());
 					writer.close();
 				}
@@ -1965,10 +2017,16 @@ public class Main extends javax.swing.JPanel {
 						temp = temp.replaceAll("+", "p");
 					if (temp.contains("-"))
 						temp = temp.replaceAll("-", "m");
-					writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "bg" + temp));
+					log.info("bg" + temp);
+					writer = new PrintWriter(Paths.get(this.basePath, "bg" + temp).toFile());
 					temp = "";
-					for (ScienceImage item : observation.getScienceImages())
-						temp += item.getImage().getFileName() + ".bg\n";
+					for (ScienceImage item : observation.getScienceImages()) {
+						TableModel model = jTable1.getModel();
+						for (int i = 0; i < model.getRowCount()
+								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
+							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
+								temp += item.getImage().getFileName() + ".bg\n";
+					}
 					writer.print(temp.trim());
 					writer.close();
 				}
@@ -1982,10 +2040,16 @@ public class Main extends javax.swing.JPanel {
 						temp = temp.replaceAll("+", "p");
 					if (temp.contains("-"))
 						temp = temp.replaceAll("-", "m");
-					writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "md" + temp));
+					log.info("md"+temp);
+					writer = new PrintWriter(Paths.get(this.basePath, "md" + temp).toFile());
 					temp = "";
-					for (ScienceImage item : observation.getScienceImages())
-						temp += item.getImage().getFileName() + ".md\n";
+					for (ScienceImage item : observation.getScienceImages()) {
+						TableModel model = jTable1.getModel();
+						for (int i = 0; i < model.getRowCount()
+								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
+							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
+								temp += item.getImage().getFileName() + ".md\n";
+					}
 					writer.print(temp.trim());
 					writer.close();
 				}
@@ -1997,16 +2061,22 @@ public class Main extends javax.swing.JPanel {
 				for (Observation observation : standard.getObservations()) {
 					if (observation.isEnabled() && observation.isDoFcal()) {
 						temp = "";
-						writer = new PrintWriter(new FileWriter(
-								this.basePath + File.separator + "std" + standard.getImage().getFileName()));
-						for (ScienceImage item : standard.getScienceImages())
+						log.info("std" + standard.getImage().getFileName());
+						writer = new PrintWriter(
+								Paths.get(this.basePath, "std" + standard.getImage().getFileName()).toFile());
+						for (ScienceImage item : standard.getScienceImages()) {
 							/*
 							 * Use file name instead of standard name to avoid
 							 * confusion: the same standard used twice during
 							 * the night MUST be treated as two different stars
 							 */
-							if (item.getObservation().isDoFcal())
-								temp += item.getImage().getFileName() + ".wl\n";
+							TableModel model = jTable1.getModel();
+							for (int i = 0; i < model.getRowCount() && model.getValueAt(i,
+									jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
+								if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
+									if (item.getObservation().isDoFcal())
+										temp += item.getImage().getFileName() + ".wl\n";
+						}
 						writer.print(temp.trim());
 						writer.close();
 					}
@@ -2019,9 +2089,11 @@ public class Main extends javax.swing.JPanel {
 			if (writer != null)
 				writer.close();
 		}
+		log.info("Done.");
 	}
 
 	public void writeScriptForEachTarget() {
+		log.info("Generating a script for each target...");
 		for (Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
 			String targetNormalized = observation.getTargetName();
 			if (targetNormalized.contains("+"))
@@ -2032,12 +2104,19 @@ public class Main extends javax.swing.JPanel {
 			try {
 				String temp = "", tempLamp = "";
 				// Write them down
-				writer = new PrintWriter(
-						new FileWriter(this.basePath + File.separator + "list_obj_" + targetNormalized));
+				log.info("list_obj_" + targetNormalized);
+				writer = new PrintWriter(Paths.get(this.basePath, "list_obj_" + targetNormalized).toFile());
 				HashSet<String> lampName = new HashSet<String>();
 				for (ScienceImage science : observation.getScienceImages()) {
-					temp += science.getImage().getFileName() + "\t" + science.getLamp().getImage().getFileName() + "\n";
-					lampName.add(science.getLamp().getImage().getFileName());
+					TableModel model = jTable1.getModel();
+					for (int i = 0; i < model.getRowCount()
+							&& model.getValueAt(i, jTable1Cols.get("Image")) != science.getImage().getFileName(); i++) {
+						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+							temp += science.getImage().getFileName() + "\t" + science.getLamp().getImage().getFileName()
+									+ "\n";
+							lampName.add(science.getLamp().getImage().getFileName());
+						}
+					}
 				}
 				for (String item : lampName)
 					tempLamp += item + "\n";
@@ -2046,13 +2125,13 @@ public class Main extends javax.swing.JPanel {
 				writer.close();
 
 				temp = "";
-				writer = new PrintWriter(
-						new FileWriter(this.basePath + File.separator + "list_lamps_" + targetNormalized));
+				log.info("list_lamps_" + targetNormalized);
+				writer = new PrintWriter(Paths.get(this.basePath, "list_lamps_" + targetNormalized).toFile());
 				writer.print(tempLamp.trim());
 				writer.close();
 
-				writer = new PrintWriter(
-						new FileWriter(this.basePath + File.separator + "list_flat_" + targetNormalized));
+				log.info("list_flat_" + targetNormalized);
+				writer = new PrintWriter(Paths.get(this.basePath, "list_flat_" + targetNormalized).toFile());
 				for (FlatfieldImage flat : dataService.getFlatRepository().findAll()) {
 					for (ImageEntity image : flat.getImages())
 						temp += image.getFileName() + "\n";
@@ -2062,10 +2141,16 @@ public class Main extends javax.swing.JPanel {
 
 				// Generate the list of IMA*.wl.fits
 				if (observation.isDoWlcal()) {
-					writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "wl" + targetNormalized));
+					log.info("wl" + targetNormalized);
+					writer = new PrintWriter(Paths.get(this.basePath, "wl" + targetNormalized).toFile());
 					temp = "";
-					for (ScienceImage item : observation.getScienceImages())
-						temp += item.getImage().getFileName() + ".wl\n";
+					for (ScienceImage item : observation.getScienceImages()) {
+						TableModel model = jTable1.getModel();
+						for (int i = 0; i < model.getRowCount()
+								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
+							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
+								temp += item.getImage().getFileName() + ".wl\n";
+					}
 					writer.print(temp.trim());
 					writer.close();
 				}
@@ -2073,55 +2158,80 @@ public class Main extends javax.swing.JPanel {
 				// Generate the list of IMA*.fc.fits
 				// This list is used as input for the background task
 				if (observation.isDoFcal()) {
-					writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "fc" + targetNormalized));
+					log.info("fc" + targetNormalized);
+					writer = new PrintWriter(Paths.get(this.basePath, "fc" + targetNormalized).toFile());
 					temp = "";
-					for (ScienceImage item : observation.getScienceImages())
-						temp += item.getImage().getFileName() + ".fc\n";
+					for (ScienceImage item : observation.getScienceImages()) {
+						TableModel model = jTable1.getModel();
+						for (int i = 0; i < model.getRowCount()
+								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
+							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
+								temp += item.getImage().getFileName() + ".fc\n";
+					}
 					writer.print(temp.trim());
 					writer.close();
 				}
 
 				// Generate the list of IMA*.bg.fits
 				if (observation.isDoBackground()) {
-					writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "bg" + targetNormalized));
+					log.info("bg" + targetNormalized);
+					writer = new PrintWriter(Paths.get(this.basePath, "bg" + targetNormalized).toFile());
 					temp = "";
-					for (ScienceImage item : observation.getScienceImages())
-						temp += item.getImage().getFileName() + ".bg\n";
+					for (ScienceImage item : observation.getScienceImages()) {
+						TableModel model = jTable1.getModel();
+						for (int i = 0; i < model.getRowCount()
+								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
+							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
+								temp += item.getImage().getFileName() + ".bg\n";
+					}
 					writer.print(temp.trim());
 					writer.close();
 				}
 
 				// Generate the list of IMA*.md.fits
 				if (observation.isDoApall()) {
-					writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "md" + targetNormalized));
+					log.info("md" + targetNormalized);
+					writer = new PrintWriter(Paths.get(this.basePath, "md" + targetNormalized).toFile());
 					temp = "";
-					for (ScienceImage item : observation.getScienceImages())
-						temp += item.getImage().getFileName() + ".md\n";
+					for (ScienceImage item : observation.getScienceImages()) {
+						TableModel model = jTable1.getModel();
+						for (int i = 0; i < model.getRowCount()
+								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
+							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
+								temp += item.getImage().getFileName() + ".md\n";
+					}
 					writer.print(temp.trim());
 					writer.close();
 				}
 
 				// Let's generate the PyRAF script
-				writer = new PrintWriter(
-						new FileWriter(this.basePath + File.separator + "exec" + targetNormalized + ".py"));
+				log.info("exec" + targetNormalized + ".py");
+				writer = new PrintWriter(Paths.get(this.basePath, "exec" + targetNormalized + ".py").toFile());
 				writer.println("#!/usr/bin/env python");
 				writer.println("import os");
 				writer.println("import sys");
 				writer.println("os.chdir(\"" + dataService.getProperty("iraf.home") + "\")");
 
 				writer.println("from pyraf import iraf");
-				writer.println("iraf.epar(\"display\") #TODO: remove it");
-
-				String list_obj = "", list_lamps = "", list_flat = "";
+				writer.println("os.chdir(\"" + this.basePath + "\")");
 
 				// exec prered2
+				writer.println("\n###############################################################################");
+				writer.println("#        						  Prered2  							          #");
+				writer.println("###############################################################################");
 				writer.println("iraf.asgred.prered2(flat=\"list_flat_" + targetNormalized + "\", comp=\"list_lamps_"
 						+ targetNormalized + "\", object=\"list_obj_" + targetNormalized + "\", order=11)");
 				// exec wlcal
+				writer.println("\n###############################################################################");
+				writer.println("#        						  WLCAL  							          #");
+				writer.println("###############################################################################");
 				String firstLamp = dataService.getLampRepository().findAll().iterator().next().getImage().getFileName();
 				writer.println(
 						"iraf.asgred.wlcal(input=\"list_obj_" + targetNormalized + "\", refer=\"" + firstLamp + "\")");
 
+				writer.println("\n###############################################################################");
+				writer.println("#        						  FCAL  							          #");
+				writer.println("###############################################################################");
 				writer.println("iraf.asgred.fcal(obj=\"wl" + targetNormalized + "\", stand=\""
 						+ observation.getStandard().getImage().getFileName() + "\", dir=\"onedstds$"
 						+ dataService.getStandardAtlas()
@@ -2133,16 +2243,25 @@ public class Main extends javax.swing.JPanel {
 						+ "\")");
 
 				// exec background
+				writer.println("\n###############################################################################");
+				writer.println("#        						  Background         				          #");
+				writer.println("###############################################################################");
 				if (observation.isDoBackground())
 					writer.println("iraf.asgred.background(input=\"fc" + targetNormalized + "\", output=\"bg"
 							+ targetNormalized + "\")");
 
 				// exec apall
+				writer.println("\n###############################################################################");
+				writer.println("#        						  Apall  							          #");
+				writer.println("###############################################################################");
 				if (observation.isDoApall())
 					writer.println("iraf.asgred.apall(input=\"@bg" + targetNormalized + "\", output=\"@md"
 							+ targetNormalized + "\")");
 
 				// exec scombine
+				writer.println("\n###############################################################################");
+				writer.println("#        						  Scombine 							          #");
+				writer.println("###############################################################################");
 				if (observation.isDoScombine())
 					writer.println("iraf.asgred.scombine(input=\"md" + targetNormalized + "\", output=\""
 							+ targetNormalized + ".md\")");
@@ -2151,6 +2270,9 @@ public class Main extends javax.swing.JPanel {
 				String end = this.jImcopyEnd.getValue().toString();
 
 				// exec imcopy
+				writer.println("\n###############################################################################");
+				writer.println("#        						  Imcopy  							          #");
+				writer.println("###############################################################################");
 				if (observation.isDoImcopy())
 					writer.println("iraf.asgred.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
 							+ "]\", output=\"" + targetNormalized + ".obj\")");
@@ -2161,31 +2283,41 @@ public class Main extends javax.swing.JPanel {
 				if (writer != null)
 					writer.close();
 			}
+			log.info("Done.");
 		}
 	}
 
 	public void writeOneGiantScript() {
 		PrintWriter writer = null;
 		try {
+			log.info("Generating one script...");
 			// Let's generate the PyRAF script
-			writer = new PrintWriter(new FileWriter(this.basePath + File.separator + "execAsgred.py"));
+			log.info("execAsgred.py");
+			writer = new PrintWriter(Paths.get(this.basePath, "execAsgred.py").toFile());
 			writer.println("#!/usr/bin/env python");
 			writer.println("import os");
 			writer.println("import sys");
 			writer.println("os.chdir(\"" + dataService.getProperty("iraf.home") + "\")");
 
 			writer.println("from pyraf import iraf");
-			writer.println("iraf.epar(\"display\") #TODO: remove it");
+			writer.println("os.chdir(\"" + this.basePath + "\")");
 			// exec prered2
+			writer.println("\n###############################################################################");
+			writer.println("#        						  Prered2 							          #");
+			writer.println("###############################################################################");
 			writer.println(
-					"iraf.asgred.prered2(flat=\"list_flat\", comp=\"list_lamps\", object=\"list_obj\", order=11)");
+					"iraf.asgred.prered2(flat=\"list_flat\", comp=\"list_lamps\", object=\"list_obj\", outflat=\"Flat\", order=11, mode=\"q\")");
 			// exec wlcal
+			writer.println("\n###############################################################################");
+			writer.println("#        						  WLCAL  							          #");
+			writer.println("###############################################################################");
+
 			String firstLamp = dataService.getLampRepository().findAll().iterator().next().getImage().getFileName();
 			writer.println("iraf.asgred.wlcal(input=\"list_obj\", refer=\"" + firstLamp + "\")");
 
 			// exec fcal
 			for (StandardImage standard : dataService.getStandardRepository().findAll()) {
-				writer.println("###############################################################################");
+				writer.println("\n###############################################################################");
 				writer.println(
 						"#          Flux calibration for " + standard.getImage().getTargetName() + "           #");
 				writer.println("###############################################################################");
@@ -2200,7 +2332,7 @@ public class Main extends javax.swing.JPanel {
 				}
 			}
 			for (Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
-				writer.println("###############################################################################");
+				writer.println("\n###############################################################################");
 				writer.println("#          reduction for " + observation.getTargetName() + "                   #");
 				writer.println("###############################################################################");
 
@@ -2240,6 +2372,7 @@ public class Main extends javax.swing.JPanel {
 			if (writer != null)
 				writer.close();
 		}
+		log.info("Done.");
 	}
 
 	// Variables declaration - do not modify//GEN-BEGIN:variables

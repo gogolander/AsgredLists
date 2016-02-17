@@ -38,8 +38,7 @@ public class AsgredLists {
         	SplashScreen.getInstance().setProgress("Creating standard.list...", 0);
             UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
             log.info("Does ${user.home}/standard.list exist?");
-    		String path = Paths.get(System.getProperty("user.home"), "standard.list").toString();
-    		File atlas = new File(path);
+    		File atlas = Paths.get(System.getProperty("user.home"), "standard.list").toFile();
     		if(!atlas.exists()) {
     			log.info("No. Copying the default one to the home...");
     			Files.copy(Main.class.getClassLoader().getResourceAsStream("standard.list"), Paths.get(System.getProperty("user.home"), "standard.list"));

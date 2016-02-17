@@ -7,6 +7,7 @@ package unipd.astro;
 import javax.swing.*;
 import java.awt.*;
 
+@SuppressWarnings("serial")
 public class SplashScreen extends JWindow {
 
 	private static SplashScreen instance = null;
@@ -20,7 +21,7 @@ public class SplashScreen extends JWindow {
 
 	public static SplashScreen getInstance() {
 		if(instance == null) {
-			instance = new SplashScreen(new ImageIcon(Main.class.getClassLoader().getResource("ngc1097.jpg")));
+			instance = new SplashScreen(new ImageIcon(Main.class.getClassLoader().getResource("pennar.jpg")));
 			instance.setLocationRelativeTo(null);
 			instance.setProgressMax(100);
 			instance.setScreenVisible(true);
