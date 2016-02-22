@@ -70,4 +70,4 @@ If the compilation ends successfully, you will find the executable file ```Asgre
 AsgredLists/target
 ```
 ##### Warning
-When started, the Maven compilation needs to download about 17Mb of required JAR libraries. Take this in mind if your using a metered connection.
+When started, the Maven compilation needs to download more than 10Mb of required JAR libraries. Take this in mind if you are using a metered connection.
