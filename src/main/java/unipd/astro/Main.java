@@ -17,6 +17,7 @@
 package unipd.astro;
 
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
@@ -63,6 +64,8 @@ import javax.swing.JButton;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.GroupLayout;
 import javax.swing.LayoutStyle.ComponentPlacement;
+import java.awt.Font;
+import javax.swing.JCheckBox;
 
 /**
  *
@@ -75,19 +78,27 @@ public class Main extends javax.swing.JPanel {
 	private HashMap<String, Integer> jTable1Cols = new HashMap<>();
 	private HashMap<String, Integer> jTable2Cols = new HashMap<>();
 	private DataService dataService; // database container
-	private List<ImageEntity> images; // used just for jTable1 cell renderer
-										// purposes
+	private List<ImageEntity> images; // used just for jTable1 cell renderer purposes
+	private List<String> scriptsList;
 	private String basePath;
 	private PythonRunnable process;
 	private AsyncCallback callback = new AsyncCallback() {
 		@Override
 		public void OnResponseReceived(String response) {
-			jConsole.append("<<\t" + response);
+			jConsole.append("<<\t" + response + "\n");
 		}
 
 		@Override
 		public void OnErrorReceived(String error) {
-			jConsole.append("<<\tERROR: " + error);
+			jConsole.append("<<\tERROR: " + error + "\n");
+		}
+
+		@Override
+		public void onScriptTerminated() {
+			if(scriptsList.size() > 0) {
+				scriptsList.remove(0);
+				process.startScript(Paths.get(basePath + "/" + scriptsList.get(0)).toString(), callback);
+			}
 		}
 	};
 
@@ -131,6 +142,9 @@ public class Main extends javax.swing.JPanel {
 	// <editor-fold defaultstate="collapsed" desc="Generated
 	// Code">//GEN-BEGIN:initComponents
 	private void initComponents() {
+		jViewScripts = new JButton();
+		jRunScripts = new JButton();
+		jCheckStartFromScrap = new JCheckBox();
 		groupAction = new javax.swing.ButtonGroup();
 		groupExplore = new javax.swing.ButtonGroup();
 		jTabbedPane1 = new javax.swing.JTabbedPane();
@@ -179,12 +193,12 @@ public class Main extends javax.swing.JPanel {
 		jShowStep3 = new javax.swing.JToggleButton();
 		groupSteps.add(jShowStep3);
 		jStep4 = new org.jdesktop.swingx.JXCollapsiblePane();
+		jStep4.setCollapsed(true);
 		jPanel12 = new javax.swing.JPanel();
 		jRadioListsOnly = new javax.swing.JRadioButton();
 		jRadioListsOnly.setSelected(true);
 		jRadioListsAndOneScript = new javax.swing.JRadioButton();
 		jRadioListsAndMultipleScripts = new javax.swing.JRadioButton();
-		jRadioAllAndExec = new javax.swing.JRadioButton();
 		jDoIt = new javax.swing.JButton();
 		jLabel10 = new javax.swing.JLabel();
 		jShowStep4 = new javax.swing.JToggleButton();
@@ -724,7 +738,6 @@ public class Main extends javax.swing.JPanel {
 		});
 
 		jStep4.setBorder(javax.swing.BorderFactory.createTitledBorder("STEP 4"));
-		jStep4.setCollapsed(true);
 
 		groupAction.add(jRadioListsOnly);
 		jRadioListsOnly.setText("Generate only lists to be used within IRAF");
@@ -750,47 +763,29 @@ public class Main extends javax.swing.JPanel {
 			}
 		});
 
-		groupAction.add(jRadioAllAndExec);
-		jRadioAllAndExec.setText("Generate lists, one PyRAF script and execute it");
-		jRadioAllAndExec.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jRadioAllAndExecActionPerformed(evt);
-			}
-		});
-
 		javax.swing.GroupLayout jPanel12Layout = new javax.swing.GroupLayout(jPanel12);
+		jPanel12Layout.setHorizontalGroup(
+			jPanel12Layout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jPanel12Layout.createSequentialGroup()
+					.addContainerGap()
+					.addGroup(jPanel12Layout.createParallelGroup(Alignment.LEADING)
+						.addComponent(jRadioListsOnly)
+						.addComponent(jRadioListsAndOneScript)
+						.addComponent(jRadioListsAndMultipleScripts))
+					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+		);
+		jPanel12Layout.setVerticalGroup(
+			jPanel12Layout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jPanel12Layout.createSequentialGroup()
+					.addContainerGap()
+					.addComponent(jRadioListsOnly)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addComponent(jRadioListsAndOneScript)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addComponent(jRadioListsAndMultipleScripts)
+					.addContainerGap(35, Short.MAX_VALUE))
+		);
 		jPanel12.setLayout(jPanel12Layout);
-		jPanel12Layout
-				.setHorizontalGroup(
-						jPanel12Layout
-								.createParallelGroup(
-										javax.swing.GroupLayout.Alignment.LEADING)
-								.addGroup(
-										jPanel12Layout.createSequentialGroup().addContainerGap()
-												.addGroup(
-														jPanel12Layout
-																.createParallelGroup(
-																		javax.swing.GroupLayout.Alignment.LEADING)
-																.addComponent(jRadioListsOnly)
-																.addComponent(jRadioListsAndOneScript)
-																.addComponent(jRadioAllAndExec)
-																.addComponent(jRadioListsAndMultipleScripts))
-												.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE,
-														Short.MAX_VALUE)));
-		jPanel12Layout
-				.setVerticalGroup(
-						jPanel12Layout
-								.createParallelGroup(
-										javax.swing.GroupLayout.Alignment.LEADING)
-								.addGroup(jPanel12Layout.createSequentialGroup().addContainerGap()
-										.addComponent(jRadioListsOnly)
-										.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-										.addComponent(jRadioListsAndOneScript)
-										.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-										.addComponent(jRadioListsAndMultipleScripts)
-										.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-										.addComponent(jRadioAllAndExec)
-										.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 
 		jDoIt.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
 		jDoIt.setText("Do it");
@@ -802,27 +797,61 @@ public class Main extends javax.swing.JPanel {
 
 		jLabel10.setText("Select what you want to obtain:");
 
+		jViewScripts.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				jViewScriptsActionPerformed(e);
+			}
+		});
+		jViewScripts.setText("View script(s)");
+		jViewScripts.setFont(new Font("Dialog", Font.BOLD, 11));
+
+		jRunScripts.setText("Run script(s)");
+		jRunScripts.setFont(new Font("Dialog", Font.BOLD, 11));
+		jRunScripts.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				jRunScriptsActionPerformed(e);
+			}
+		});
+
+		jCheckStartFromScrap.setText("Start from scrap");
+
 		javax.swing.GroupLayout jStep4Layout = new javax.swing.GroupLayout(jStep4.getContentPane());
+		jStep4Layout.setHorizontalGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jStep4Layout.createSequentialGroup().addContainerGap()
+						.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+								.addGroup(jStep4Layout.createSequentialGroup()
+										.addComponent(jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+												GroupLayout.PREFERRED_SIZE)
+										.addGap(18)
+										.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+												.addGroup(jStep4Layout.createSequentialGroup()
+														.addComponent(jDoIt, GroupLayout.PREFERRED_SIZE, 160,
+																GroupLayout.PREFERRED_SIZE)
+														.addGap(18)
+														.addComponent(jViewScripts, GroupLayout.PREFERRED_SIZE, 160,
+																GroupLayout.PREFERRED_SIZE)
+														.addGap(18)
+														.addComponent(jRunScripts, GroupLayout.PREFERRED_SIZE, 160,
+																GroupLayout.PREFERRED_SIZE))
+										.addComponent(jCheckStartFromScrap)))
+								.addComponent(jLabel10))
+						.addGap(193)));
+		jStep4Layout
+				.setVerticalGroup(jStep4Layout.createParallelGroup(Alignment.TRAILING).addGroup(Alignment.LEADING,
+						jStep4Layout.createSequentialGroup().addContainerGap().addComponent(jLabel10)
+								.addPreferredGap(ComponentPlacement.RELATED)
+								.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+										.addComponent(jRunScripts, GroupLayout.PREFERRED_SIZE, 52,
+												GroupLayout.PREFERRED_SIZE)
+								.addComponent(jViewScripts, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
+								.addComponent(jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE).addGroup(
+												jStep4Layout.createSequentialGroup()
+														.addComponent(jDoIt, GroupLayout.PREFERRED_SIZE, 52,
+																GroupLayout.PREFERRED_SIZE)
+														.addGap(18).addComponent(jCheckStartFromScrap)))
+						.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 		jStep4.getContentPane().setLayout(jStep4Layout);
-		jStep4Layout.setHorizontalGroup(jStep4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jStep4Layout.createSequentialGroup().addContainerGap().addGroup(jStep4Layout
-						.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-						.addGroup(jStep4Layout.createSequentialGroup()
-								.addComponent(jPanel12, javax.swing.GroupLayout.PREFERRED_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-								.addGap(18, 18, 18).addComponent(jDoIt, javax.swing.GroupLayout.PREFERRED_SIZE, 160,
-										javax.swing.GroupLayout.PREFERRED_SIZE))
-						.addComponent(jLabel10)).addGap(456, 456, 456)));
-		jStep4Layout.setVerticalGroup(jStep4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jStep4Layout.createSequentialGroup()
-						.addContainerGap().addComponent(jLabel10)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-						.addGroup(jStep4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-								.addComponent(jPanel12, javax.swing.GroupLayout.PREFERRED_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-								.addComponent(jDoIt, javax.swing.GroupLayout.PREFERRED_SIZE, 52,
-										javax.swing.GroupLayout.PREFERRED_SIZE))
-						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 		jShowStep4.setText("Go to step 4");
 		jShowStep4
 				.addActionListener(this.jStep4.getActionMap().get(org.jdesktop.swingx.JXCollapsiblePane.TOGGLE_ACTION));
@@ -1128,6 +1157,27 @@ public class Main extends javax.swing.JPanel {
 						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 	}// </editor-fold>//GEN-END:initComponents
 
+	private void jRunScriptsActionPerformed(ActionEvent e) {
+		log.info("Executing scripts...");
+		this.jTabbedPane1.setSelectedIndex(1);
+		this.jConsole.append("Ready to execute: insert a command below to execute it...\n");
+		if ( process != null && process.isAlive())
+			process.dispose();
+		process = new PythonRunnable();
+		process.startScript(Paths.get(basePath + "/" + scriptsList.get(0)).toString(), callback);
+	}
+
+	private void jViewScriptsActionPerformed(ActionEvent e) {
+		for(String script : scriptsList) {
+			try {
+				Desktop.getDesktop().open(Paths.get(this.basePath + "/" + script).toFile());
+			} catch (IOException e1) {
+				JOptionPane.showMessageDialog(this, e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+				e1.printStackTrace();
+			}
+		}
+	}
+
 	private void finalInitComponents() {
 		dataService = DataService.getInstance();
 
@@ -1145,12 +1195,12 @@ public class Main extends javax.swing.JPanel {
 			@Override
 			public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
 					boolean hasFocus, int row, int col) {
-				/*
-				 * Color legend: 1. standards: HSV=217,100,100; RGB=0,96,255 2.
-				 * objects: HSV=130,92,100; RGB=20,255,59 3. lamps:
-				 * HSV=55,75,100; RGB=255,239,64 4. conflicts: HSV=37,100,100;
-				 * RGB=255,156,0 5. flat: HSV=55,15,100; RGB=255,252,216
-				 */
+				// Color legend:
+				// 1. standards: HSV=217,100,100; RGB=0,96,255
+				// 2. objects: HSV=130,92,100; RGB=20,255,59
+				// 3. lamps: HSV=55,75,100; RGB=255,239,64
+				// 4. conflicts: HSV=37,100,100; RGB=255,156,0
+				// 5. flat: HSV=55,15,100; RGB=255,252,216
 				float[] hsv = new float[3];
 				if (images != null && images.size() != 0) {
 					ImageEntity image = images.get(row);
@@ -1194,12 +1244,12 @@ public class Main extends javax.swing.JPanel {
 			@Override
 			public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
 					boolean hasFocus, int row, int col) {
-				/**
-				 * Color legend: 1. standards: HSV=217,100,100; RGB=0,96,255 2.
-				 * objects: HSV=130,92,100; RGB=20,255,59 3. lamps:
-				 * HSV=55,75,100; RGB=255,239,64 4. conflicts: HSV=37,100,100;
-				 * RGB=255,156,0 5. flat: HSV=55,15,100; RGB=255,252,216
-				 */
+				// Color legend:
+				// 1. standards: HSV=217,100,100; RGB=0,96,255
+				// 2. objects: HSV=130,92,100; RGB=20,255,59
+				// 3. lamps: HSV=55,75,100; RGB=255,239,64
+				// 4. conflicts: HSV=37,100,100; RGB=255,156,0
+				// 5. flat: HSV=55,15,100; RGB=255,252,216
 				float[] hsv = new float[3];
 				TableModel model = table.getModel();
 				String target = (String) model.getValueAt(row, jTable2Cols.get("Target"));
@@ -1330,6 +1380,17 @@ public class Main extends javax.swing.JPanel {
 
 	private void jDoItActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jDoItActionPerformed
 		try {
+			if (this.jCheckStartFromScrap.isSelected())
+				for (final File fileEntry : new File(this.basePath).listFiles()) {
+					if (!fileEntry.isDirectory()) {
+						if (!fileEntry.getName().equals("fits_list") && (fileEntry.getName().endsWith("bg.fits")
+								|| fileEntry.getName().endsWith("fc.fits") || fileEntry.getName().endsWith("wl.fits")
+								|| fileEntry.getName().endsWith("md.fits") || fileEntry.getName().endsWith("obj.fits")
+								|| fileEntry.getName().endsWith(".py") || !fileEntry.getName().startsWith("IMA")
+								|| !fileEntry.getName().startsWith("SCR")))
+							fileEntry.delete();
+					}
+				}
 			switch (this.selectedAction) {
 			case 0:
 				log.info("Action selected: generate lists only...");
@@ -1352,31 +1413,12 @@ public class Main extends javax.swing.JPanel {
 				log.info("Done.");
 				JOptionPane.showMessageDialog(this, "Lists and PyRAF scripts have been created correctly.", "All done",
 						JOptionPane.INFORMATION_MESSAGE);
-				break;
-			case 3:
-				log.info("Action selected: generate lists, one script and execute it...");
-				this.generateAllLists();
-				this.writeOneGiantScript();
-				log.info("Lists and script generated. Executing it...");
-				this.jTabbedPane1.setSelectedIndex(1);
-				this.jConsole.append("Ready to execute: insert a command below to execute it...\n");
-				if (process.isAlive())
-					process.dispose();
-				process.startScript(basePath + "execAsgred.py", callback);
-				log.info("Done.");
-				JOptionPane.showMessageDialog(this,
-						"Lists and the PyRAF script have been created correctly. The script was executed.", "All done",
-						JOptionPane.INFORMATION_MESSAGE);
 			}
 		} catch (Exception ex) {
 			log.fatal(ex.getMessage(), ex);
 			JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
 	}// GEN-LAST:event_jDoItActionPerformed
-
-	private void jRadioAllAndExecActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jRadioAllAndExecActionPerformed
-		this.selectedAction = 3;
-	}// GEN-LAST:event_jRadioAllAndExecActionPerformed
 
 	private void jRadioListsAndMultipleScriptsActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jRadioListsAndMultipleScriptsActionPerformed
 		this.selectedAction = 2;
@@ -1467,8 +1509,8 @@ public class Main extends javax.swing.JPanel {
 			else if (y == jTable1Cols.get("Is standard?")) {
 				image.setStandard((Boolean) this.jTable1.getValueAt(x, y));
 				this.jTable1.setValueAt(true, x, jTable1Cols.get("Enabled"));
-			}
-			else if(y == jTable1Cols.get("Enabled") &&  (boolean)this.jTable1.getValueAt(x, jTable1Cols.get("Is standard?")) == true) {
+			} else if (y == jTable1Cols.get("Enabled")
+					&& (boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Is standard?")) == true) {
 				JOptionPane.showMessageDialog(this, "Images realtive to standard stars cannot be disabled.");
 				this.jTable1.setValueAt(true, x, jTable1Cols.get("Enabled"));
 			}
@@ -1825,7 +1867,7 @@ public class Main extends javax.swing.JPanel {
 		dataService.getImageRepository().save(images);
 		log.trace("Saved.");
 		log.trace("FLATFIELD created.");
-		
+
 		/*
 		 * Populate the LAMP
 		 */
@@ -2040,7 +2082,7 @@ public class Main extends javax.swing.JPanel {
 						temp = temp.replaceAll("+", "p");
 					if (temp.contains("-"))
 						temp = temp.replaceAll("-", "m");
-					log.info("md"+temp);
+					log.info("md" + temp);
 					writer = new PrintWriter(Paths.get(this.basePath, "md" + temp).toFile());
 					temp = "";
 					for (ScienceImage item : observation.getScienceImages()) {
@@ -2094,6 +2136,7 @@ public class Main extends javax.swing.JPanel {
 
 	public void writeScriptForEachTarget() {
 		log.info("Generating a script for each target...");
+		scriptsList = new ArrayList<>();
 		for (Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
 			String targetNormalized = observation.getTargetName();
 			if (targetNormalized.contains("+"))
@@ -2206,6 +2249,7 @@ public class Main extends javax.swing.JPanel {
 
 				// Let's generate the PyRAF script
 				log.info("exec" + targetNormalized + ".py");
+				scriptsList.add("exec" + targetNormalized + ".py");
 				writer = new PrintWriter(Paths.get(this.basePath, "exec" + targetNormalized + ".py").toFile());
 				writer.println("#!/usr/bin/env python");
 				writer.println("import os");
@@ -2293,6 +2337,8 @@ public class Main extends javax.swing.JPanel {
 			log.info("Generating one script...");
 			// Let's generate the PyRAF script
 			log.info("execAsgred.py");
+			scriptsList = new ArrayList<String>();
+			scriptsList.add("execAsgred.py");
 			writer = new PrintWriter(Paths.get(this.basePath, "execAsgred.py").toFile());
 			writer.println("#!/usr/bin/env python");
 			writer.println("import os");
@@ -2426,7 +2472,6 @@ public class Main extends javax.swing.JPanel {
 	private javax.swing.JTextField jPath;
 	private javax.swing.JTextField jPath1;
 	private javax.swing.JPanel jPythonPanel;
-	private javax.swing.JRadioButton jRadioAllAndExec;
 	private javax.swing.JRadioButton jRadioButton2;
 	private javax.swing.JRadioButton jRadioFitsList;
 	private javax.swing.JRadioButton jRadioListsAndMultipleScripts;
@@ -2453,5 +2498,8 @@ public class Main extends javax.swing.JPanel {
 	private javax.swing.JTable jTable1;
 	private javax.swing.JTable jTable2;
 	private javax.swing.JSlider jWlcalThreshold;
+	private javax.swing.JCheckBox jCheckStartFromScrap;
+	private javax.swing.JButton jViewScripts;
+	private javax.swing.JButton jRunScripts;
 	private final ButtonGroup groupSteps = new ButtonGroup();
 }

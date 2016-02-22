@@ -127,13 +127,14 @@ public class PythonRunnable {
 						while ((nBytes = python.getErrorStream().available()) != 0) {
 							log.trace("Error received.");
 							byte[] buffer = new byte[nBytes];
-							nBytes = python.getInputStream().read(buffer);
+							nBytes = python.getErrorStream().read(buffer);
 							for (String response : new String(buffer, 0, nBytes).split("\n"))
 								callback.OnErrorReceived(response);
 						}
 					}
 					log.info("Done");
 					callback.OnResponseReceived("terminated");
+					callback.onScriptTerminated();
 					dispose();
 				} catch (Exception ex) {
 					log.fatal(ex);
@@ -178,13 +179,14 @@ public class PythonRunnable {
 						while ((nBytes = python.getErrorStream().available()) != 0) {
 							log.trace("Error received.");
 							byte[] buffer = new byte[nBytes];
-							nBytes = python.getInputStream().read(buffer);
+							nBytes = python.getErrorStream().read(buffer);
 							for (String response : new String(buffer, 0, nBytes).split("\n"))
 								callback.OnErrorReceived(response);
 						}
 					}
 					log.info("Done");
 					callback.OnResponseReceived("terminated");
+					callback.onScriptTerminated();
 					dispose();
 				} catch (Exception ex) {
 					log.fatal(ex);
