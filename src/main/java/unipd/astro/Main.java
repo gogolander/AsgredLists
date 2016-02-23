@@ -1,8 +1,8 @@
-/*
+/**
  * Copyright (C) 2015 Vincenzo Abate <gogolander@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
@@ -37,7 +37,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-
 import org.apache.log4j.Logger;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JComboBox;
@@ -77,7 +76,7 @@ public class Main extends javax.swing.JPanel {
 	private int selectedAction = 0;
 	private HashMap<String, Integer> jTable1Cols = new HashMap<>();
 	private HashMap<String, Integer> jTable2Cols = new HashMap<>();
-	private DataService dataService; // database container
+	private DataService dataService;
 	private List<ImageEntity> images; // used just for jTable1 cell renderer purposes
 	private List<String> scriptsList;
 	private String basePath;
@@ -616,34 +615,38 @@ public class Main extends javax.swing.JPanel {
 						.addContainerGap()));
 
 		javax.swing.GroupLayout jStep2Layout = new javax.swing.GroupLayout(jStep2.getContentPane());
-		jStep2.getContentPane().setLayout(jStep2Layout);
-		jStep2Layout.setHorizontalGroup(jStep2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jStep2Layout.createSequentialGroup().addContainerGap().addGroup(jStep2Layout
-						.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-						.addGroup(jStep2Layout.createSequentialGroup().addComponent(jLabel2).addGap(429, 429, 429)
-								.addComponent(jOptionsPanel, javax.swing.GroupLayout.DEFAULT_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+		jStep2Layout.setHorizontalGroup(
+			jStep2Layout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jStep2Layout.createSequentialGroup()
+					.addContainerGap()
+					.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING)
 						.addGroup(jStep2Layout.createSequentialGroup()
-								.addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 728,
-										javax.swing.GroupLayout.PREFERRED_SIZE)
-								.addGap(90, 90, 90).addComponent(jStep2Next, javax.swing.GroupLayout.DEFAULT_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-						.addContainerGap()));
-		jStep2Layout.setVerticalGroup(jStep2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jStep2Layout.createSequentialGroup()
-						.addContainerGap()
-						.addGroup(jStep2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-								.addGroup(jStep2Layout.createSequentialGroup().addComponent(jLabel2).addGap(18, 18, 18)
-										.addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 167,
-												javax.swing.GroupLayout.PREFERRED_SIZE)
-										.addGap(0, 0, Short.MAX_VALUE))
-								.addGroup(jStep2Layout.createSequentialGroup()
-										.addComponent(jOptionsPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 125,
-												javax.swing.GroupLayout.PREFERRED_SIZE)
-										.addGap(18, 18, 18).addComponent(jStep2Next,
-												javax.swing.GroupLayout.DEFAULT_SIZE,
-												javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-						.addContainerGap()));
+							.addComponent(jLabel2)
+							.addGap(429)
+							.addComponent(jOptionsPanel, GroupLayout.DEFAULT_SIZE, 344, Short.MAX_VALUE))
+						.addGroup(jStep2Layout.createSequentialGroup()
+							.addComponent(jScrollPane1, GroupLayout.PREFERRED_SIZE, 728, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED, 12, Short.MAX_VALUE)
+							.addComponent(jStep2Next, GroupLayout.PREFERRED_SIZE, 95, GroupLayout.PREFERRED_SIZE)))
+					.addContainerGap())
+		);
+		jStep2Layout.setVerticalGroup(
+			jStep2Layout.createParallelGroup(Alignment.TRAILING)
+				.addGroup(jStep2Layout.createSequentialGroup()
+					.addContainerGap()
+					.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING)
+						.addGroup(jStep2Layout.createSequentialGroup()
+							.addComponent(jLabel2)
+							.addGap(18)
+							.addComponent(jScrollPane1, GroupLayout.PREFERRED_SIZE, 167, GroupLayout.PREFERRED_SIZE)
+							.addGap(0, 0, Short.MAX_VALUE))
+						.addGroup(jStep2Layout.createSequentialGroup()
+							.addComponent(jOptionsPanel, GroupLayout.PREFERRED_SIZE, 125, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED, 0, Short.MAX_VALUE)
+							.addComponent(jStep2Next, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)))
+					.addContainerGap())
+		);
+		jStep2.getContentPane().setLayout(jStep2Layout);
 		jShowStep2.setText("Go to step 2");
 		this.jShowStep2
 				.addActionListener(this.jStep2.getActionMap().get(org.jdesktop.swingx.JXCollapsiblePane.TOGGLE_ACTION));
@@ -1637,7 +1640,7 @@ public class Main extends javax.swing.JPanel {
 		int x = this.jTable2.getSelectedRow();
 		if (x != -1) {
 			int y = this.jTable2.getSelectedColumn();
-			String args[] = String.valueOf(this.jTable2.getModel().getValueAt(x, 1)).split(" ");
+			String args[] = String.valueOf(this.jTable2.getModel().getValueAt(x, jTable2Cols.get("Target"))).split(" ");
 			args[1] = args[1].replace("(", "");
 			args[1] = args[1].replace(")", "");
 			String message = "";
@@ -1646,19 +1649,19 @@ public class Main extends javax.swing.JPanel {
 			switch (y) {
 			case 0:
 				if (dataService.getScienceRepository().findConflictsForTargetName(args[0]) != 0) {
-					message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, 1)
+					message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("Target"))
 							+ " contain conflicts: this could lead to errors in the next step.\nWe suggest you either to return to STEP 2 and solve them or to leave this target disabled.\nDo you want to enable it anyway?";
 				}
 				break;
 			case 3:
 				if (dataService.getScienceRepository().getIsLampMissingForTargetName(args[0]) != 0) {
-					message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, 1)
+					message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("Target"))
 							+ " are missing lamps: this could lead to errors in the next step.\nWe suggest you either to return to STEP 2 and solve them or to leave wlcal for this target disabled.\nDo you want to enable it anyway?";
 				}
 				break;
 			case 4:
 				if (dataService.getScienceRepository().getIsStandardMissingForTargetName(args[0]) != 0) {
-					message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, 1)
+					message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("Target"))
 							+ " are missing standard stars: this could lead to errors in the next step.\nWe suggest you either to return to STEP 2 and solve them or to leave fcal for this target disabled.\nDo you want to enable this target anyway?";
 				}
 			}
@@ -1667,20 +1670,20 @@ public class Main extends javax.swing.JPanel {
 				if (JOptionPane.showConfirmDialog(this, message, "Wait!", JOptionPane.YES_NO_OPTION,
 						JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) {
 					if (y != 0) {
-						this.jTable2.getModel().setValueAt(true, x, 0);
+						this.jTable2.getModel().setValueAt(true, x,  jTable2Cols.get("Image"));
 					}
 				} else {
 					this.jTable2.getModel().setValueAt(false, x, y);
 				}
 			}
-			observation.setEnabled((boolean) this.jTable2.getModel().getValueAt(x, 0));
-			observation.setDoPrered((boolean) this.jTable2.getModel().getValueAt(x, 2));
-			observation.setDoWlcal((boolean) this.jTable2.getModel().getValueAt(x, 3));
-			observation.setDoFcal((boolean) this.jTable2.getModel().getValueAt(x, 4));
-			observation.setDoBackground((boolean) this.jTable2.getModel().getValueAt(x, 5));
-			observation.setDoApall((boolean) this.jTable2.getModel().getValueAt(x, 6));
-			observation.setDoScombine((boolean) this.jTable2.getModel().getValueAt(x, 7));
-			observation.setDoImcopy((boolean) this.jTable2.getModel().getValueAt(x, 8));
+			observation.setEnabled((boolean) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("Enabled")));
+			observation.setDoPrered((boolean) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("prered2")));
+			observation.setDoWlcal((boolean) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("wlcal")));
+			observation.setDoFcal((boolean) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("fcal")));
+			observation.setDoBackground((boolean) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("background")));
+			observation.setDoApall((boolean) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("apall")));
+			observation.setDoScombine((boolean) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("scombine")));
+			observation.setDoImcopy((boolean) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("imcopy")));
 			dataService.getObservationRepository().save(observation);
 			this.jTable2.clearSelection();
 		}
@@ -2260,22 +2263,22 @@ public class Main extends javax.swing.JPanel {
 				writer.println("os.chdir(\"" + this.basePath + "\")");
 
 				// exec prered2
-				writer.println("\n###############################################################################");
-				writer.println("#        						  Prered2  							          #");
-				writer.println("###############################################################################");
+				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.println("iraf.asgred.prered2(flat=\"list_flat_" + targetNormalized + "\", comp=\"list_lamps_"
 						+ targetNormalized + "\", object=\"list_obj_" + targetNormalized + "\", order=11)");
 				// exec wlcal
-				writer.println("\n###############################################################################");
-				writer.println("#        						  WLCAL  							          #");
-				writer.println("###############################################################################");
+				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				String firstLamp = dataService.getLampRepository().findAll().iterator().next().getImage().getFileName();
 				writer.println(
 						"iraf.asgred.wlcal(input=\"list_obj_" + targetNormalized + "\", refer=\"" + firstLamp + "\")");
 
-				writer.println("\n###############################################################################");
-				writer.println("#        						  FCAL  							          #");
-				writer.println("###############################################################################");
+				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("fcal", 78));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.println("iraf.asgred.fcal(obj=\"wl" + targetNormalized + "\", stand=\""
 						+ observation.getStandard().getImage().getFileName() + "\", dir=\"onedstds$"
 						+ dataService.getStandardAtlas()
@@ -2287,25 +2290,24 @@ public class Main extends javax.swing.JPanel {
 						+ "\")");
 
 				// exec background
-				writer.println("\n###############################################################################");
-				writer.println("#        						  Background         				          #");
-				writer.println("###############################################################################");
+				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("background", 78));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoBackground())
 					writer.println("iraf.asgred.background(input=\"fc" + targetNormalized + "\", output=\"bg"
 							+ targetNormalized + "\")");
 
 				// exec apall
-				writer.println("\n###############################################################################");
-				writer.println("#        						  Apall  							          #");
-				writer.println("###############################################################################");
+				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("apall", 78));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoApall())
 					writer.println("iraf.asgred.apall(input=\"@bg" + targetNormalized + "\", output=\"@md"
 							+ targetNormalized + "\")");
 
 				// exec scombine
-				writer.println("\n###############################################################################");
-				writer.println("#        						  Scombine 							          #");
-				writer.println("###############################################################################");
+				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("scombine", 78));writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoScombine())
 					writer.println("iraf.asgred.scombine(input=\"md" + targetNormalized + "\", output=\""
 							+ targetNormalized + ".md\")");
@@ -2314,9 +2316,8 @@ public class Main extends javax.swing.JPanel {
 				String end = this.jImcopyEnd.getValue().toString();
 
 				// exec imcopy
-				writer.println("\n###############################################################################");
-				writer.println("#        						  Imcopy  							          #");
-				writer.println("###############################################################################");
+				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("imcopy", 78));writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoImcopy())
 					writer.println("iraf.asgred.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
 							+ "]\", output=\"" + targetNormalized + ".obj\")");
@@ -2348,25 +2349,24 @@ public class Main extends javax.swing.JPanel {
 			writer.println("from pyraf import iraf");
 			writer.println("os.chdir(\"" + this.basePath + "\")");
 			// exec prered2
-			writer.println("\n###############################################################################");
-			writer.println("#        						  Prered2 							          #");
-			writer.println("###############################################################################");
+			writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+			writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
+			writer.println(new String(new char[80]).replace("\0", "#"));
 			writer.println(
 					"iraf.asgred.prered2(flat=\"list_flat\", comp=\"list_lamps\", object=\"list_obj\", outflat=\"Flat\", order=11, mode=\"q\")");
 			// exec wlcal
-			writer.println("\n###############################################################################");
-			writer.println("#        						  WLCAL  							          #");
-			writer.println("###############################################################################");
+			writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+			writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
+			writer.println(new String(new char[80]).replace("\0", "#"));
 
 			String firstLamp = dataService.getLampRepository().findAll().iterator().next().getImage().getFileName();
 			writer.println("iraf.asgred.wlcal(input=\"list_obj\", refer=\"" + firstLamp + "\")");
 
 			// exec fcal
 			for (StandardImage standard : dataService.getStandardRepository().findAll()) {
-				writer.println("\n###############################################################################");
-				writer.println(
-						"#          Flux calibration for " + standard.getImage().getTargetName() + "           #");
-				writer.println("###############################################################################");
+				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("Flux calibration for " + standard.getImage().getTargetName() , 78));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (!standard.getObservations().isEmpty()) {
 					writer.println("iraf.asgred.fcal(obj=\"std" + standard.getImage().getFileName() + "\", stand=\""
 							+ standard.getImage().getFileName() + "\", dir=\"onedstds$"
@@ -2378,9 +2378,9 @@ public class Main extends javax.swing.JPanel {
 				}
 			}
 			for (Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
-				writer.println("\n###############################################################################");
-				writer.println("#          reduction for " + observation.getTargetName() + "                   #");
-				writer.println("###############################################################################");
+				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("reduction for " + observation.getTargetName() , 78));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 
 				String targetNormalized = observation.getTargetName();
 				if (targetNormalized.contains("+"))

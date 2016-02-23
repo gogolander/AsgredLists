@@ -4,7 +4,7 @@
 
 	<groupId>unipd.astro</groupId>
 	<artifactId>asgred</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.3</version>
 
 	<name>AsgredLists</name>
 
@@ -13,6 +13,17 @@
 		<java.version>1.8</java.version>
 		<spring.version>4.1.6.RELEASE</spring.version>
 	</properties>
+
+	<profiles>
+		<profile>
+			<id>downloadSources</id>
+			<properties>
+				<downloadSources>true</downloadSources>
+				<downloadJavadocs>true</downloadJavadocs>
+			</properties>
+		</profile>
+	</profiles>
+
 	<repositories>
 		<repository>
 			<id>central</id>
@@ -38,6 +49,11 @@
 	</pluginRepositories>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.4</version>
+		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
@@ -220,6 +236,35 @@
 						</manifest>
 					</archive>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.mycila.maven-license-plugin</groupId>
+				<artifactId>maven-license-plugin</artifactId>
+				<version>1.9.0</version>
+				<configuration>
+					<header>license.txt</header>
+					<properties>
+						<owner>Vincenzo Abate</owner>
+						<email>gogolander@gmail.com</email>
+					</properties>
+					<strictCheck>true</strictCheck>
+					<encoding>UTF-8</encoding>
+					<excludes>
+						<exclude>*.md</exclude>
+						<exclude>*.form</exclude>
+						<exclude>target/**</exclude>
+						<exclude>src/main/resources/**</exclude>
+						<exclude>.gitignore</exclude>
+						<exclude>src/main/resources/license.txt</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>format</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
