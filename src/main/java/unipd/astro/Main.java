@@ -58,6 +58,17 @@ import unipd.astro.entity.StandardImage;
 import unipd.astro.service.DataService;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+
+import javax.print.Doc;
+import javax.print.DocFlavor;
+import javax.print.DocPrintJob;
+import javax.print.PrintService;
+import javax.print.PrintServiceLookup;
+import javax.print.ServiceUI;
+import javax.print.SimpleDoc;
+import javax.print.attribute.HashPrintRequestAttributeSet;
+import javax.print.attribute.PrintRequestAttributeSet;
+import javax.print.attribute.standard.Copies;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.GroupLayout.Alignment;
@@ -141,6 +152,7 @@ public class Main extends javax.swing.JPanel {
 	// <editor-fold defaultstate="collapsed" desc="Generated
 	// Code">//GEN-BEGIN:initComponents
 	private void initComponents() {
+		jPrintTODO = new JButton();
 		jViewScripts = new JButton();
 		jRunScripts = new JButton();
 		jCheckStartFromScrap = new JCheckBox();
@@ -662,7 +674,7 @@ public class Main extends javax.swing.JPanel {
 		jTable2.setModel(new javax.swing.table.DefaultTableModel(
 				new Object[][] { { new Boolean(true), null, new Boolean(true), new Boolean(true), new Boolean(true),
 						new Boolean(true), new Boolean(true), new Boolean(true), new Boolean(true) } },
-				new String[] { "Enabled", "Target", "prered2", "wlcal", "flcal", "background", "apall", "scombine",
+				new String[] { "Enabled", "Target", "prered2", "wlcal", "fcal", "background", "apall", "scombine",
 						"imcopy" }) {
 			Class[] types = new Class[] { java.lang.Boolean.class, java.lang.String.class, java.lang.Boolean.class,
 					java.lang.Boolean.class, java.lang.Boolean.class, java.lang.Boolean.class, java.lang.Boolean.class,
@@ -817,43 +829,54 @@ public class Main extends javax.swing.JPanel {
 		});
 
 		jCheckStartFromScrap.setText("Start from scrap");
+		
+		jPrintTODO.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				jPrintTODOActionPerformed(e);
+			}
+		});
+		jPrintTODO.setText("Print TODO list");
+		jPrintTODO.setFont(new Font("Dialog", Font.BOLD, 11));
 
 		javax.swing.GroupLayout jStep4Layout = new javax.swing.GroupLayout(jStep4.getContentPane());
-		jStep4Layout.setHorizontalGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jStep4Layout.createSequentialGroup().addContainerGap()
-						.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+		jStep4Layout.setHorizontalGroup(
+			jStep4Layout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jStep4Layout.createSequentialGroup()
+					.addContainerGap()
+					.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+						.addGroup(jStep4Layout.createSequentialGroup()
+							.addComponent(jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+							.addGap(18)
+							.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
 								.addGroup(jStep4Layout.createSequentialGroup()
-										.addComponent(jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-												GroupLayout.PREFERRED_SIZE)
-										.addGap(18)
-										.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
-												.addGroup(jStep4Layout.createSequentialGroup()
-														.addComponent(jDoIt, GroupLayout.PREFERRED_SIZE, 160,
-																GroupLayout.PREFERRED_SIZE)
-														.addGap(18)
-														.addComponent(jViewScripts, GroupLayout.PREFERRED_SIZE, 160,
-																GroupLayout.PREFERRED_SIZE)
-														.addGap(18)
-														.addComponent(jRunScripts, GroupLayout.PREFERRED_SIZE, 160,
-																GroupLayout.PREFERRED_SIZE))
-										.addComponent(jCheckStartFromScrap)))
-								.addComponent(jLabel10))
-						.addGap(193)));
-		jStep4Layout
-				.setVerticalGroup(jStep4Layout.createParallelGroup(Alignment.TRAILING).addGroup(Alignment.LEADING,
-						jStep4Layout.createSequentialGroup().addContainerGap().addComponent(jLabel10)
-								.addPreferredGap(ComponentPlacement.RELATED)
-								.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
-										.addComponent(jRunScripts, GroupLayout.PREFERRED_SIZE, 52,
-												GroupLayout.PREFERRED_SIZE)
-								.addComponent(jViewScripts, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
-								.addComponent(jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-										GroupLayout.PREFERRED_SIZE).addGroup(
-												jStep4Layout.createSequentialGroup()
-														.addComponent(jDoIt, GroupLayout.PREFERRED_SIZE, 52,
-																GroupLayout.PREFERRED_SIZE)
-														.addGap(18).addComponent(jCheckStartFromScrap)))
-						.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+									.addComponent(jDoIt, GroupLayout.PREFERRED_SIZE, 160, GroupLayout.PREFERRED_SIZE)
+									.addGap(18)
+									.addComponent(jViewScripts, GroupLayout.PREFERRED_SIZE, 160, GroupLayout.PREFERRED_SIZE)
+									.addGap(18)
+									.addComponent(jRunScripts, GroupLayout.PREFERRED_SIZE, 160, GroupLayout.PREFERRED_SIZE)
+									.addGap(18)
+									.addComponent(jPrintTODO, GroupLayout.PREFERRED_SIZE, 160, GroupLayout.PREFERRED_SIZE))
+								.addComponent(jCheckStartFromScrap)))
+						.addComponent(jLabel10))
+					.addGap(15))
+		);
+		jStep4Layout.setVerticalGroup(
+			jStep4Layout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jStep4Layout.createSequentialGroup()
+					.addContainerGap()
+					.addComponent(jLabel10)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+						.addComponent(jPrintTODO, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
+						.addComponent(jRunScripts, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
+						.addComponent(jViewScripts, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
+						.addComponent(jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addGroup(jStep4Layout.createSequentialGroup()
+							.addComponent(jDoIt, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
+							.addGap(18)
+							.addComponent(jCheckStartFromScrap)))
+					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+		);
 		jStep4.getContentPane().setLayout(jStep4Layout);
 		jShowStep4.setText("Go to step 4");
 		jShowStep4
@@ -2420,6 +2443,55 @@ public class Main extends javax.swing.JPanel {
 		}
 		log.info("Done.");
 	}
+	
+	private void jPrintTODOActionPerformed(ActionEvent e) {
+		generateTODOList();
+	}
+	
+	private void generateTODOList() {
+		try {
+			String temp = "";
+			for(Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
+				temp += observation.getTargetName();
+				if(observation.getStandard().getImage().getTargetName().equals(observation.getTargetName()))
+						temp += " (Standard)";
+				else
+					temp += " (Object)";
+				temp += ":\n\r";
+				temp += new String(new char[76]).replace("\0", "⎯")+"\n\r";
+				if(observation.isDoPrered())
+					temp += "\t⬜ flatfield correction\n\r";
+				if(observation.isDoWlcal())
+					temp += "\t⬜ wavelength calibration\n\r";
+				if(observation.isDoFcal())
+					temp += "\t⬜ flux calibration\n\r";
+				if(observation.isDoBackground())
+					temp += "\t⬜ background subtraction\n\r";
+				if(observation.isDoApall())
+					temp += "\t⬜ spectrum extraction\n\r";
+				if(observation.isDoScombine())
+					temp += "\t⬜ spectrum combine\n\r";
+				if(observation.isDoImcopy())
+					temp += "\t⬜ cut final spectrum\n\r";
+				temp += "\n\n";
+			}
+			
+			PrintService[] services = PrintServiceLookup.lookupPrintServices(DocFlavor.STRING.TEXT_PLAIN, null);
+			PrintService svc = PrintServiceLookup.lookupDefaultPrintService();
+			PrintRequestAttributeSet attrs = new HashPrintRequestAttributeSet();
+			PrintService selection = ServiceUI.printDialog(null, 100, 100, services, svc, null, attrs);
+			DocPrintJob job = selection.createPrintJob();
+			Doc doc = new SimpleDoc(temp, DocFlavor.STRING.TEXT_PLAIN, null);
+			attrs.add(new Copies(1));
+			job.print(doc, attrs); 
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e);
+			JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+		} finally {
+			
+		}
+	}
 
 	// Variables declaration - do not modify//GEN-BEGIN:variables
 	private javax.swing.ButtonGroup groupAction;
@@ -2501,5 +2573,6 @@ public class Main extends javax.swing.JPanel {
 	private javax.swing.JCheckBox jCheckStartFromScrap;
 	private javax.swing.JButton jViewScripts;
 	private javax.swing.JButton jRunScripts;
+	private javax.swing.JButton jPrintTODO;
 	private final ButtonGroup groupSteps = new ButtonGroup();
 }
