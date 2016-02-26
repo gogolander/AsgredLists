@@ -17,7 +17,6 @@
 package unipd.astro;
 
 public interface AsyncCallback {
-	void OnResponseReceived(String response);
-	void OnErrorReceived(String error);
-	void onScriptTerminated();
+	void OnResponseReceived(String response, boolean isError);
+	void OnScriptTerminated();
 }

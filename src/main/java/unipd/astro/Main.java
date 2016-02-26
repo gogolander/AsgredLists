@@ -47,7 +47,12 @@ import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultCaret;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyleContext;
+
 import unipd.astro.entity.FlatfieldImage;
 import unipd.astro.entity.ImageEntity;
 import unipd.astro.entity.LampImage;
@@ -68,7 +73,6 @@ import javax.print.ServiceUI;
 import javax.print.SimpleDoc;
 import javax.print.attribute.HashPrintRequestAttributeSet;
 import javax.print.attribute.PrintRequestAttributeSet;
-import javax.print.attribute.standard.Copies;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.GroupLayout.Alignment;
@@ -76,6 +80,7 @@ import javax.swing.GroupLayout;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import java.awt.Font;
 import javax.swing.JCheckBox;
+import javax.swing.JTextPane;
 
 /**
  *
@@ -88,24 +93,59 @@ public class Main extends javax.swing.JPanel {
 	private HashMap<String, Integer> jTable1Cols = new HashMap<>();
 	private HashMap<String, Integer> jTable2Cols = new HashMap<>();
 	private DataService dataService;
-	private List<ImageEntity> images; // used just for jTable1 cell renderer purposes
+	private List<ImageEntity> images; // used just for jTable1 cell renderer
+										// purposes
+	private Style In, Out, Error, ControlIn, ControlOut;
 	private List<String> scriptsList;
 	private String basePath;
 	private PythonRunnable process;
 	private AsyncCallback callback = new AsyncCallback() {
 		@Override
-		public void OnResponseReceived(String response) {
-			jConsole.append("<<\t" + response + "\n");
+		public void OnResponseReceived(String response, boolean isError) {
+			try {
+				if (!isError) {
+					jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "◀",
+							ControlOut);
+					jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
+							"\t" + response + "\n", Out);
+				} else {
+					jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "◀", Error);
+					jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
+							"\t" + response + "\n", Error);
+				}
+				if (response.contains("rms=")) {
+					int index = response.lastIndexOf("rms=") + 4;
+					int startIdx = index;
+					while (response.charAt(index) != '.')
+						index++;
+					index++;
+					while ((int) response.charAt(index) < 58 && (int) response.charAt(index) > 47)
+						index++;
+					double rms = Double.parseDouble(response.substring(startIdx, index));
+					if (rms > (Double.parseDouble(dataService.getProperty("iraf.wlcal.rms_threshold")) / 100D)) {
+						jCommand.setText("no");
+						jSend.doClick();
+					} else {
+						jCommand.setText("accept");
+						jSend.doClick();
+					}
+				}
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}
 		}
 
 		@Override
-		public void OnErrorReceived(String error) {
-			jConsole.append("<<\tERROR: " + error + "\n");
-		}
-
-		@Override
-		public void onScriptTerminated() {
-			if(scriptsList.size() > 0) {
+		public void OnScriptTerminated() {
+			try {
+				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "◀", ControlOut);
+				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "\tterminated.\n",
+						Out);
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}
+			((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+			if (scriptsList.size() > 0) {
 				scriptsList.remove(0);
 				process.startScript(Paths.get(basePath + "/" + scriptsList.get(0)).toString(), callback);
 			}
@@ -177,6 +217,7 @@ public class Main extends javax.swing.JPanel {
 		jShowStep1.setSelected(true);
 		groupSteps.add(jShowStep1);
 		jStep2 = new org.jdesktop.swingx.JXCollapsiblePane();
+		jStep2.setCollapsed(true);
 		jScrollPane1 = new javax.swing.JScrollPane();
 		jTable1 = new javax.swing.JTable();
 		jLabel2 = new javax.swing.JLabel();
@@ -216,7 +257,9 @@ public class Main extends javax.swing.JPanel {
 		groupSteps.add(jShowStep4);
 		jPythonPanel = new javax.swing.JPanel();
 		jScrollPane3 = new javax.swing.JScrollPane();
-		jConsole = new javax.swing.JTextArea();
+		jConsole = new JTextPane();
+		float[] background = Color.RGBtoHSB(76, 76, 76, null);
+		jConsole.setBackground(Color.getHSBColor(background[0], background[1], background[2]));
 		jCommand = new javax.swing.JTextField();
 		jSend = new javax.swing.JButton();
 		jAdvancedOptionsPanel = new javax.swing.JPanel();
@@ -397,7 +440,6 @@ public class Main extends javax.swing.JPanel {
 		});
 
 		jStep2.setBorder(javax.swing.BorderFactory.createTitledBorder("STEP 2"));
-		jStep2.setCollapsed(true);
 
 		jTable1.setModel(new javax.swing.table.DefaultTableModel(
 				new Object[][] { { null, null, null, null, null, null, null, null } }, new String[] { "Enabled",
@@ -450,7 +492,7 @@ public class Main extends javax.swing.JPanel {
 		jLabel7.setBackground(new java.awt.Color(101, 160, 255));
 		jLabel7.setText("STANDARD");
 
-		jPanel10.setBackground(new java.awt.Color(255, 54, 0));
+		jPanel10.setBackground(new java.awt.Color(240, 40, 34));
 		jPanel10.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 		jPanel10.setPreferredSize(new java.awt.Dimension(14, 14));
 
@@ -474,7 +516,7 @@ public class Main extends javax.swing.JPanel {
 		jLabel6.setBackground(new java.awt.Color(255, 243, 114));
 		jLabel6.setText("LAMP");
 
-		jPanel9.setBackground(new java.awt.Color(101, 160, 255));
+		jPanel9.setBackground(new java.awt.Color(114, 159, 207));
 		jPanel9.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 		jPanel9.setPreferredSize(new java.awt.Dimension(14, 14));
 
@@ -499,7 +541,7 @@ public class Main extends javax.swing.JPanel {
 		jLabel9.setBackground(new java.awt.Color(255, 157, 0));
 		jLabel9.setText("CONFLICT");
 
-		jPanel11.setBackground(new java.awt.Color(20, 255, 59));
+		jPanel11.setBackground(new java.awt.Color(149, 226, 158));
 		jPanel11.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 		jPanel11.setPreferredSize(new java.awt.Dimension(14, 14));
 
@@ -627,37 +669,30 @@ public class Main extends javax.swing.JPanel {
 						.addContainerGap()));
 
 		javax.swing.GroupLayout jStep2Layout = new javax.swing.GroupLayout(jStep2.getContentPane());
-		jStep2Layout.setHorizontalGroup(
-			jStep2Layout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jStep2Layout.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING)
+		jStep2Layout.setHorizontalGroup(jStep2Layout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jStep2Layout.createSequentialGroup().addContainerGap()
+						.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING)
+								.addGroup(jStep2Layout.createSequentialGroup().addComponent(jLabel2).addGap(429)
+										.addComponent(jOptionsPanel, GroupLayout.DEFAULT_SIZE, 344, Short.MAX_VALUE))
+						.addGroup(Alignment.TRAILING,
+								jStep2Layout.createSequentialGroup()
+										.addComponent(jScrollPane1, GroupLayout.PREFERRED_SIZE, 756,
+												GroupLayout.PREFERRED_SIZE)
+										.addPreferredGap(ComponentPlacement.RELATED, 288, Short.MAX_VALUE)
+										.addComponent(jStep2Next, GroupLayout.PREFERRED_SIZE, 95,
+												GroupLayout.PREFERRED_SIZE)))
+						.addContainerGap()));
+		jStep2Layout.setVerticalGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING).addGroup(jStep2Layout
+				.createSequentialGroup().addContainerGap()
+				.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING)
+						.addGroup(jStep2Layout.createSequentialGroup().addComponent(jLabel2).addGap(18).addComponent(
+								jScrollPane1, GroupLayout.PREFERRED_SIZE, 167, GroupLayout.PREFERRED_SIZE))
 						.addGroup(jStep2Layout.createSequentialGroup()
-							.addComponent(jLabel2)
-							.addGap(429)
-							.addComponent(jOptionsPanel, GroupLayout.DEFAULT_SIZE, 344, Short.MAX_VALUE))
-						.addGroup(jStep2Layout.createSequentialGroup()
-							.addComponent(jScrollPane1, GroupLayout.PREFERRED_SIZE, 728, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.RELATED, 12, Short.MAX_VALUE)
-							.addComponent(jStep2Next, GroupLayout.PREFERRED_SIZE, 95, GroupLayout.PREFERRED_SIZE)))
-					.addContainerGap())
-		);
-		jStep2Layout.setVerticalGroup(
-			jStep2Layout.createParallelGroup(Alignment.TRAILING)
-				.addGroup(jStep2Layout.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING)
-						.addGroup(jStep2Layout.createSequentialGroup()
-							.addComponent(jLabel2)
-							.addGap(18)
-							.addComponent(jScrollPane1, GroupLayout.PREFERRED_SIZE, 167, GroupLayout.PREFERRED_SIZE)
-							.addGap(0, 0, Short.MAX_VALUE))
-						.addGroup(jStep2Layout.createSequentialGroup()
-							.addComponent(jOptionsPanel, GroupLayout.PREFERRED_SIZE, 125, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.RELATED, 0, Short.MAX_VALUE)
-							.addComponent(jStep2Next, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)))
-					.addContainerGap())
-		);
+								.addComponent(jOptionsPanel, GroupLayout.PREFERRED_SIZE, 125,
+										GroupLayout.PREFERRED_SIZE)
+								.addPreferredGap(ComponentPlacement.RELATED, 51, Short.MAX_VALUE)
+								.addComponent(jStep2Next, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)))
+				.addContainerGap()));
 		jStep2.getContentPane().setLayout(jStep2Layout);
 		jShowStep2.setText("Go to step 2");
 		this.jShowStep2
@@ -779,27 +814,16 @@ public class Main extends javax.swing.JPanel {
 		});
 
 		javax.swing.GroupLayout jPanel12Layout = new javax.swing.GroupLayout(jPanel12);
-		jPanel12Layout.setHorizontalGroup(
-			jPanel12Layout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jPanel12Layout.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(jPanel12Layout.createParallelGroup(Alignment.LEADING)
-						.addComponent(jRadioListsOnly)
-						.addComponent(jRadioListsAndOneScript)
-						.addComponent(jRadioListsAndMultipleScripts))
-					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-		);
-		jPanel12Layout.setVerticalGroup(
-			jPanel12Layout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jPanel12Layout.createSequentialGroup()
-					.addContainerGap()
-					.addComponent(jRadioListsOnly)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(jRadioListsAndOneScript)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(jRadioListsAndMultipleScripts)
-					.addContainerGap(35, Short.MAX_VALUE))
-		);
+		jPanel12Layout.setHorizontalGroup(jPanel12Layout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jPanel12Layout.createSequentialGroup().addContainerGap()
+						.addGroup(jPanel12Layout.createParallelGroup(Alignment.LEADING).addComponent(jRadioListsOnly)
+								.addComponent(jRadioListsAndOneScript).addComponent(jRadioListsAndMultipleScripts))
+				.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		jPanel12Layout.setVerticalGroup(jPanel12Layout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jPanel12Layout.createSequentialGroup().addContainerGap().addComponent(jRadioListsOnly)
+						.addPreferredGap(ComponentPlacement.UNRELATED).addComponent(jRadioListsAndOneScript)
+						.addPreferredGap(ComponentPlacement.UNRELATED).addComponent(jRadioListsAndMultipleScripts)
+						.addContainerGap(35, Short.MAX_VALUE)));
 		jPanel12.setLayout(jPanel12Layout);
 
 		jDoIt.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
@@ -829,7 +853,7 @@ public class Main extends javax.swing.JPanel {
 		});
 
 		jCheckStartFromScrap.setText("Start from scrap");
-		
+
 		jPrintTODO.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				jPrintTODOActionPerformed(e);
@@ -839,44 +863,44 @@ public class Main extends javax.swing.JPanel {
 		jPrintTODO.setFont(new Font("Dialog", Font.BOLD, 11));
 
 		javax.swing.GroupLayout jStep4Layout = new javax.swing.GroupLayout(jStep4.getContentPane());
-		jStep4Layout.setHorizontalGroup(
-			jStep4Layout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jStep4Layout.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
-						.addGroup(jStep4Layout.createSequentialGroup()
-							.addComponent(jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-							.addGap(18)
-							.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+		jStep4Layout.setHorizontalGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jStep4Layout.createSequentialGroup().addContainerGap()
+						.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
 								.addGroup(jStep4Layout.createSequentialGroup()
-									.addComponent(jDoIt, GroupLayout.PREFERRED_SIZE, 160, GroupLayout.PREFERRED_SIZE)
-									.addGap(18)
-									.addComponent(jViewScripts, GroupLayout.PREFERRED_SIZE, 160, GroupLayout.PREFERRED_SIZE)
-									.addGap(18)
-									.addComponent(jRunScripts, GroupLayout.PREFERRED_SIZE, 160, GroupLayout.PREFERRED_SIZE)
-									.addGap(18)
-									.addComponent(jPrintTODO, GroupLayout.PREFERRED_SIZE, 160, GroupLayout.PREFERRED_SIZE))
-								.addComponent(jCheckStartFromScrap)))
-						.addComponent(jLabel10))
-					.addGap(15))
-		);
-		jStep4Layout.setVerticalGroup(
-			jStep4Layout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jStep4Layout.createSequentialGroup()
-					.addContainerGap()
-					.addComponent(jLabel10)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
-						.addComponent(jPrintTODO, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
-						.addComponent(jRunScripts, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
-						.addComponent(jViewScripts, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
-						.addComponent(jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-						.addGroup(jStep4Layout.createSequentialGroup()
-							.addComponent(jDoIt, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
-							.addGap(18)
-							.addComponent(jCheckStartFromScrap)))
-					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-		);
+										.addComponent(jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+												GroupLayout.PREFERRED_SIZE)
+										.addGap(18)
+										.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+												.addGroup(jStep4Layout.createSequentialGroup()
+														.addComponent(jDoIt, GroupLayout.PREFERRED_SIZE, 160,
+																GroupLayout.PREFERRED_SIZE)
+														.addGap(18)
+														.addComponent(jViewScripts, GroupLayout.PREFERRED_SIZE, 160,
+																GroupLayout.PREFERRED_SIZE)
+												.addGap(18)
+												.addComponent(jRunScripts, GroupLayout.PREFERRED_SIZE, 160,
+														GroupLayout.PREFERRED_SIZE).addGap(18)
+												.addComponent(jPrintTODO, GroupLayout.PREFERRED_SIZE, 160,
+														GroupLayout.PREFERRED_SIZE))
+										.addComponent(jCheckStartFromScrap)))
+								.addComponent(jLabel10))
+						.addGap(15)));
+		jStep4Layout
+				.setVerticalGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+						.addGroup(jStep4Layout.createSequentialGroup().addContainerGap().addComponent(jLabel10)
+								.addPreferredGap(ComponentPlacement.RELATED)
+								.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+										.addComponent(jPrintTODO, GroupLayout.PREFERRED_SIZE, 52,
+												GroupLayout.PREFERRED_SIZE)
+								.addComponent(jRunScripts, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
+								.addComponent(jViewScripts, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
+								.addComponent(jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE).addGroup(
+												jStep4Layout.createSequentialGroup()
+														.addComponent(jDoIt, GroupLayout.PREFERRED_SIZE, 52,
+																GroupLayout.PREFERRED_SIZE)
+														.addGap(18).addComponent(jCheckStartFromScrap)))
+				.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 		jStep4.getContentPane().setLayout(jStep4Layout);
 		jShowStep4.setText("Go to step 4");
 		jShowStep4
@@ -931,8 +955,6 @@ public class Main extends javax.swing.JPanel {
 		jTabbedPane1.addTab("Data input and Control", jInputPanel);
 
 		jConsole.setEditable(false);
-		jConsole.setColumns(20);
-		jConsole.setRows(5);
 		jScrollPane3.setViewportView(jConsole);
 
 		jCommand.addKeyListener(new java.awt.event.KeyAdapter() {
@@ -1186,15 +1208,20 @@ public class Main extends javax.swing.JPanel {
 	private void jRunScriptsActionPerformed(ActionEvent e) {
 		log.info("Executing scripts...");
 		this.jTabbedPane1.setSelectedIndex(1);
-		this.jConsole.append("Ready to execute: insert a command below to execute it...\n");
-		if ( process != null && process.isAlive())
+		try {
+			jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
+					"Ready to execute: insert a command below to execute it...\n", In);
+		} catch (BadLocationException e1) {
+			e1.printStackTrace();
+		}
+		if (process != null && process.isAlive())
 			process.dispose();
 		process = new PythonRunnable();
 		process.startScript(Paths.get(basePath + "/" + scriptsList.get(0)).toString(), callback);
 	}
 
 	private void jViewScriptsActionPerformed(ActionEvent e) {
-		for(String script : scriptsList) {
+		for (String script : scriptsList) {
 			try {
 				Desktop.getDesktop().open(Paths.get(this.basePath + "/" + script).toFile());
 			} catch (IOException e1) {
@@ -1205,7 +1232,16 @@ public class Main extends javax.swing.JPanel {
 	}
 
 	private void finalInitComponents() {
-		dataService = DataService.getInstance();
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+			@Override
+			public void run() {
+				if (process != null)
+					process.dispose();
+			}
+		}));
+
+		if (Runtime.getRuntime() != null)
+			dataService = DataService.getInstance();
 
 		this.jIrafHome.setText(dataService.getProperty("iraf.home"));
 		this.jBackgroundStart.setValue(Integer.valueOf(dataService.getProperty("iraf.bg.col1")));
@@ -1222,41 +1258,40 @@ public class Main extends javax.swing.JPanel {
 			public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
 					boolean hasFocus, int row, int col) {
 				// Color legend:
-				// 1. standards: HSV=217,100,100; RGB=0,96,255
-				// 2. objects: HSV=130,92,100; RGB=20,255,59
+				// 1. standards: HSV=214,87,64; RGB=21,83,163
+				// 2. objects: HSV=122,34,89; RGB=149,226,158
 				// 3. lamps: HSV=55,75,100; RGB=255,239,64
-				// 4. conflicts: HSV=37,100,100; RGB=255,156,0
+				// 4. conflicts: HSV=0,100,80; RGB=204,0,0
 				// 5. flat: HSV=55,15,100; RGB=255,252,216
-				float[] hsv = new float[3];
 				if (images != null && images.size() != 0) {
+					Color color = new Color(0, 0, 0);
 					ImageEntity image = images.get(row);
 					this.setForeground(Color.BLACK);
 					// Lamps
-					if (image.getType().equals("LAMP")) {
-						hsv = Color.RGBtoHSB(255, 243, 115, hsv);
-					} // Conflicts
+					if (image.getType().equals("LAMP"))
+						color = new Color(255, 243, 115);
+					// Conflicts
 					else if (image.getType().equals("IMAGE") && table.getValueAt(row, jTable1Cols.get("Lamp")) != null
 							&& table.getValueAt(row, jTable1Cols.get("Standard")) != null
 							&& ("".equals(table.getValueAt(row, jTable1Cols.get("Lamp")))
 									|| "".equals((String) table.getValueAt(row, jTable1Cols.get("Standard"))))) {
-						hsv = Color.RGBtoHSB(255, 54, 0, hsv);
+						color = new Color(204, 0, 0);
 						this.setForeground(Color.WHITE);
 					} // Objects and standards
 					else if (image.getType().equals("IMAGE") && table.getValueAt(row, jTable1Cols.get("Lamp")) != null
 							&& table.getValueAt(row, jTable1Cols.get("Standard")) != null
 							&& !((String) table.getValueAt(row, jTable1Cols.get("Lamp"))).isEmpty()
 							&& !((String) table.getValueAt(row, jTable1Cols.get("Standard"))).isEmpty()) {
-						if (image.isStandard()) {
-							hsv = Color.RGBtoHSB(102, 161, 255, hsv);
-						} else {
-							hsv = Color.RGBtoHSB(20, 255, 59, hsv);
-						}
+						if (image.isStandard())
+							// Standard
+							color = new Color(114, 159, 207);
+						else
+							// Objects
+							color = new Color(149, 226, 158);
 					} // Flatfield
-					else if (image.getType().equals("FLATFIELD")) {
-						hsv = Color.RGBtoHSB(255, 252, 216, hsv);
-					}
-
-					setBackground(Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+					else if (image.getType().equals("FLATFIELD"))
+						color = new Color(255, 252, 216);
+					setBackground(color);
 				}
 				super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
 				super.setHorizontalAlignment(SwingConstants.CENTER);
@@ -1271,27 +1306,60 @@ public class Main extends javax.swing.JPanel {
 			public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
 					boolean hasFocus, int row, int col) {
 				// Color legend:
-				// 1. standards: HSV=217,100,100; RGB=0,96,255
-				// 2. objects: HSV=130,92,100; RGB=20,255,59
+				// 1. standards: HSV=214,87,64; RGB=21,83,163
+				// 2. objects: HSV=122,34,89; RGB=149,226,158
 				// 3. lamps: HSV=55,75,100; RGB=255,239,64
-				// 4. conflicts: HSV=37,100,100; RGB=255,156,0
+				// 4. conflicts: HSV=0,100,80; RGB=204,0,0
 				// 5. flat: HSV=55,15,100; RGB=255,252,216
-				float[] hsv = new float[3];
+				Color color = new Color(0, 0, 0);
 				TableModel model = table.getModel();
 				String target = (String) model.getValueAt(row, jTable2Cols.get("Target"));
 				if (target != null) {
 					this.setForeground(Color.BLACK);
+					target = target.substring(0, target.indexOf("(")).trim();
 					if (dataService.getStandardAtlas().findByStandardName(target) != null)
-						hsv = Color.RGBtoHSB(102, 161, 255, hsv);
+						color = new Color(114, 159, 207);
 					else
-						hsv = Color.RGBtoHSB(20, 255, 59, hsv);
-					setBackground(Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+						color = new Color(149, 226, 158);
+					setBackground(color);
 				}
 				super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
 				super.setHorizontalAlignment(SwingConstants.CENTER);
 				return this;
 			}
 		});
+
+		StyleContext sc = new StyleContext();
+		In = sc.addStyle("In", null);
+		float[] hsv = Color.RGBtoHSB(114, 159, 207, null);
+		In.addAttribute(StyleConstants.Foreground, Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+		In.addAttribute(StyleConstants.FontSize, new Integer(12));
+		In.addAttribute(StyleConstants.FontFamily, "arial");
+		In.addAttribute(StyleConstants.Bold, new Boolean(false));
+		ControlIn = sc.addStyle("ControlIn", null);
+		ControlIn.addAttribute(StyleConstants.Foreground, Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+		ControlIn.addAttribute(StyleConstants.FontSize, new Integer(12));
+		ControlIn.addAttribute(StyleConstants.FontFamily, "arial");
+		ControlIn.addAttribute(StyleConstants.Bold, new Boolean(true));
+
+		Out = sc.addStyle("Out", null);
+		hsv = Color.RGBtoHSB(149, 226, 158, null);
+		Out.addAttribute(StyleConstants.Foreground, Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+		Out.addAttribute(StyleConstants.FontSize, new Integer(12));
+		Out.addAttribute(StyleConstants.FontFamily, "arial");
+		Out.addAttribute(StyleConstants.Bold, new Boolean(true));
+		ControlOut = sc.addStyle("ControlOut", null);
+		ControlOut.addAttribute(StyleConstants.Foreground, Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+		ControlOut.addAttribute(StyleConstants.FontSize, new Integer(12));
+		ControlOut.addAttribute(StyleConstants.FontFamily, "arial");
+		ControlOut.addAttribute(StyleConstants.Bold, new Boolean(true));
+
+		Error = sc.addStyle("Error", null);
+		hsv = Color.RGBtoHSB(255, 156, 0, null);
+		Error.addAttribute(StyleConstants.Foreground, Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+		Error.addAttribute(StyleConstants.FontSize, new Integer(12));
+		Error.addAttribute(StyleConstants.FontFamily, "arial");
+		Error.addAttribute(StyleConstants.Bold, new Boolean(true));
 	}
 
 	private void jSaveMouseClicked(MouseEvent e) {
@@ -1392,9 +1460,19 @@ public class Main extends javax.swing.JPanel {
 			if (message.equals("clear"))
 				this.jConsole.setText("");
 			else if (message.equals("start pyraf"))
-				process.startCommand(this.jCommand.getText(), callback);
+				process.startCommand("pyraf", callback);
+			else if (message.equals("mime wlcal"))
+				process.mimeWlcal(Paths.get("src/main/resources/mimeWlcal.py").toString(), callback);
 		} else
 			process.toPython(message);
+		try {
+			jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "▶", ControlIn);
+			jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
+					"\t" + this.jCommand.getText() + "\n", In);
+		} catch (BadLocationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		this.jCommand.setText("");
 	}// GEN-LAST:event_jSendActionPerformed
 
@@ -1672,19 +1750,22 @@ public class Main extends javax.swing.JPanel {
 			switch (y) {
 			case 0:
 				if (dataService.getScienceRepository().findConflictsForTargetName(args[0]) != 0) {
-					message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("Target"))
+					message = "Some images relative to "
+							+ (String) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("Target"))
 							+ " contain conflicts: this could lead to errors in the next step.\nWe suggest you either to return to STEP 2 and solve them or to leave this target disabled.\nDo you want to enable it anyway?";
 				}
 				break;
 			case 3:
 				if (dataService.getScienceRepository().getIsLampMissingForTargetName(args[0]) != 0) {
-					message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("Target"))
+					message = "Some images relative to "
+							+ (String) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("Target"))
 							+ " are missing lamps: this could lead to errors in the next step.\nWe suggest you either to return to STEP 2 and solve them or to leave wlcal for this target disabled.\nDo you want to enable it anyway?";
 				}
 				break;
 			case 4:
 				if (dataService.getScienceRepository().getIsStandardMissingForTargetName(args[0]) != 0) {
-					message = "Some images relative to " + (String) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("Target"))
+					message = "Some images relative to "
+							+ (String) this.jTable2.getModel().getValueAt(x, jTable2Cols.get("Target"))
 							+ " are missing standard stars: this could lead to errors in the next step.\nWe suggest you either to return to STEP 2 and solve them or to leave fcal for this target disabled.\nDo you want to enable this target anyway?";
 				}
 			}
@@ -1693,7 +1774,7 @@ public class Main extends javax.swing.JPanel {
 				if (JOptionPane.showConfirmDialog(this, message, "Wait!", JOptionPane.YES_NO_OPTION,
 						JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) {
 					if (y != 0) {
-						this.jTable2.getModel().setValueAt(true, x,  jTable2Cols.get("Image"));
+						this.jTable2.getModel().setValueAt(true, x, jTable2Cols.get("Image"));
 					}
 				} else {
 					this.jTable2.getModel().setValueAt(false, x, y);
@@ -2330,7 +2411,8 @@ public class Main extends javax.swing.JPanel {
 
 				// exec scombine
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
-				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("scombine", 78));writer.println(new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("scombine", 78));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoScombine())
 					writer.println("iraf.asgred.scombine(input=\"md" + targetNormalized + "\", output=\""
 							+ targetNormalized + ".md\")");
@@ -2340,7 +2422,8 @@ public class Main extends javax.swing.JPanel {
 
 				// exec imcopy
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
-				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("imcopy", 78));writer.println(new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("imcopy", 78));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoImcopy())
 					writer.println("iraf.asgred.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
 							+ "]\", output=\"" + targetNormalized + ".obj\")");
@@ -2388,7 +2471,8 @@ public class Main extends javax.swing.JPanel {
 			// exec fcal
 			for (StandardImage standard : dataService.getStandardRepository().findAll()) {
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
-				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("Flux calibration for " + standard.getImage().getTargetName() , 78));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils
+						.center("Flux calibration for " + standard.getImage().getTargetName(), 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (!standard.getObservations().isEmpty()) {
 					writer.println("iraf.asgred.fcal(obj=\"std" + standard.getImage().getFileName() + "\", stand=\""
@@ -2402,7 +2486,8 @@ public class Main extends javax.swing.JPanel {
 			}
 			for (Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
-				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("reduction for " + observation.getTargetName() , 78));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils
+						.center("reduction for " + observation.getTargetName(), 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 
 				String targetNormalized = observation.getTargetName();
@@ -2443,53 +2528,54 @@ public class Main extends javax.swing.JPanel {
 		}
 		log.info("Done.");
 	}
-	
+
 	private void jPrintTODOActionPerformed(ActionEvent e) {
 		generateTODOList();
 	}
-	
+
 	private void generateTODOList() {
 		try {
 			String temp = "";
-			for(Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
+			for (Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
 				temp += observation.getTargetName();
-				if(observation.getStandard().getImage().getTargetName().equals(observation.getTargetName()))
-						temp += " (Standard)";
+				if (observation.getStandard().getImage().getTargetName().equals(observation.getTargetName()))
+					temp += " (Standard)";
 				else
 					temp += " (Object)";
 				temp += ":\n\r";
-				temp += new String(new char[76]).replace("\0", "⎯")+"\n\r";
-				if(observation.isDoPrered())
+				temp += new String(new char[76]).replace("\0", "⎯") + "\n\r";
+				if (observation.isDoPrered())
 					temp += "\t⬜ flatfield correction\n\r";
-				if(observation.isDoWlcal())
+				if (observation.isDoWlcal())
 					temp += "\t⬜ wavelength calibration\n\r";
-				if(observation.isDoFcal())
+				if (observation.isDoFcal())
 					temp += "\t⬜ flux calibration\n\r";
-				if(observation.isDoBackground())
+				if (observation.isDoBackground())
 					temp += "\t⬜ background subtraction\n\r";
-				if(observation.isDoApall())
+				if (observation.isDoApall())
 					temp += "\t⬜ spectrum extraction\n\r";
-				if(observation.isDoScombine())
+				if (observation.isDoScombine())
 					temp += "\t⬜ spectrum combine\n\r";
-				if(observation.isDoImcopy())
+				if (observation.isDoImcopy())
 					temp += "\t⬜ cut final spectrum\n\r";
 				temp += "\n\n";
 			}
-			
+
 			PrintService[] services = PrintServiceLookup.lookupPrintServices(DocFlavor.STRING.TEXT_PLAIN, null);
 			PrintService svc = PrintServiceLookup.lookupDefaultPrintService();
 			PrintRequestAttributeSet attrs = new HashPrintRequestAttributeSet();
 			PrintService selection = ServiceUI.printDialog(null, 100, 100, services, svc, null, attrs);
-			DocPrintJob job = selection.createPrintJob();
-			Doc doc = new SimpleDoc(temp, DocFlavor.STRING.TEXT_PLAIN, null);
-			attrs.add(new Copies(1));
-			job.print(doc, attrs); 
+			if (selection != null) {
+				DocPrintJob job = selection.createPrintJob();
+				Doc doc = new SimpleDoc(temp, DocFlavor.STRING.TEXT_PLAIN, null);
+				job.print(doc, attrs);
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.error(e);
 			JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		} finally {
-			
+
 		}
 	}
 
@@ -2500,7 +2586,7 @@ public class Main extends javax.swing.JPanel {
 	private javax.swing.JSpinner jBackgroundEnd;
 	private javax.swing.JSpinner jBackgroundStart;
 	private javax.swing.JTextField jCommand;
-	private javax.swing.JTextArea jConsole;
+	private JTextPane jConsole;
 	private org.jdesktop.swingx.JXCollapsiblePane jDirectoryPanel;
 	private javax.swing.JButton jDoIt;
 	private javax.swing.JButton jExplore;
