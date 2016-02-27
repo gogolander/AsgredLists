@@ -1,36 +1,40 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 import sys
 from random import uniform
 
-sys.stdout.write('python echo module\ntype "break" or "quit" to quit\n')
+print('python echo module\ntype "break" or "quit" to quit\n', file=sys.stdout)
 sys.stdout.flush()
-while True:
-    s = sys.stdin.readline()
-    s = s.rstrip('\n')
+repeat = True
+while repeat:
+    s = input()
     if s in ['break', 'quit']:
-        break
+        repeat = False
     elif s == 'random':
         x = uniform(0,0.201)
-        sys.stdout.write('rms=%s. Accept?\n' %x)
+        print('rms=%s. Accept?' %x, file=sys.stdout)
         sys.stdout.flush()
-        while True:
-            response = sys.stdin.readline()
-            response = response.rstrip('\n')
+        error = True;
+        while error:
+            response = input()
             if response == 'accept':
-                sys.stdout.write('accepted\n')
+                print('accepted', file=sys.stdout)
                 sys.stdout.flush()
-                break
+                error = False
             elif response == 'reject':
-                sys.stdout.write('rejected\n')
+                print('rejected', file=sys.stdout)
                 sys.stdout.flush()
-                break
+                error = False
             elif response in ['break','quit']:
-                exit(0)
+            	error = False
             else:
-            	sys.stdout.write('wrong answer: %s\n' %response)
-            	sys.stdout.flush()
+            	print('wrong answer: %s' %response, file=sys.stderr)
+            	sys.stderr.flush()
+            	error = True
+        repeat = True
     else:
-        sys.stdout.write(s.upper() + '\n')
+        print(s.upper(), file=sys.stdout)
         sys.stdout.flush()
-    sys.stdout.write('---------\n')
+        repeat = True
+    print('---------', file=sys.stdout)
     sys.stdout.flush()
+    

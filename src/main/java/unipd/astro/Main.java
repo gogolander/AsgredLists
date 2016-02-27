@@ -95,24 +95,16 @@ public class Main extends javax.swing.JPanel {
 	private DataService dataService;
 	private List<ImageEntity> images; // used just for jTable1 cell renderer
 										// purposes
-	private Style In, Out, Error, ControlIn, ControlOut;
+	private Style In, Out, Error;
 	private List<String> scriptsList;
 	private String basePath;
 	private PythonRunnable process;
 	private AsyncCallback callback = new AsyncCallback() {
 		@Override
-		public void OnResponseReceived(String response, boolean isError) {
+		public void OnResponseReceived(String response) {
 			try {
-				if (!isError) {
-					jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "◀",
-							ControlOut);
-					jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
-							"\t" + response + "\n", Out);
-				} else {
-					jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "◀", Error);
-					jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
-							"\t" + response + "\n", Error);
-				}
+				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
+						"◀\t" + response + "\n", Out);
 				if (response.contains("rms=")) {
 					int index = response.lastIndexOf("rms=") + 4;
 					int startIdx = index;
@@ -125,10 +117,14 @@ public class Main extends javax.swing.JPanel {
 					if (rms > (Double.parseDouble(dataService.getProperty("iraf.wlcal.rms_threshold")) / 100D)) {
 						jCommand.setText("no");
 						jSend.doClick();
+						jCommand.setText("reject");
+						jSend.doClick();
 					} else {
 						jCommand.setText("accept");
 						jSend.doClick();
 					}
+					jCommand.setText("random");
+					jSend.doClick();
 				}
 			} catch (BadLocationException e) {
 				e.printStackTrace();
@@ -138,16 +134,35 @@ public class Main extends javax.swing.JPanel {
 		@Override
 		public void OnScriptTerminated() {
 			try {
-				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "◀", ControlOut);
-				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "\tterminated.\n",
+				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "◀\tterminated.\n",
 						Out);
 			} catch (BadLocationException e) {
 				e.printStackTrace();
 			}
 			((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
-			if (scriptsList.size() > 0) {
+			if (scriptsList != null && scriptsList.size() > 0) {
 				scriptsList.remove(0);
 				process.startScript(Paths.get(basePath + "/" + scriptsList.get(0)).toString(), callback);
+			}
+		}
+
+		@Override
+		public void OnErrorReceived(String message) {
+			try {
+				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
+						"◀\t" + message + "\n", Error);
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}
+		}
+
+		@Override
+		public void OnMessageSent(String message) {
+			try {
+				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
+						"▶\t" + message + "\n", In);
+			} catch (BadLocationException e) {
+				e.printStackTrace();
 			}
 		}
 	};
@@ -1331,35 +1346,26 @@ public class Main extends javax.swing.JPanel {
 
 		StyleContext sc = new StyleContext();
 		In = sc.addStyle("In", null);
-		float[] hsv = Color.RGBtoHSB(114, 159, 207, null);
-		In.addAttribute(StyleConstants.Foreground, Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+		In.addAttribute(StyleConstants.Foreground, new Color(114, 159, 207));
 		In.addAttribute(StyleConstants.FontSize, new Integer(12));
 		In.addAttribute(StyleConstants.FontFamily, "arial");
 		In.addAttribute(StyleConstants.Bold, new Boolean(false));
-		ControlIn = sc.addStyle("ControlIn", null);
-		ControlIn.addAttribute(StyleConstants.Foreground, Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
-		ControlIn.addAttribute(StyleConstants.FontSize, new Integer(12));
-		ControlIn.addAttribute(StyleConstants.FontFamily, "arial");
-		ControlIn.addAttribute(StyleConstants.Bold, new Boolean(true));
 
 		Out = sc.addStyle("Out", null);
-		hsv = Color.RGBtoHSB(149, 226, 158, null);
-		Out.addAttribute(StyleConstants.Foreground, Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+		Out.addAttribute(StyleConstants.Foreground, new Color(149, 226, 158));
 		Out.addAttribute(StyleConstants.FontSize, new Integer(12));
 		Out.addAttribute(StyleConstants.FontFamily, "arial");
 		Out.addAttribute(StyleConstants.Bold, new Boolean(true));
-		ControlOut = sc.addStyle("ControlOut", null);
-		ControlOut.addAttribute(StyleConstants.Foreground, Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
-		ControlOut.addAttribute(StyleConstants.FontSize, new Integer(12));
-		ControlOut.addAttribute(StyleConstants.FontFamily, "arial");
-		ControlOut.addAttribute(StyleConstants.Bold, new Boolean(true));
 
 		Error = sc.addStyle("Error", null);
-		hsv = Color.RGBtoHSB(255, 156, 0, null);
-		Error.addAttribute(StyleConstants.Foreground, Color.getHSBColor(hsv[0], hsv[1], hsv[2]));
+		Error.addAttribute(StyleConstants.Foreground, new Color(255, 156, 0));
 		Error.addAttribute(StyleConstants.FontSize, new Integer(12));
 		Error.addAttribute(StyleConstants.FontFamily, "arial");
 		Error.addAttribute(StyleConstants.Bold, new Boolean(true));
+		
+		//Start the console session
+		this.process = new PythonRunnable();
+		process.startCommand("script -fqe /dev/null", callback);
 	}
 
 	private void jSaveMouseClicked(MouseEvent e) {
@@ -1463,16 +1469,10 @@ public class Main extends javax.swing.JPanel {
 				process.startCommand("pyraf", callback);
 			else if (message.equals("mime wlcal"))
 				process.mimeWlcal(Paths.get("src/main/resources/mimeWlcal.py").toString(), callback);
+			else
+				process.startCommand(this.jCommand.getText(), callback);
 		} else
 			process.toPython(message);
-		try {
-			jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "▶", ControlIn);
-			jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
-					"\t" + this.jCommand.getText() + "\n", In);
-		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		this.jCommand.setText("");
 	}// GEN-LAST:event_jSendActionPerformed
 

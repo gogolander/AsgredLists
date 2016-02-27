@@ -17,9 +17,6 @@
 package unipd.astro;
 
 import org.apache.log4j.Logger;
-
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;

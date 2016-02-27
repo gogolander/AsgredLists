@@ -29,9 +29,11 @@ import unipd.astro.service.DataService;
  * @author Vincenzo Abate <gogolander@gmail.com>
  */
 public class PythonRunnable {
+	private static int TIMEOUT = 10;
 	private static Logger log = Logger.getLogger(PythonRunnable.class.getName());
 	private Process python, ds9;
 	private ArrayList<Thread> openThread;
+	private ArrayList<String> commandToPass = new ArrayList<>();
 
 	public PythonRunnable() {
 		openThread = new ArrayList<>();
@@ -45,6 +47,8 @@ public class PythonRunnable {
 	 * @param callback
 	 */
 	public void mimeWlcal(final String scriptPath, final AsyncCallback callback) {
+		if(this.isAlive())
+			this.dispose();
 		Thread thread = new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -52,36 +56,52 @@ public class PythonRunnable {
 					int nBytes = 0;
 					log.info("Starting wlcal simulation...");
 					log.trace("Creating the process...");
-					System.setProperty("user.dir", DataService.getInstance().getProperty("iraf.home"));
-					ProcessBuilder pr = new ProcessBuilder("python", scriptPath);
+					System.setProperty("user.dir", DataService.getInstance().getProperty("iraf.home"));// perché
+																										// non
+																										// fa
+																										// niente?
+					ProcessBuilder pr = new ProcessBuilder("python3", scriptPath);
 					log.trace("Done.");
 					log.trace("Starting it...");
 					python = pr.start();
 					log.trace("Done.");
 					while (python.isAlive()) {
 						log.trace("Waiting for activity...");
-						while (python.getInputStream().available() == 0 && python.getErrorStream().available() == 0
-								&& python.isAlive())
-							Thread.sleep(100);
+						while (commandToPass.size() == 0 && python.getInputStream().available() == 0
+								&& python.getErrorStream().available() == 0 && python.isAlive())
+							Thread.sleep(TIMEOUT);
+						/**
+						 * Pass the commands one at a time
+						 */
+						if (commandToPass.size() > 0 && python.isAlive()) {
+							log.trace("Input received.");
+							python.getOutputStream().write(commandToPass.get(0).getBytes());
+							python.getOutputStream().flush();
+							callback.OnMessageSent(commandToPass.get(0).trim());
+							Thread.sleep(TIMEOUT);
+							commandToPass.remove(0);
+						}
 						while ((nBytes = python.getInputStream().available()) != 0) {
 							log.trace("Output received.");
 							byte[] buffer = new byte[nBytes];
 							python.getInputStream().read(buffer);
 							for (String response : new String(buffer, 0, nBytes).split("\n"))
-								callback.OnResponseReceived(response, false);
+								callback.OnResponseReceived(response.replaceAll("\\e\\[[\\d;]*[^\\d;]","").trim());
 						}
 						while ((nBytes = python.getErrorStream().available()) != 0) {
 							log.trace("Error received.");
 							byte[] buffer = new byte[nBytes];
-							python.getInputStream().read(buffer);
-							for (String response : new String(buffer, 0, nBytes).split("\n"))
-								callback.OnResponseReceived(response, true);
+							python.getErrorStream().read(buffer);
+							for (String error : new String(buffer, 0, nBytes).split("\n"))
+								callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]","").trim());
 						}
 					}
+					commandToPass.clear();
 					log.info("Done");
 					callback.OnScriptTerminated();
 					dispose();
 				} catch (Exception ex) {
+					ex.printStackTrace();
 					log.fatal(ex);
 				}
 			}
@@ -98,9 +118,11 @@ public class PythonRunnable {
 	 */
 	public void startScript(final String path, final AsyncCallback callback) {
 		if (!path.endsWith(".py")) {
-			callback.OnResponseReceived("Wrong path to PyRAF script. Must be: /path/to/script/scriptName.py", true);
+			callback.OnErrorReceived("Wrong path to PyRAF script. Must be: /path/to/script/scriptName.py");
 			return;
 		}
+		if(this.isAlive())
+			this.dispose();
 		Thread thread = new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -116,28 +138,41 @@ public class PythonRunnable {
 					log.trace("Launching PyRAF...");
 					while (python.isAlive()) {
 						log.trace("Waiting for activity...");
-						while (python.getInputStream().available() == 0 && python.getErrorStream().available() == 0
-								&& python.isAlive())
-							Thread.sleep(10);
+						while (commandToPass.size() == 0 && python.getInputStream().available() == 0
+								&& python.getErrorStream().available() == 0 && python.isAlive())
+							Thread.sleep(TIMEOUT);
+						/**
+						 * Pass the commands one at a time
+						 */
+						if (commandToPass.size() > 0) {
+							log.trace("Input received.");
+							python.getOutputStream().write(commandToPass.get(0).getBytes());
+							python.getOutputStream().flush();
+							callback.OnMessageSent(commandToPass.get(0).trim());
+							Thread.sleep(TIMEOUT);
+							commandToPass.remove(0);
+						}
 						while ((nBytes = python.getInputStream().available()) != 0) {
 							log.trace("Output received.");
 							byte[] buffer = new byte[nBytes];
 							nBytes = python.getInputStream().read(buffer);
 							for (String response : new String(buffer, 0, nBytes).split("\n"))
-								callback.OnResponseReceived(response, false);
+								callback.OnResponseReceived(response.replaceAll("\\e\\[[\\d;]*[^\\d;]","").trim());
 						}
 						while ((nBytes = python.getErrorStream().available()) != 0) {
 							log.trace("Error received.");
 							byte[] buffer = new byte[nBytes];
 							nBytes = python.getErrorStream().read(buffer);
-							for (String response : new String(buffer, 0, nBytes).split("\n"))
-								callback.OnResponseReceived(response, true);
+							for (String error : new String(buffer, 0, nBytes).split("\n"))
+								callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]","").trim());
 						}
 					}
 					log.info("Done");
+					commandToPass.clear();
 					callback.OnScriptTerminated();
 					dispose();
 				} catch (Exception ex) {
+					ex.printStackTrace();
 					log.fatal(ex);
 				}
 			}
@@ -153,6 +188,8 @@ public class PythonRunnable {
 	 * @param callback
 	 */
 	public void startCommand(final String command, final AsyncCallback callback) {
+		if(this.isAlive())
+			this.dispose();
 		Thread thread = new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -168,28 +205,41 @@ public class PythonRunnable {
 					while (python.isAlive()) {
 						log.trace("Waiting for activity...");
 						nBytes = 0;
-						while (python.getInputStream().available() == 0 && python.getErrorStream().available() == 0
-								&& python.isAlive())
-							Thread.sleep(10);
+						while (commandToPass.size() == 0 && python.getInputStream().available() == 0
+								&& python.getErrorStream().available() == 0 && python.isAlive())
+							Thread.sleep(TIMEOUT);
+						/**
+						 * Pass the commands one at a time
+						 */
+						if (commandToPass.size() > 0) {
+							log.trace("Input received.");
+							python.getOutputStream().write(commandToPass.get(0).getBytes());
+							python.getOutputStream().flush();
+							callback.OnMessageSent(commandToPass.get(0).trim());
+							Thread.sleep(TIMEOUT);
+							commandToPass.remove(0);
+						}
 						while ((nBytes = python.getInputStream().available()) != 0) {
 							log.trace("Output received.");
 							byte[] buffer = new byte[nBytes];
 							nBytes = python.getInputStream().read(buffer);
 							for (String response : new String(buffer, 0, nBytes).split("\n"))
-								callback.OnResponseReceived(response, false);
+								callback.OnResponseReceived(response.replaceAll("\\e\\[[\\d;]*[^\\d;]","").trim());
 						}
 						while ((nBytes = python.getErrorStream().available()) != 0) {
 							log.trace("Error received.");
 							byte[] buffer = new byte[nBytes];
 							nBytes = python.getErrorStream().read(buffer);
-							for (String response : new String(buffer, 0, nBytes).split("\n"))
-								callback.OnResponseReceived(response, true);
+							for (String error : new String(buffer, 0, nBytes).split("\n"))
+								callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]","").trim());
 						}
 					}
 					log.info("Done");
+					commandToPass.clear();
 					callback.OnScriptTerminated();
 					dispose();
 				} catch (Exception ex) {
+					ex.printStackTrace();
 					log.fatal(ex);
 				}
 			}
@@ -222,21 +272,7 @@ public class PythonRunnable {
 	 * @param message
 	 */
 	public void toPython(final String message) {
-		try {
-			checkDs9IsRunning();
-			log.info("Passing the command to the console...");
-			log.trace("Is it alive?");
-			if (python.isAlive()) {
-				log.trace("Yes.");
-				log.trace("Passing the command");
-				python.getOutputStream().write((message + "\n").getBytes());
-				python.getOutputStream().flush();
-				log.info("Done.");
-			} else
-				log.fatal("Process is not running.");
-		} catch (Exception ex) {
-			log.fatal(ex);
-		}
+		commandToPass.add(message + "\n");
 	}
 
 	/**
@@ -245,9 +281,13 @@ public class PythonRunnable {
 	public void dispose() {
 		log.info("Disposing the process...");
 		for (Thread thread : openThread)
-			thread.interrupt();
-		this.python.destroy();
-		this.python = null;
+			if (thread.isAlive())
+				thread.interrupt();
+		openThread.clear();
+		if(this.python != null) {
+			this.python.destroy();
+			this.python = null;
+		}
 		log.info("Disposed.");
 	}
 
@@ -272,6 +312,7 @@ public class PythonRunnable {
 			}
 			log.info("Done.");
 		} catch (Exception ex) {
+			ex.printStackTrace();
 			log.error(ex.getMessage());
 		}
 	}
