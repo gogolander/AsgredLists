@@ -47,7 +47,7 @@ public class PythonRunnable {
 	 * @param callback
 	 */
 	public void mimeWlcal(final String scriptPath, final AsyncCallback callback) {
-		if(this.isAlive())
+		if (this.isAlive())
 			this.dispose();
 		Thread thread = new Thread(new Runnable() {
 			@Override
@@ -86,23 +86,25 @@ public class PythonRunnable {
 							byte[] buffer = new byte[nBytes];
 							python.getInputStream().read(buffer);
 							for (String response : new String(buffer, 0, nBytes).split("\n"))
-								callback.OnResponseReceived(response.replaceAll("\\e\\[[\\d;]*[^\\d;]","").trim());
+								callback.OnResponseReceived(response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 						}
 						while ((nBytes = python.getErrorStream().available()) != 0) {
 							log.trace("Error received.");
 							byte[] buffer = new byte[nBytes];
 							python.getErrorStream().read(buffer);
 							for (String error : new String(buffer, 0, nBytes).split("\n"))
-								callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]","").trim());
+								callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 						}
 					}
-					commandToPass.clear();
-					log.info("Done");
-					callback.OnScriptTerminated();
-					dispose();
 				} catch (Exception ex) {
-					ex.printStackTrace();
+					// ex.printStackTrace();
 					log.fatal(ex);
+					callback.OnErrorReceived(ex.getMessage());
+				} finally {
+					log.info("Done");
+					commandToPass.clear();
+					dispose();
+					callback.OnScriptTerminated();
 				}
 			}
 		});
@@ -121,7 +123,7 @@ public class PythonRunnable {
 			callback.OnErrorReceived("Wrong path to PyRAF script. Must be: /path/to/script/scriptName.py");
 			return;
 		}
-		if(this.isAlive())
+		if (this.isAlive())
 			this.dispose();
 		Thread thread = new Thread(new Runnable() {
 			@Override
@@ -157,23 +159,25 @@ public class PythonRunnable {
 							byte[] buffer = new byte[nBytes];
 							nBytes = python.getInputStream().read(buffer);
 							for (String response : new String(buffer, 0, nBytes).split("\n"))
-								callback.OnResponseReceived(response.replaceAll("\\e\\[[\\d;]*[^\\d;]","").trim());
+								callback.OnResponseReceived(response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 						}
 						while ((nBytes = python.getErrorStream().available()) != 0) {
 							log.trace("Error received.");
 							byte[] buffer = new byte[nBytes];
 							nBytes = python.getErrorStream().read(buffer);
 							for (String error : new String(buffer, 0, nBytes).split("\n"))
-								callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]","").trim());
+								callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 						}
 					}
+				} catch (Exception ex) {
+					// ex.printStackTrace();
+					log.fatal(ex);
+					callback.OnErrorReceived(ex.getMessage());
+				} finally {
 					log.info("Done");
 					commandToPass.clear();
-					callback.OnScriptTerminated();
 					dispose();
-				} catch (Exception ex) {
-					ex.printStackTrace();
-					log.fatal(ex);
+					callback.OnScriptTerminated();
 				}
 			}
 		});
@@ -188,7 +192,7 @@ public class PythonRunnable {
 	 * @param callback
 	 */
 	public void startCommand(final String command, final AsyncCallback callback) {
-		if(this.isAlive())
+		if (this.isAlive())
 			this.dispose();
 		Thread thread = new Thread(new Runnable() {
 			@Override
@@ -224,23 +228,25 @@ public class PythonRunnable {
 							byte[] buffer = new byte[nBytes];
 							nBytes = python.getInputStream().read(buffer);
 							for (String response : new String(buffer, 0, nBytes).split("\n"))
-								callback.OnResponseReceived(response.replaceAll("\\e\\[[\\d;]*[^\\d;]","").trim());
+								callback.OnResponseReceived(response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 						}
 						while ((nBytes = python.getErrorStream().available()) != 0) {
 							log.trace("Error received.");
 							byte[] buffer = new byte[nBytes];
 							nBytes = python.getErrorStream().read(buffer);
 							for (String error : new String(buffer, 0, nBytes).split("\n"))
-								callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]","").trim());
+								callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 						}
 					}
+				} catch (Exception ex) {
+					// ex.printStackTrace();
+					log.fatal(ex);
+					callback.OnErrorReceived(ex.getMessage());
+				} finally {
 					log.info("Done");
 					commandToPass.clear();
-					callback.OnScriptTerminated();
 					dispose();
-				} catch (Exception ex) {
-					ex.printStackTrace();
-					log.fatal(ex);
+					callback.OnScriptTerminated();
 				}
 			}
 		});
@@ -281,10 +287,15 @@ public class PythonRunnable {
 	public void dispose() {
 		log.info("Disposing the process...");
 		for (Thread thread : openThread)
-			if (thread.isAlive())
-				thread.interrupt();
+			if (thread.isAlive()) {
+				try {
+					thread.interrupt();
+				} finally {
+
+				}
+			}
 		openThread.clear();
-		if(this.python != null) {
+		if (this.python != null) {
 			this.python.destroy();
 			this.python = null;
 		}

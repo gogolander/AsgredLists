@@ -103,6 +103,7 @@ public class Main extends javax.swing.JPanel {
 		@Override
 		public void OnResponseReceived(String response) {
 			try {
+				((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
 						"◀\t" + response + "\n", Out);
 				if (response.contains("rms=")) {
@@ -114,32 +115,25 @@ public class Main extends javax.swing.JPanel {
 					while ((int) response.charAt(index) < 58 && (int) response.charAt(index) > 47)
 						index++;
 					double rms = Double.parseDouble(response.substring(startIdx, index));
-					if (rms > (Double.parseDouble(dataService.getProperty("iraf.wlcal.rms_threshold")) / 100D)) {
-						jCommand.setText("no");
-						jSend.doClick();
-						jCommand.setText("reject");
-						jSend.doClick();
-					} else {
-						jCommand.setText("accept");
+					if (rms < (Double.parseDouble(dataService.getProperty("iraf.wlcal.rms_threshold")) / 100D)) {
+						jCommand.setText("y");
 						jSend.doClick();
 					}
-					jCommand.setText("random");
-					jSend.doClick();
 				}
 			} catch (BadLocationException e) {
-				e.printStackTrace();
+				log.fatal(e);
 			}
 		}
 
 		@Override
 		public void OnScriptTerminated() {
 			try {
+				((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "◀\tterminated.\n",
 						Out);
 			} catch (BadLocationException e) {
-				e.printStackTrace();
+				log.fatal(e);
 			}
-			((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 			if (scriptsList != null && scriptsList.size() > 0) {
 				scriptsList.remove(0);
 				process.startScript(Paths.get(basePath + "/" + scriptsList.get(0)).toString(), callback);
@@ -149,20 +143,22 @@ public class Main extends javax.swing.JPanel {
 		@Override
 		public void OnErrorReceived(String message) {
 			try {
+				((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
 						"◀\t" + message + "\n", Error);
 			} catch (BadLocationException e) {
-				e.printStackTrace();
+				log.fatal(e);
 			}
 		}
 
 		@Override
 		public void OnMessageSent(String message) {
 			try {
+				((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
 						"▶\t" + message + "\n", In);
 			} catch (BadLocationException e) {
-				e.printStackTrace();
+				log.fatal(e);
 			}
 		}
 	};
@@ -1362,10 +1358,21 @@ public class Main extends javax.swing.JPanel {
 		Error.addAttribute(StyleConstants.FontSize, new Integer(12));
 		Error.addAttribute(StyleConstants.FontFamily, "arial");
 		Error.addAttribute(StyleConstants.Bold, new Boolean(true));
-		
-		//Start the console session
-		this.process = new PythonRunnable();
-		process.startCommand("script -fqe /dev/null", callback);
+
+		// Start the console session under Linux
+		String OS = System.getProperty("os.name").toLowerCase();
+		if (OS.indexOf("nix") >= 0 || OS.indexOf("nux") >= 0 || OS.indexOf("aix") > 0) {
+			this.process = new PythonRunnable();
+			process.startCommand("script -fqe /dev/null", callback);
+			process.toPython("cd " + dataService.getProperty("iraf.home"));
+			process.toPython("pyraf");
+		} else
+			try {
+				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
+						"◀\tThe terminal is available only on Linux systems.", Error);
+			} catch (BadLocationException e) {
+				log.fatal(e);
+			}
 	}
 
 	private void jSaveMouseClicked(MouseEvent e) {
@@ -1460,13 +1467,23 @@ public class Main extends javax.swing.JPanel {
 
 	private void jSendActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jSendActionPerformed
 		String message = this.jCommand.getText();
+		if (message.equals("iraf"))
+			if (JOptionPane.showConfirmDialog(this,
+					"Running IRAF from AsgredLists is highly discouraged due to compatibility issues.\nMoreover AsgredLists won't be able to interact with IRAF.\nDo you want to run IRAF anyway?",
+					"Wait", JOptionPane.YES_NO_OPTION) == JOptionPane.NO_OPTION) {
+				this.jCommand.setText("");
+				return;
+			}
 		((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 		if (process == null || !process.isAlive()) {
 			process = new PythonRunnable();
 			if (message.equals("clear"))
 				this.jConsole.setText("");
-			else if (message.equals("start pyraf"))
-				process.startCommand("pyraf", callback);
+			else if (message.equals("start pyraf")) {
+				process.startCommand("script -fqe /dev/null", callback);
+				process.toPython("cd " + dataService.getProperty("iraf.home"));
+				process.toPython("pyraf");
+			}
 			else if (message.equals("mime wlcal"))
 				process.mimeWlcal(Paths.get("src/main/resources/mimeWlcal.py").toString(), callback);
 			else

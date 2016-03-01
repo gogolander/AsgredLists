@@ -16,11 +16,11 @@ while repeat:
         error = True;
         while error:
             response = input()
-            if response == 'accept':
+            if response == 'y':
                 print('accepted', file=sys.stdout)
                 sys.stdout.flush()
                 error = False
-            elif response == 'reject':
+            elif response == 'n':
                 print('rejected', file=sys.stdout)
                 sys.stdout.flush()
                 error = False
