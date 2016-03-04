@@ -93,6 +93,7 @@ public class Main extends javax.swing.JPanel {
 	private HashMap<String, Integer> jTable1Cols = new HashMap<>();
 	private HashMap<String, Integer> jTable2Cols = new HashMap<>();
 	private DataService dataService;
+	private HashMap<String, List<String>> generatedList;
 	private List<ImageEntity> images; // used just for jTable1 cell renderer
 										// purposes
 	private Style In, Out, Error;
@@ -136,7 +137,8 @@ public class Main extends javax.swing.JPanel {
 			}
 			if (scriptsList != null && scriptsList.size() > 0) {
 				scriptsList.remove(0);
-				process.startScript(Paths.get(basePath + "/" + scriptsList.get(0)).toString(), callback);
+				if (scriptsList.size() > 0)
+					process.startScript(Paths.get(basePath + "/" + scriptsList.get(0)).toString(), callback);
 			}
 		}
 
@@ -256,7 +258,7 @@ public class Main extends javax.swing.JPanel {
 		jShowStep3 = new javax.swing.JToggleButton();
 		groupSteps.add(jShowStep3);
 		jStep4 = new org.jdesktop.swingx.JXCollapsiblePane();
-		jStep4.setCollapsed(true);
+		this.jStep4.setCollapsed(true);
 		jPanel12 = new javax.swing.JPanel();
 		jRadioListsOnly = new javax.swing.JRadioButton();
 		jRadioListsOnly.setSelected(true);
@@ -514,7 +516,7 @@ public class Main extends javax.swing.JPanel {
 		jPanel10Layout.setVerticalGroup(jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
 				.addGap(0, 12, Short.MAX_VALUE));
 
-		jSolve.setText("<html><center>Try to<br>resolve<br>conflicts</center></html>");
+		jSolve.setText("<html><center>Try to resolve<br>conflicts</center></html>");
 		jSolve.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				jSolveActionPerformed(evt);
@@ -873,44 +875,56 @@ public class Main extends javax.swing.JPanel {
 		jPrintTODO.setText("Print TODO list");
 		jPrintTODO.setFont(new Font("Dialog", Font.BOLD, 11));
 
+		this.jListGenerated = new JButton("Show generated files");
+		this.jListGenerated.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				jListGeneratedActionPerformed(e);
+			}
+		});
+
 		javax.swing.GroupLayout jStep4Layout = new javax.swing.GroupLayout(jStep4.getContentPane());
-		jStep4Layout.setHorizontalGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jStep4Layout.createSequentialGroup().addContainerGap()
-						.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
-								.addGroup(jStep4Layout.createSequentialGroup()
-										.addComponent(jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+		jStep4Layout.setHorizontalGroup(jStep4Layout.createParallelGroup(Alignment.LEADING).addGroup(jStep4Layout
+				.createSequentialGroup().addContainerGap()
+				.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+						.addGroup(jStep4Layout.createSequentialGroup()
+								.addComponent(this.jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE)
+								.addGap(18)
+								.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+										.addComponent(this.jDoIt, GroupLayout.PREFERRED_SIZE, 160,
 												GroupLayout.PREFERRED_SIZE)
-										.addGap(18)
-										.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
-												.addGroup(jStep4Layout.createSequentialGroup()
-														.addComponent(jDoIt, GroupLayout.PREFERRED_SIZE, 160,
-																GroupLayout.PREFERRED_SIZE)
-														.addGap(18)
-														.addComponent(jViewScripts, GroupLayout.PREFERRED_SIZE, 160,
-																GroupLayout.PREFERRED_SIZE)
-												.addGap(18)
-												.addComponent(jRunScripts, GroupLayout.PREFERRED_SIZE, 160,
-														GroupLayout.PREFERRED_SIZE).addGap(18)
-												.addComponent(jPrintTODO, GroupLayout.PREFERRED_SIZE, 160,
-														GroupLayout.PREFERRED_SIZE))
-										.addComponent(jCheckStartFromScrap)))
-								.addComponent(jLabel10))
-						.addGap(15)));
+										.addComponent(this.jCheckStartFromScrap))
+								.addGap(18)
+								.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING, false)
+										.addComponent(this.jListGenerated, GroupLayout.DEFAULT_SIZE,
+												GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+										.addComponent(this.jViewScripts, GroupLayout.DEFAULT_SIZE, 160,
+												Short.MAX_VALUE))
+								.addGap(18)
+								.addComponent(this.jRunScripts, GroupLayout.PREFERRED_SIZE, 160,
+										GroupLayout.PREFERRED_SIZE)
+								.addGap(18).addComponent(this.jPrintTODO, GroupLayout.PREFERRED_SIZE, 160,
+										GroupLayout.PREFERRED_SIZE))
+						.addComponent(this.jLabel10))
+				.addGap(15)));
 		jStep4Layout
 				.setVerticalGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
-						.addGroup(jStep4Layout.createSequentialGroup().addContainerGap().addComponent(jLabel10)
-								.addPreferredGap(ComponentPlacement.RELATED)
-								.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
-										.addComponent(jPrintTODO, GroupLayout.PREFERRED_SIZE, 52,
-												GroupLayout.PREFERRED_SIZE)
-								.addComponent(jRunScripts, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
-								.addComponent(jViewScripts, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
-								.addComponent(jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-										GroupLayout.PREFERRED_SIZE).addGroup(
-												jStep4Layout.createSequentialGroup()
-														.addComponent(jDoIt, GroupLayout.PREFERRED_SIZE, 52,
-																GroupLayout.PREFERRED_SIZE)
-														.addGap(18).addComponent(jCheckStartFromScrap)))
+						.addGroup(jStep4Layout.createSequentialGroup().addContainerGap().addComponent(
+								this.jLabel10)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING).addComponent(this.jPrintTODO,
+								GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
+						.addComponent(this.jRunScripts, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
+						.addGroup(jStep4Layout.createSequentialGroup()
+								.addComponent(this.jViewScripts, GroupLayout.PREFERRED_SIZE, 52,
+										GroupLayout.PREFERRED_SIZE)
+								.addGap(18).addComponent(this.jListGenerated))
+						.addComponent(this.jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE).addGroup(
+										jStep4Layout.createSequentialGroup()
+												.addComponent(this.jDoIt, GroupLayout.PREFERRED_SIZE, 52,
+														GroupLayout.PREFERRED_SIZE)
+												.addGap(18).addComponent(this.jCheckStartFromScrap)))
 				.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 		jStep4.getContentPane().setLayout(jStep4Layout);
 		jShowStep4.setText("Go to step 4");
@@ -1217,27 +1231,35 @@ public class Main extends javax.swing.JPanel {
 	}// </editor-fold>//GEN-END:initComponents
 
 	private void jRunScriptsActionPerformed(ActionEvent e) {
-		log.info("Executing scripts...");
-		this.jTabbedPane1.setSelectedIndex(1);
-		try {
-			jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
-					"Ready to execute: insert a command below to execute it...\n", In);
-		} catch (BadLocationException e1) {
-			e1.printStackTrace();
-		}
-		if (process != null && process.isAlive())
-			process.dispose();
-		process = new PythonRunnable();
-		process.startScript(Paths.get(basePath + "/" + scriptsList.get(0)).toString(), callback);
+		if (this.generatedList.get("script") != null && this.generatedList.get("script").size() > 0) {
+			log.info("Executing scripts...");
+			this.jTabbedPane1.setSelectedIndex(1);
+			try {
+				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
+						"Ready to execute: insert a command below to execute it...\n", In);
+			} catch (BadLocationException e1) {
+				log.fatal(e1);
+			}
+			if (process != null && process.isAlive())
+				process.dispose();
+			process = new PythonRunnable();
+			this.jConsole.setText("");
+			this.scriptsList = new ArrayList<>();
+			for (String script : this.generatedList.get("script"))
+				scriptsList.add(script);
+			process.startScript(Paths.get(basePath + "/" + scriptsList.get(0)).toString(), callback);
+		} else
+			log.info("Nothing to do.");
+		log.info("Done.");
 	}
 
 	private void jViewScriptsActionPerformed(ActionEvent e) {
 		for (String script : scriptsList) {
 			try {
 				Desktop.getDesktop().open(Paths.get(this.basePath + "/" + script).toFile());
-			} catch (IOException e1) {
-				JOptionPane.showMessageDialog(this, e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-				e1.printStackTrace();
+			} catch (IOException ex) {
+				JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+				ex.printStackTrace();
 			}
 		}
 	}
@@ -1246,7 +1268,7 @@ public class Main extends javax.swing.JPanel {
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 			@Override
 			public void run() {
-				if (process != null)
+				if (process != null && process.isAlive())
 					process.dispose();
 			}
 		}));
@@ -1483,8 +1505,7 @@ public class Main extends javax.swing.JPanel {
 				process.startCommand("script -fqe /dev/null", callback);
 				process.toPython("cd " + dataService.getProperty("iraf.home"));
 				process.toPython("pyraf");
-			}
-			else if (message.equals("mime wlcal"))
+			} else if (message.equals("mime wlcal"))
 				process.mimeWlcal(Paths.get("src/main/resources/mimeWlcal.py").toString(), callback);
 			else
 				process.startCommand(this.jCommand.getText(), callback);
@@ -1512,28 +1533,31 @@ public class Main extends javax.swing.JPanel {
 							fileEntry.delete();
 					}
 				}
+
+			if (this.generatedList != null)
+				this.generatedList.clear();
+			else
+				this.generatedList = new HashMap<String, List<String>>();
+
 			switch (this.selectedAction) {
 			case 0:
 				log.info("Action selected: generate lists only...");
 				this.generateAllLists();
 				log.info("Done.");
-				JOptionPane.showMessageDialog(this, "Lists have been created correctly.", "All done",
-						JOptionPane.INFORMATION_MESSAGE);
+				GeneratedList.showList(generatedList);
 				break;
 			case 1:
 				log.info("Action selected: generate lists and one script...");
 				this.generateAllLists();
 				this.writeOneGiantScript();
 				log.info("Done.");
-				JOptionPane.showMessageDialog(this, "Lists and the PyRAF script have been created correctly.",
-						"All done", JOptionPane.INFORMATION_MESSAGE);
+				GeneratedList.showList(generatedList);
 				break;
 			case 2:
 				log.info("Action selected: generate lists and a script for each target...");
 				this.writeScriptForEachTarget();
 				log.info("Done.");
-				JOptionPane.showMessageDialog(this, "Lists and PyRAF scripts have been created correctly.", "All done",
-						JOptionPane.INFORMATION_MESSAGE);
+				GeneratedList.showList(generatedList);
 			}
 		} catch (Exception ex) {
 			log.fatal(ex.getMessage(), ex);
@@ -2088,25 +2112,37 @@ public class Main extends javax.swing.JPanel {
 
 	public void generateAllLists() {
 		PrintWriter writer = null;
+		this.generatedList = new HashMap<String, List<String>>();
 		try {
 			log.info("Generating all lists...");
 			String temp = "", tempLamp = "";
 			// Write them down
 			log.info("list_obj");
+			if (this.generatedList.get("all") != null)
+				this.generatedList.get("all").add("list_obj");
+			else {
+				ArrayList<String> list = new ArrayList<>();
+				list.add("list_obj");
+				this.generatedList.put("all", list);
+			}
 			writer = new PrintWriter(Paths.get(this.basePath, "list_obj").toFile());
 			List<Observation> observations = dataService.getObservationRepository().findByIsEnabled(true);
 			HashSet<String> lampName = new HashSet<String>();
-			for (Observation observation : observations)
+			for (Observation observation : observations) {
+				int i = 0;
 				for (ScienceImage science : observation.getScienceImages()) {
 					TableModel model = jTable1.getModel();
-					for (int i = 0; i < model.getRowCount()
-							&& model.getValueAt(i, jTable1Cols.get("Image")) != science.getImage().getFileName(); i++)
-						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
-							temp += science.getImage().getFileName() + "\t" + science.getLamp().getImage().getFileName()
-									+ "\n";
-							lampName.add(science.getLamp().getImage().getFileName());
-						}
+					while (i < model.getRowCount()
+							&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(science.getImage().getFileName()))
+						i++;
+					if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+						temp += science.getImage().getFileName() + "\t" + science.getLamp().getImage().getFileName()
+								+ "\n";
+						lampName.add(science.getLamp().getImage().getFileName());
+						i++;
+					}
 				}
+			}
 			for (String item : lampName)
 				tempLamp += item + "\n";
 
@@ -2115,11 +2151,25 @@ public class Main extends javax.swing.JPanel {
 
 			temp = "";
 			log.info("list_lamps");
+			if (this.generatedList.get("all") != null)
+				this.generatedList.get("all").add("list_lamps");
+			else {
+				ArrayList<String> list = new ArrayList<>();
+				list.add("list_lamps");
+				this.generatedList.put("all", list);
+			}
 			writer = new PrintWriter(Paths.get(this.basePath, "list_lamps").toFile());
 			writer.print(tempLamp.trim());
 			writer.close();
 
 			log.info("list_flat");
+			if (this.generatedList.get("all") != null)
+				this.generatedList.get("all").add("list_flat");
+			else {
+				ArrayList<String> list = new ArrayList<>();
+				list.add("list_flat");
+				this.generatedList.put("all", list);
+			}
 			writer = new PrintWriter(Paths.get(this.basePath, "list_flat").toFile());
 			for (FlatfieldImage flat : dataService.getFlatRepository().findAll()) {
 				for (ImageEntity image : flat.getImages())
@@ -2130,21 +2180,32 @@ public class Main extends javax.swing.JPanel {
 
 			// Generate the list of IMA*.wl.fits
 			for (Observation observation : observations) {
-				if (observation.isDoWlcal()) {
+				if (observation.isEnabled() && observation.isDoWlcal()) {
 					temp = observation.getTargetName();
 					if (temp.contains("+"))
 						temp = temp.replaceAll("+", "p");
 					if (temp.contains("-"))
 						temp = temp.replaceAll("-", "m");
 					log.info("wl" + temp);
+					if (this.generatedList.get(observation.getTargetName()) != null)
+						this.generatedList.get(observation.getTargetName()).add("wl" + temp);
+					else {
+						ArrayList<String> list = new ArrayList<>();
+						list.add("wl" + temp);
+						this.generatedList.put(observation.getTargetName(), list);
+					}
 					writer = new PrintWriter(Paths.get(this.basePath, "wl" + temp).toFile());
 					temp = "";
+					int i = 0;
 					for (ScienceImage item : observation.getScienceImages()) {
 						TableModel model = jTable1.getModel();
-						for (int i = 0; i < model.getRowCount()
-								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
-							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
-								temp += item.getImage().getFileName() + ".wl\n";
+						while (i < model.getRowCount()
+								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
+							i++;
+						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+							temp += item.getImage().getFileName() + ".wl\n";
+							i++;
+						}
 					}
 					writer.print(temp.trim());
 					writer.close();
@@ -2161,14 +2222,25 @@ public class Main extends javax.swing.JPanel {
 					if (temp.contains("-"))
 						temp = temp.replaceAll("-", "m");
 					log.info("fc" + temp);
+					if (this.generatedList.get(observation.getTargetName()) != null)
+						this.generatedList.get(observation.getTargetName()).add("fc" + temp);
+					else {
+						ArrayList<String> list = new ArrayList<>();
+						list.add("fc" + temp);
+						this.generatedList.put(observation.getTargetName(), list);
+					}
 					writer = new PrintWriter(Paths.get(this.basePath, "fc" + temp).toFile());
 					temp = "";
+					int i = 0;
 					for (ScienceImage item : observation.getScienceImages()) {
 						TableModel model = jTable1.getModel();
-						for (int i = 0; i < model.getRowCount()
-								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
-							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
-								temp += item.getImage().getFileName() + ".fc\n";
+						while (i < model.getRowCount()
+								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
+							i++;
+						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+							temp += item.getImage().getFileName() + ".fc\n";
+							i++;
+						}
 					}
 					writer.print(temp.trim());
 					writer.close();
@@ -2184,14 +2256,25 @@ public class Main extends javax.swing.JPanel {
 					if (temp.contains("-"))
 						temp = temp.replaceAll("-", "m");
 					log.info("bg" + temp);
+					if (this.generatedList.get(observation.getTargetName()) != null)
+						this.generatedList.get(observation.getTargetName()).add("bg" + temp);
+					else {
+						ArrayList<String> list = new ArrayList<>();
+						list.add("bg" + temp);
+						this.generatedList.put(observation.getTargetName(), list);
+					}
 					writer = new PrintWriter(Paths.get(this.basePath, "bg" + temp).toFile());
 					temp = "";
+					int i = 0;
 					for (ScienceImage item : observation.getScienceImages()) {
 						TableModel model = jTable1.getModel();
-						for (int i = 0; i < model.getRowCount()
-								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
-							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
-								temp += item.getImage().getFileName() + ".bg\n";
+						while (i < model.getRowCount()
+								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
+							i++;
+						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+							temp += item.getImage().getFileName() + ".bg\n";
+							i++;
+						}
 					}
 					writer.print(temp.trim());
 					writer.close();
@@ -2207,14 +2290,25 @@ public class Main extends javax.swing.JPanel {
 					if (temp.contains("-"))
 						temp = temp.replaceAll("-", "m");
 					log.info("md" + temp);
+					if (this.generatedList.get(observation.getTargetName()) != null)
+						this.generatedList.get(observation.getTargetName()).add("md" + temp);
+					else {
+						ArrayList<String> list = new ArrayList<>();
+						list.add("md" + temp);
+						this.generatedList.put(observation.getTargetName(), list);
+					}
 					writer = new PrintWriter(Paths.get(this.basePath, "md" + temp).toFile());
 					temp = "";
+					int i = 0;
 					for (ScienceImage item : observation.getScienceImages()) {
 						TableModel model = jTable1.getModel();
-						for (int i = 0; i < model.getRowCount()
-								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
-							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
-								temp += item.getImage().getFileName() + ".md\n";
+						while (i < model.getRowCount()
+								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
+							i++;
+						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+							temp += item.getImage().getFileName() + ".md\n";
+							i++;
+						}
 					}
 					writer.print(temp.trim());
 					writer.close();
@@ -2228,8 +2322,17 @@ public class Main extends javax.swing.JPanel {
 					if (observation.isEnabled() && observation.isDoFcal()) {
 						temp = "";
 						log.info("std" + standard.getImage().getFileName());
+						if (this.generatedList.get(observation.getTargetName()) != null)
+							this.generatedList.get(observation.getTargetName())
+									.add("std" + standard.getImage().getFileName());
+						else {
+							ArrayList<String> list = new ArrayList<>();
+							list.add("std" + standard.getImage().getFileName());
+							this.generatedList.put(observation.getTargetName(), list);
+						}
 						writer = new PrintWriter(
 								Paths.get(this.basePath, "std" + standard.getImage().getFileName()).toFile());
+						int i = 0;
 						for (ScienceImage item : standard.getScienceImages()) {
 							/*
 							 * Use file name instead of standard name to avoid
@@ -2237,11 +2340,14 @@ public class Main extends javax.swing.JPanel {
 							 * the night MUST be treated as two different stars
 							 */
 							TableModel model = jTable1.getModel();
-							for (int i = 0; i < model.getRowCount() && model.getValueAt(i,
-									jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
-								if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
-									if (item.getObservation().isDoFcal())
-										temp += item.getImage().getFileName() + ".wl\n";
+							while (i < model.getRowCount() && !model.getValueAt(i, jTable1Cols.get("Image"))
+									.equals(item.getImage().getFileName()))
+								i++;
+							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+								if (item.getObservation().isDoFcal())
+									temp += item.getImage().getFileName() + ".wl\n";
+								i++;
+							}
 						}
 						writer.print(temp.trim());
 						writer.close();
@@ -2272,17 +2378,26 @@ public class Main extends javax.swing.JPanel {
 				String temp = "", tempLamp = "";
 				// Write them down
 				log.info("list_obj_" + targetNormalized);
+				if (this.generatedList.get(observation.getTargetName()) != null)
+					this.generatedList.get(observation.getTargetName()).add("list_obj_" + targetNormalized);
+				else {
+					ArrayList<String> list = new ArrayList<>();
+					list.add("list_obj_" + targetNormalized);
+					this.generatedList.put(observation.getTargetName(), list);
+				}
 				writer = new PrintWriter(Paths.get(this.basePath, "list_obj_" + targetNormalized).toFile());
 				HashSet<String> lampName = new HashSet<String>();
 				for (ScienceImage science : observation.getScienceImages()) {
+					int i = 0;
 					TableModel model = jTable1.getModel();
-					for (int i = 0; i < model.getRowCount()
-							&& model.getValueAt(i, jTable1Cols.get("Image")) != science.getImage().getFileName(); i++) {
-						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
-							temp += science.getImage().getFileName() + "\t" + science.getLamp().getImage().getFileName()
-									+ "\n";
-							lampName.add(science.getLamp().getImage().getFileName());
-						}
+					while (i < model.getRowCount()
+							&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(science.getImage().getFileName()))
+						i++;
+					if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+						temp += science.getImage().getFileName() + "\t" + science.getLamp().getImage().getFileName()
+								+ "\n";
+						lampName.add(science.getLamp().getImage().getFileName());
+						i++;
 					}
 				}
 				for (String item : lampName)
@@ -2293,11 +2408,25 @@ public class Main extends javax.swing.JPanel {
 
 				temp = "";
 				log.info("list_lamps_" + targetNormalized);
+				if (this.generatedList.get(observation.getTargetName()) != null)
+					this.generatedList.get(observation.getTargetName()).add("list_lamps_" + targetNormalized);
+				else {
+					ArrayList<String> list = new ArrayList<>();
+					list.add("list_lamps_" + targetNormalized);
+					this.generatedList.put(observation.getTargetName(), list);
+				}
 				writer = new PrintWriter(Paths.get(this.basePath, "list_lamps_" + targetNormalized).toFile());
 				writer.print(tempLamp.trim());
 				writer.close();
 
 				log.info("list_flat_" + targetNormalized);
+				if (this.generatedList.get(observation.getTargetName()) != null)
+					this.generatedList.get(observation.getTargetName()).add("list_flat_" + targetNormalized);
+				else {
+					ArrayList<String> list = new ArrayList<>();
+					list.add("list_flat_" + targetNormalized);
+					this.generatedList.put(observation.getTargetName(), list);
+				}
 				writer = new PrintWriter(Paths.get(this.basePath, "list_flat_" + targetNormalized).toFile());
 				for (FlatfieldImage flat : dataService.getFlatRepository().findAll()) {
 					for (ImageEntity image : flat.getImages())
@@ -2309,14 +2438,25 @@ public class Main extends javax.swing.JPanel {
 				// Generate the list of IMA*.wl.fits
 				if (observation.isDoWlcal()) {
 					log.info("wl" + targetNormalized);
+					if (this.generatedList.get(observation.getTargetName()) != null)
+						this.generatedList.get(observation.getTargetName()).add("wl" + targetNormalized);
+					else {
+						ArrayList<String> list = new ArrayList<>();
+						list.add("wl" + targetNormalized);
+						this.generatedList.put(observation.getTargetName(), list);
+					}
 					writer = new PrintWriter(Paths.get(this.basePath, "wl" + targetNormalized).toFile());
 					temp = "";
+					int i = 0;
 					for (ScienceImage item : observation.getScienceImages()) {
 						TableModel model = jTable1.getModel();
-						for (int i = 0; i < model.getRowCount()
-								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
-							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
-								temp += item.getImage().getFileName() + ".wl\n";
+						while (i < model.getRowCount()
+								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
+							i++;
+						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+							temp += item.getImage().getFileName() + ".wl\n";
+							i++;
+						}
 					}
 					writer.print(temp.trim());
 					writer.close();
@@ -2326,14 +2466,25 @@ public class Main extends javax.swing.JPanel {
 				// This list is used as input for the background task
 				if (observation.isDoFcal()) {
 					log.info("fc" + targetNormalized);
+					if (this.generatedList.get(observation.getTargetName()) != null)
+						this.generatedList.get(observation.getTargetName()).add("fc" + targetNormalized);
+					else {
+						ArrayList<String> list = new ArrayList<>();
+						list.add("fc" + targetNormalized);
+						this.generatedList.put(observation.getTargetName(), list);
+					}
 					writer = new PrintWriter(Paths.get(this.basePath, "fc" + targetNormalized).toFile());
 					temp = "";
+					int i = 0;
 					for (ScienceImage item : observation.getScienceImages()) {
 						TableModel model = jTable1.getModel();
-						for (int i = 0; i < model.getRowCount()
-								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
-							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
-								temp += item.getImage().getFileName() + ".fc\n";
+						while (i < model.getRowCount()
+								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
+							i++;
+						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+							temp += item.getImage().getFileName() + ".fc\n";
+							i++;
+						}
 					}
 					writer.print(temp.trim());
 					writer.close();
@@ -2342,14 +2493,25 @@ public class Main extends javax.swing.JPanel {
 				// Generate the list of IMA*.bg.fits
 				if (observation.isDoBackground()) {
 					log.info("bg" + targetNormalized);
+					if (this.generatedList.get(observation.getTargetName()) != null)
+						this.generatedList.get(observation.getTargetName()).add("bg" + targetNormalized);
+					else {
+						ArrayList<String> list = new ArrayList<>();
+						list.add("bg" + targetNormalized);
+						this.generatedList.put(observation.getTargetName(), list);
+					}
 					writer = new PrintWriter(Paths.get(this.basePath, "bg" + targetNormalized).toFile());
 					temp = "";
+					int i = 0;
 					for (ScienceImage item : observation.getScienceImages()) {
 						TableModel model = jTable1.getModel();
-						for (int i = 0; i < model.getRowCount()
-								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
-							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
-								temp += item.getImage().getFileName() + ".bg\n";
+						while (i < model.getRowCount()
+								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
+							i++;
+						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+							temp += item.getImage().getFileName() + ".bg\n";
+							i++;
+						}
 					}
 					writer.print(temp.trim());
 					writer.close();
@@ -2358,14 +2520,25 @@ public class Main extends javax.swing.JPanel {
 				// Generate the list of IMA*.md.fits
 				if (observation.isDoApall()) {
 					log.info("md" + targetNormalized);
+					if (this.generatedList.get(observation.getTargetName()) != null)
+						this.generatedList.get(observation.getTargetName()).add("md" + targetNormalized);
+					else {
+						ArrayList<String> list = new ArrayList<>();
+						list.add("md" + targetNormalized);
+						this.generatedList.put(observation.getTargetName(), list);
+					}
 					writer = new PrintWriter(Paths.get(this.basePath, "md" + targetNormalized).toFile());
 					temp = "";
 					for (ScienceImage item : observation.getScienceImages()) {
 						TableModel model = jTable1.getModel();
-						for (int i = 0; i < model.getRowCount()
-								&& model.getValueAt(i, jTable1Cols.get("Image")) != item.getImage().getFileName(); i++)
-							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true)
-								temp += item.getImage().getFileName() + ".md\n";
+						int i = 0;
+						while (i < model.getRowCount()
+								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
+							i++;
+						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+							temp += item.getImage().getFileName() + ".md\n";
+							i++;
+						}
 					}
 					writer.print(temp.trim());
 					writer.close();
@@ -2374,6 +2547,13 @@ public class Main extends javax.swing.JPanel {
 				// Let's generate the PyRAF script
 				log.info("exec" + targetNormalized + ".py");
 				scriptsList.add("exec" + targetNormalized + ".py");
+				if (this.generatedList.get("script") != null)
+					this.generatedList.get("script").add("exec" + targetNormalized + ".py");
+				else {
+					ArrayList<String> list = new ArrayList<>();
+					list.add("exec" + targetNormalized + ".py");
+					this.generatedList.put("script", list);
+				}
 				writer = new PrintWriter(Paths.get(this.basePath, "exec" + targetNormalized + ".py").toFile());
 				writer.println("#!/usr/bin/env python");
 				writer.println("import os");
@@ -2461,6 +2641,13 @@ public class Main extends javax.swing.JPanel {
 			log.info("Generating one script...");
 			// Let's generate the PyRAF script
 			log.info("execAsgred.py");
+			if (this.generatedList.get("script") != null)
+				this.generatedList.get("script").add("execAsgred.py");
+			else {
+				ArrayList<String> list = new ArrayList<>();
+				list.add("execAsgred.py");
+				this.generatedList.put("script", list);
+			}
 			scriptsList = new ArrayList<String>();
 			scriptsList.add("execAsgred.py");
 			writer = new PrintWriter(Paths.get(this.basePath, "execAsgred.py").toFile());
@@ -2588,12 +2775,15 @@ public class Main extends javax.swing.JPanel {
 				job.print(doc, attrs);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
 			log.error(e);
 			JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		} finally {
 
 		}
+	}
+
+	protected void jListGeneratedActionPerformed(ActionEvent e) {
+		GeneratedList.showList(generatedList);
 	}
 
 	// Variables declaration - do not modify//GEN-BEGIN:variables
@@ -2678,4 +2868,5 @@ public class Main extends javax.swing.JPanel {
 	private javax.swing.JButton jRunScripts;
 	private javax.swing.JButton jPrintTODO;
 	private final ButtonGroup groupSteps = new ButtonGroup();
+	private JButton jListGenerated;
 }
