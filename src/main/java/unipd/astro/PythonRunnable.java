@@ -16,7 +16,9 @@
  */
 package unipd.astro;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import org.apache.log4j.Logger;
 import unipd.astro.service.DataService;
@@ -31,7 +33,7 @@ import unipd.astro.service.DataService;
 public class PythonRunnable {
 	private static int TIMEOUT = 10;
 	private static Logger log = Logger.getLogger(PythonRunnable.class.getName());
-	private Process python, ds9;
+	private Process python;
 	private ArrayList<Thread> openThread;
 	private ArrayList<String> commandToPass = new ArrayList<>();
 
@@ -305,22 +307,39 @@ public class PythonRunnable {
 	private void checkDs9IsRunning() {
 		try {
 			log.info("Checking if DS9 is running...");
-			if (ds9 == null || !ds9.isAlive()) {
-				log.info("Lauching DS9...");
-				Thread runDs9 = new Thread(new Runnable() {
-					@Override
-					public void run() {
-						try {
-							ds9 = new ProcessBuilder("ds9").start();
-						} catch (IOException e) {
-							e.printStackTrace();
-							log.error(e.getMessage());
-						}
+			int pid = 0;
+			try {
+				String line;
+				Process p = Runtime.getRuntime().exec("ps -e");
+				BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+				while ((line = input.readLine()) != null) {
+					if (line.contains("ds9")) {
+						log.info("It is running.");
+						log.info("Done.");
+						pid = Integer.parseInt(line.substring(0, line.indexOf(" ")));
+						input.close();
+						return;
 					}
-				});
-				runDs9.start();
-				this.openThread.add(runDs9);
+				}
+				input.close();
+				if (pid == 0) {
+					log.info("Lauching DS9...");
+					new Thread(new Runnable() {
+						@Override
+						public void run() {
+							try {
+								new ProcessBuilder("ds9").start();
+							} catch (IOException e) {
+								e.printStackTrace();
+								log.error(e.getMessage());
+							}
+						}
+					}).start();
+				}
+			} catch (Exception err) {
+				err.printStackTrace();
 			}
+
 			log.info("Done.");
 		} catch (Exception ex) {
 			ex.printStackTrace();
