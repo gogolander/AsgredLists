@@ -9,12 +9,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
-import javax.print.DocFlavor;
-import javax.print.PrintService;
-import javax.print.PrintServiceLookup;
-import javax.print.ServiceUI;
-import javax.print.attribute.HashPrintRequestAttributeSet;
-import javax.print.attribute.PrintRequestAttributeSet;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JScrollPane;
@@ -22,7 +16,9 @@ import javax.swing.JButton;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.List;
 
@@ -132,18 +128,14 @@ public class GeneratedList extends JFrame {
 	}
 
 	private void jPrintActionPerformed(ActionEvent e) {
-		try {
-			PrintService[] services = PrintServiceLookup.lookupPrintServices(DocFlavor.STRING.TEXT_PLAIN, null);
-			PrintService svc = PrintServiceLookup.lookupDefaultPrintService();
-			PrintRequestAttributeSet attrs = new HashPrintRequestAttributeSet();
-			PrintService selection = ServiceUI.printDialog(null, 100, 100, services, svc, null, attrs);
-			if (selection != null) {
-				PrinterJob job = PrinterJob.getPrinterJob();
-				job.setPrintable(this.jDocument.getPrintable(null, null));
-				job.print(attrs);
+		PrinterJob pj = PrinterJob.getPrinterJob();
+		pj.setPrintable(this.jDocument.getPrintable(new MessageFormat("Generated files"), new MessageFormat("AsgredLists")));
+		if (pj.printDialog()) {
+			try {
+				pj.print();
+			} catch (PrinterException exc) {
+				System.out.println(exc);
 			}
-		} catch (Exception ex) {
-
 		}
 	}
 }

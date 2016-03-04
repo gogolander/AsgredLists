@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,22 +64,15 @@ import unipd.astro.entity.StandardImage;
 import unipd.astro.service.DataService;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-
-import javax.print.Doc;
-import javax.print.DocFlavor;
-import javax.print.DocPrintJob;
-import javax.print.PrintService;
-import javax.print.PrintServiceLookup;
-import javax.print.ServiceUI;
-import javax.print.SimpleDoc;
-import javax.print.attribute.HashPrintRequestAttributeSet;
-import javax.print.attribute.PrintRequestAttributeSet;
+import java.awt.print.PrinterException;
+import java.awt.print.PrinterJob;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.GroupLayout;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import java.awt.Font;
+
 import javax.swing.JCheckBox;
 import javax.swing.JTextPane;
 
@@ -2739,40 +2733,64 @@ public class Main extends javax.swing.JPanel {
 
 	private void generateTODOList() {
 		try {
+			JTextPane documentToPrint = new JTextPane();
+			StyleContext sc = new StyleContext();
+			Style text = sc.addStyle("text", null);
+			text.addAttribute(StyleConstants.FontSize, new Integer(10));
+			text.addAttribute(StyleConstants.FontFamily, "arial");
+			text.addAttribute(StyleConstants.Bold, new Boolean(false));
+
+			Style title = sc.addStyle("title", null);
+			title.addAttribute(StyleConstants.FontSize, new Integer(12));
+			title.addAttribute(StyleConstants.FontFamily, "arial");
+			title.addAttribute(StyleConstants.Bold, new Boolean(true));
 			String temp = "";
 			for (Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
-				temp += observation.getTargetName();
-				if (observation.getStandard().getImage().getTargetName().equals(observation.getTargetName()))
-					temp += " (Standard)";
-				else
-					temp += " (Object)";
-				temp += ":\n\r";
-				temp += new String(new char[76]).replace("\0", "⎯") + "\n\r";
-				if (observation.isDoPrered())
-					temp += "\t⬜ flatfield correction\n\r";
-				if (observation.isDoWlcal())
-					temp += "\t⬜ wavelength calibration\n\r";
-				if (observation.isDoFcal())
-					temp += "\t⬜ flux calibration\n\r";
-				if (observation.isDoBackground())
-					temp += "\t⬜ background subtraction\n\r";
-				if (observation.isDoApall())
-					temp += "\t⬜ spectrum extraction\n\r";
-				if (observation.isDoScombine())
-					temp += "\t⬜ spectrum combine\n\r";
-				if (observation.isDoImcopy())
-					temp += "\t⬜ cut final spectrum\n\r";
-				temp += "\n\n";
+				try {
+					temp = observation.getTargetName();
+					if (observation.getStandard().getImage().getTargetName().equals(observation.getTargetName()))
+						temp += " (Standard)";
+					else
+						temp += " (Object)";
+					temp += ":\n";
+					documentToPrint.getStyledDocument().insertString(documentToPrint.getStyledDocument().getLength(),
+							temp, title);
+					temp = new String(new char[120]).replace("\0", "-") + "\n";
+					documentToPrint.getStyledDocument().insertString(documentToPrint.getStyledDocument().getLength(),
+							temp, text);
+					temp = "";
+					if (observation.isDoPrered())
+						temp += "\t⬜ flatfield correction\n\r";
+					if (observation.isDoWlcal())
+						temp += "\t⬜ wavelength calibration\n\r";
+					if (observation.isDoFcal())
+						temp += "\t⬜ flux calibration\n\r";
+					if (observation.isDoBackground())
+						temp += "\t⬜ background subtraction\n\r";
+					if (observation.isDoApall())
+						temp += "\t⬜ spectrum extraction\n\r";
+					if (observation.isDoScombine())
+						temp += "\t⬜ spectrum combine\n\r";
+					if (observation.isDoImcopy())
+						temp += "\t⬜ cut final spectrum\n\r";
+					temp += "\n\n";
+					documentToPrint.getStyledDocument().insertString(documentToPrint.getStyledDocument().getLength(),
+							temp, text);
+					
+				} catch (Exception ex) {
+
+				}
 			}
 
-			PrintService[] services = PrintServiceLookup.lookupPrintServices(DocFlavor.STRING.TEXT_PLAIN, null);
-			PrintService svc = PrintServiceLookup.lookupDefaultPrintService();
-			PrintRequestAttributeSet attrs = new HashPrintRequestAttributeSet();
-			PrintService selection = ServiceUI.printDialog(null, 100, 100, services, svc, null, attrs);
-			if (selection != null) {
-				DocPrintJob job = selection.createPrintJob();
-				Doc doc = new SimpleDoc(temp, DocFlavor.STRING.TEXT_PLAIN, null);
-				job.print(doc, attrs);
+			PrinterJob pj = PrinterJob.getPrinterJob();
+			pj.setPrintable(documentToPrint.getPrintable(new MessageFormat("TODO list"),
+					new MessageFormat("AsgredLists")));
+			if (pj.printDialog()) {
+				try {
+					pj.print();
+				} catch (PrinterException exc) {
+					System.out.println(exc);
+				}
 			}
 		} catch (Exception e) {
 			log.error(e);
