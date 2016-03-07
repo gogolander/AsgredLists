@@ -29,10 +29,6 @@ import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import unipd.astro.service.DataService;
 
-/**
- *
- * @author Enzo
- */
 @Entity
 @Table(name = "IMAGES")
 public class ImageEntity implements Serializable {
@@ -139,7 +135,7 @@ public class ImageEntity implements Serializable {
 		return isStandard;
 	}
 
-	public void setStandard(boolean isStandard) {
+	public void setIsStandard(boolean isStandard) {
 		this.isStandard = isStandard;
 	}
 
@@ -174,7 +170,7 @@ public class ImageEntity implements Serializable {
         newEntity.setFileName(params[0]);
         newEntity.setTargetName(params[1]);
         newEntity.setType(type);
-        newEntity.setStandard((DataService.getInstance().getStandardAtlas().findByStandardName(params[1]) != null));
+        newEntity.setIsStandard((DataService.getInstance().getStandardAtlas().findByStandardName(params[1]) != null));
         newEntity.setExpTime(Float.parseFloat(params[3]));
         return newEntity;
     }

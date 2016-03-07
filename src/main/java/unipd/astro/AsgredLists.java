@@ -17,6 +17,9 @@
 package unipd.astro;
 
 import org.apache.log4j.Logger;
+
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -48,6 +51,49 @@ public class AsgredLists {
     		Main mainFrame = new Main();
             mainFrame.initDatabase();
             JFrame frame = new JFrame();
+            frame.addWindowListener(new WindowListener() {
+
+				@Override
+				public void windowOpened(WindowEvent e) {
+					
+				}
+
+				@Override
+				public void windowClosing(WindowEvent e) {
+					mainFrame.dispose();					
+				}
+
+				@Override
+				public void windowClosed(WindowEvent e) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void windowIconified(WindowEvent e) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void windowDeiconified(WindowEvent e) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void windowActivated(WindowEvent e) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void windowDeactivated(WindowEvent e) {
+					// TODO Auto-generated method stub
+					
+				}
+            	
+            });
             frame.setTitle("AsgredLists");
             frame.setResizable(false);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
