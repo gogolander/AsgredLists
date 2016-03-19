@@ -71,3 +71,12 @@ AsgredLists/target
 ```
 ##### Warning
 When started, the Maven compilation needs to download more than 10Mb of required JAR libraries. Keep it in mind if you are using a metered connection.
+
+# Execution
+You have two choises:
+ * use the command ```java -jar asgredLists.jar```
+ * since the JAR file is an executable file, you can grant execution priviledge to it with the command ```chmod +x asgredLists.jar``` and associate it with the Java Runtime Machine in this way:
+  1. right-click on the JAR, open ```Properties``` and the go to the ```Open with``` tab;
+  2. scroll the list until you find ```Oracle Java 8 Runtime```: select it and then click on ```Set as default```
+  3. now you can run asgredLists just double-clicking it.
+ 
