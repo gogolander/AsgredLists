@@ -29,6 +29,7 @@ public abstract class InterruptableThread extends Thread {
 	protected List<String> commandsToClose;
 	protected List<String> commandsToRun;
 	protected boolean stop;
+	protected boolean isPyraf = false;
 	protected Process process;
 	
 	public InterruptableThread() {
@@ -46,11 +47,11 @@ public abstract class InterruptableThread extends Thread {
 		notify();
 	}
 	
-	public List<String> getCommandsToClose() {
+	public synchronized List<String> getCommandsToClose() {
 		return this.commandsToClose;
 	}
 
-	public void setCommandsToClose(String[] commandsToClose) {
+	public synchronized void setCommandsToClose(String[] commandsToClose) {
 		for (String command : commandsToClose)
 			this.commandsToClose.add(command);
 	}
@@ -73,5 +74,9 @@ public abstract class InterruptableThread extends Thread {
 	
 	public Process getProcess() {
 		return this.process;
+	}
+
+	public boolean isPyraf() {
+		return isPyraf;
 	}
 }

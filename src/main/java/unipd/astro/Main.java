@@ -27,7 +27,6 @@ import javax.swing.filechooser.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -209,15 +208,17 @@ public class Main extends javax.swing.JPanel {
 		jFitsListPanel = new org.jdesktop.swingx.JXCollapsiblePane();
 		jLabel1 = new javax.swing.JLabel();
 		jPath = new javax.swing.JTextField();
+		this.jPath.setFont(new Font("Dialog", Font.BOLD, 12));
 		jLoad = new javax.swing.JButton();
 		jExplore = new javax.swing.JButton();
 		jRadioFitsList = new javax.swing.JRadioButton();
 		jRadioButton2 = new javax.swing.JRadioButton();
 		jDirectoryPanel = new org.jdesktop.swingx.JXCollapsiblePane();
 		jLabel16 = new javax.swing.JLabel();
-		jPath1 = new javax.swing.JTextField();
-		jLoad1 = new javax.swing.JButton();
-		jExplore1 = new javax.swing.JButton();
+		jPathDirectory = new javax.swing.JTextField();
+		this.jPathDirectory.setFont(new Font("Dialog", Font.BOLD, 12));
+		jLoadDirectory = new javax.swing.JButton();
+		jExploreDirectory = new javax.swing.JButton();
 		jShowStep1 = new javax.swing.JToggleButton();
 		jShowStep1.setSelected(true);
 		groupSteps.add(jShowStep1);
@@ -284,6 +285,8 @@ public class Main extends javax.swing.JPanel {
 		jLabel13 = new javax.swing.JLabel();
 		jPanel17 = new javax.swing.JPanel();
 		jIrafHome = new javax.swing.JTextField();
+		this.jIrafHome.setFont(new Font("Dialog", Font.BOLD, 12));
+		this.jIrafHome.setEditable(false);
 		jLabel11 = new javax.swing.JLabel();
 		jSelectIraf = new javax.swing.JButton();
 		jSave = new javax.swing.JButton();
@@ -361,18 +364,18 @@ public class Main extends javax.swing.JPanel {
 
 		jLabel16.setText("Select the directory witch contains the images you want to reduce:");
 
-		jLoad1.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
-		jLoad1.setText("Load data");
-		jLoad1.addActionListener(new java.awt.event.ActionListener() {
+		jLoadDirectory.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+		jLoadDirectory.setText("Load data");
+		jLoadDirectory.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jLoad1ActionPerformed(evt);
+				jLoadDirectoryActionPerformed(evt);
 			}
 		});
 
-		jExplore1.setText("Explore");
-		jExplore1.addActionListener(new java.awt.event.ActionListener() {
+		jExploreDirectory.setText("Explore");
+		jExploreDirectory.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jExplore1ActionPerformed(evt);
+				jExploreDirectoryActionPerformed(evt);
 			}
 		});
 
@@ -380,19 +383,18 @@ public class Main extends javax.swing.JPanel {
 		jDirectoryPanel.getContentPane().setLayout(jDirectoryPanelLayout);
 		jDirectoryPanelLayout.setHorizontalGroup(jDirectoryPanelLayout
 				.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addGap(0, 0, Short.MAX_VALUE)
-				.addGroup(jDirectoryPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-						.addGroup(jDirectoryPanelLayout.createSequentialGroup().addContainerGap()
-								.addGroup(jDirectoryPanelLayout
-										.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-										.addGroup(jDirectoryPanelLayout.createSequentialGroup().addGap(344, 344, 344)
-												.addComponent(jLoad1)
-												.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED,
-														514, javax.swing.GroupLayout.PREFERRED_SIZE))
-										.addGroup(jDirectoryPanelLayout.createSequentialGroup().addComponent(jPath1)
-												.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-												.addComponent(jExplore1))
-										.addGroup(jDirectoryPanelLayout.createSequentialGroup().addComponent(jLabel16)
-												.addGap(0, 0, Short.MAX_VALUE)))
+				.addGroup(jDirectoryPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addGroup(
+						jDirectoryPanelLayout.createSequentialGroup().addContainerGap().addGroup(jDirectoryPanelLayout
+								.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+								.addGroup(jDirectoryPanelLayout.createSequentialGroup().addGap(344, 344, 344)
+										.addComponent(jLoadDirectory)
+										.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 514,
+												javax.swing.GroupLayout.PREFERRED_SIZE))
+								.addGroup(jDirectoryPanelLayout.createSequentialGroup().addComponent(jPathDirectory)
+										.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+										.addComponent(jExploreDirectory))
+								.addGroup(jDirectoryPanelLayout.createSequentialGroup().addComponent(jLabel16).addGap(0,
+										0, Short.MAX_VALUE)))
 								.addContainerGap())));
 		jDirectoryPanelLayout
 				.setVerticalGroup(jDirectoryPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -403,9 +405,9 @@ public class Main extends javax.swing.JPanel {
 										.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
 										.addGroup(jDirectoryPanelLayout
 												.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-												.addComponent(jPath1).addComponent(jExplore1))
+												.addComponent(jPathDirectory).addComponent(jExploreDirectory))
 										.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-										.addComponent(jLoad1).addGap(19, 19, 19))));
+										.addComponent(jLoadDirectory).addGap(19, 19, 19))));
 
 		jLabel16.getAccessibleContext()
 				.setAccessibleName("Select the directory which contains the images you want to reduce:");
@@ -1219,7 +1221,7 @@ public class Main extends javax.swing.JPanel {
 						.addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE,
 								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
 						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
-	}// </editor-fold>//GEN-END:initComponents
+	}
 
 	private void startUp() {
 		try {
@@ -1519,7 +1521,7 @@ public class Main extends javax.swing.JPanel {
 								|| fileEntry.getName().endsWith("fc.fits") || fileEntry.getName().endsWith("wl.fits")
 								|| fileEntry.getName().endsWith("md.fits") || fileEntry.getName().endsWith("obj.fits")
 								|| fileEntry.getName().endsWith(".py") || !fileEntry.getName().startsWith("IMA")
-								|| !fileEntry.getName().startsWith("SCR")))
+								|| !fileEntry.getName().startsWith("SCR") || fileEntry.equals("cursor")))
 							fileEntry.delete();
 
 			if (this.generatedList != null)
@@ -1841,34 +1843,15 @@ public class Main extends javax.swing.JPanel {
 		}
 	}
 
-	private void jLoad1ActionPerformed(java.awt.event.ActionEvent evt) {
-		PrintWriter writer = null;
-		try {
-			// Let's generate the PyRAF script
-			writer = new PrintWriter(new FileWriter(Paths.get(this.basePath, "createFitsList.py").toString()));
-			writer.println("#!/usr/bin/env python");
-			writer.println("import os");
-			writer.println("import sys");
-			writer.println("os.chdir(\"" + dataService.getProperty("iraf.home") + "\")");
-			writer.println("from pyraf import iraf");
-			writer.println("os.chdir(\"" + this.basePath + "\")");
-			writer.println(
-					"iraf.hselect(images=\"?????????.fits\", fields=\"$I,target,typ,exptime\", expr=\"yes\", Stdout=\"fits_list\")");
-		} catch (IOException ex) {
-			log.fatal(ex.getMessage(), ex);
-			JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-		} finally {
-			if (writer != null)
-				writer.close();
-		}
-		process = new Execution();
-		runningCommand = process.startScript(Paths.get(this.basePath + "/createFitsList.py").toString(),
-				new String[] { ".exit" }, callback);
+	private void jLoadDirectoryActionPerformed(java.awt.event.ActionEvent evt) {
+		process.sendCommand(runningCommand, "cd " + this.jPathDirectory.getText());
+		process.sendCommand(runningCommand,
+				"iraf.hselect(images=\"?????????.fits\", fields=\"$I,target,typ,exptime\", expr=\"yes\", Stdout=\"fits_list\")");
 		this.jPath.setText(basePath + "/fits_list");
 		this.jLoad.doClick();
 	}
 
-	private void jExplore1ActionPerformed(java.awt.event.ActionEvent evt) {
+	private void jExploreDirectoryActionPerformed(java.awt.event.ActionEvent evt) {
 		JFileChooser fileChooser = new JFileChooser(System.getProperty("user.home"));
 		fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 		fileChooser.setFileFilter(new FileFilter() {
@@ -1885,7 +1868,7 @@ public class Main extends javax.swing.JPanel {
 
 		if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
 			this.basePath = fileChooser.getSelectedFile().getAbsolutePath();
-			this.jPath1.setText(fileChooser.getSelectedFile().getAbsolutePath());
+			this.jPathDirectory.setText(fileChooser.getSelectedFile().getAbsolutePath());
 		}
 	}
 
@@ -1906,7 +1889,7 @@ public class Main extends javax.swing.JPanel {
 	public void parseFile(String filePath) throws FileNotFoundException, IOException {
 		log.info("Clearing jTable1...");
 		DefaultTableModel model = ((DefaultTableModel) this.jTable1.getModel());
-		for(int i = model.getRowCount() - 1; i > -1; i--)
+		for (int i = model.getRowCount() - 1; i > -1; i--)
 			model.removeRow(i);
 		log.info("Done.");
 		log.info("Clearing temporary relationships...");
@@ -1940,8 +1923,8 @@ public class Main extends javax.swing.JPanel {
 				data[this.jTable1Cols.get("Exp Time")] = new Float(item.getExpTime());
 				data[this.jTable1Cols.get("Is standard?")] = item.isStandard();
 				data[this.jTable1Cols.get("Type")] = item.getType();
-				data[this.jTable1Cols.get("Lamp")] = "";				
-				if(item.isStandard()) {
+				data[this.jTable1Cols.get("Lamp")] = "";
+				if (item.isStandard()) {
 					data[this.jTable1Cols.get("Standard")] = item.getFileName();
 					tempStandards.put(item.getFileName(), item.getFileName());
 				}
@@ -2571,6 +2554,13 @@ public class Main extends javax.swing.JPanel {
 					}
 					writer.print(temp.trim());
 					writer.close();
+
+					// Generate background cursor file
+					writer = new PrintWriter(Paths.get(this.basePath, "cursor").toFile());
+					writer.print(this.jBackgroundStart.getValue().toString() + " "
+							+ this.jBackgroundEnd.getValue().toString() + "\n");
+					writer.print("q");
+					writer.close();
 				}
 
 				// Generate the list of IMA*.md.fits
@@ -2652,7 +2642,7 @@ public class Main extends javax.swing.JPanel {
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoBackground())
 					writer.println("iraf.asgred.background(input=\"fc" + targetNormalized + "\", output=\"bg"
-							+ targetNormalized + "\")");
+							+ targetNormalized + "\", cursor=\"cursor\")");
 
 				// exec apall
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
@@ -2693,6 +2683,7 @@ public class Main extends javax.swing.JPanel {
 
 	public void writeOneGiantScript() {
 		PrintWriter writer = null;
+		boolean generateCursor = false;
 		try {
 			log.info("Generating one script...");
 			// Let's generate the PyRAF script
@@ -2710,7 +2701,7 @@ public class Main extends javax.swing.JPanel {
 			writer.println("#!/usr/bin/env python");
 			writer.println("import os");
 			writer.println("import sys");
-			writer.println("os.chdir(\"" + dataService.getProperty("iraf.home") + "\")");
+			writer.println("os.chdir(\"" + this.jIrafHome.getText() + "\")");
 
 			writer.println("from pyraf import iraf");
 			writer.println("os.chdir(\"" + this.basePath + "\")");
@@ -2757,9 +2748,11 @@ public class Main extends javax.swing.JPanel {
 					targetNormalized = targetNormalized.replaceAll("-", "m");
 
 				// exec background
-				if (observation.isDoBackground())
+				if (observation.isDoBackground()) {
+					generateCursor = true;
 					writer.println("iraf.asgred.background(input=\"fc" + targetNormalized + "\", output=\"bg"
-							+ targetNormalized + "\")");
+							+ targetNormalized + "\", cursor=\"cursor\")");
+				}
 
 				// exec apall
 				if (observation.isDoApall())
@@ -2778,6 +2771,15 @@ public class Main extends javax.swing.JPanel {
 				if (observation.isDoImcopy())
 					writer.println("iraf.asgred.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
 							+ "]\", output=\"" + targetNormalized + ".obj\")");
+			}
+			writer.close();
+			// Generate the background cursor file
+			if (generateCursor) {
+				writer = new PrintWriter(Paths.get(this.basePath, "cursor").toFile());
+				writer.print(this.jBackgroundStart.getValue().toString() + " "
+						+ this.jBackgroundEnd.getValue().toString() + "\n");
+				writer.print("q"); // TODO: verify
+				writer.close();
 			}
 		} catch (IOException ex) {
 			log.fatal(ex.getMessage(), ex);
@@ -2880,7 +2882,7 @@ public class Main extends javax.swing.JPanel {
 	private org.jdesktop.swingx.JXCollapsiblePane jDirectoryPanel;
 	private javax.swing.JButton jDoIt;
 	private javax.swing.JButton jExplore;
-	private javax.swing.JButton jExplore1;
+	private javax.swing.JButton jExploreDirectory;
 	private org.jdesktop.swingx.JXCollapsiblePane jFitsListPanel;
 	private javax.swing.JSpinner jImcopyEnd;
 	private javax.swing.JSpinner jImcopyStart;
@@ -2905,7 +2907,7 @@ public class Main extends javax.swing.JPanel {
 	private javax.swing.JLabel jLabel8;
 	private javax.swing.JLabel jLabel9;
 	private javax.swing.JButton jLoad;
-	private javax.swing.JButton jLoad1;
+	private javax.swing.JButton jLoadDirectory;
 	private org.jdesktop.swingx.JXPanel jOptionsPanel;
 	private javax.swing.JPanel jPanel10;
 	private javax.swing.JPanel jPanel11;
@@ -2918,7 +2920,7 @@ public class Main extends javax.swing.JPanel {
 	private javax.swing.JPanel jPanel8;
 	private javax.swing.JPanel jPanel9;
 	private javax.swing.JTextField jPath;
-	private javax.swing.JTextField jPath1;
+	private javax.swing.JTextField jPathDirectory;
 	private javax.swing.JPanel jPythonPanel;
 	private javax.swing.JRadioButton jRadioButton2;
 	private javax.swing.JRadioButton jRadioFitsList;

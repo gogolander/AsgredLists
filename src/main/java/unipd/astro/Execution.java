@@ -80,7 +80,8 @@ public class Execution {
 								log.info("Input received: " + commandsToRun.get(0));
 								process.getOutputStream().write(commandsToRun.get(0).getBytes());
 								process.getOutputStream().flush();
-								callback.OnMessageSent(commandsToRun.get(0).trim());
+								if (callback != null)
+									callback.OnMessageSent(commandsToRun.get(0).trim());
 								wait(TIMEOUT);
 								commandsToRun.remove(0);
 							}
@@ -88,24 +89,29 @@ public class Execution {
 								log.trace("Output received.");
 								byte[] buffer = new byte[nBytes];
 								process.getInputStream().read(buffer);
-								for (String response : new String(buffer, 0, nBytes).split("\n"))
-									callback.OnResponseReceived(response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+								if (callback != null)
+									for (String response : new String(buffer, 0, nBytes).split("\n"))
+										callback.OnResponseReceived(
+												response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 							}
 							while ((nBytes = process.getErrorStream().available()) != 0) {
 								log.trace("Error received.");
 								byte[] buffer = new byte[nBytes];
 								process.getErrorStream().read(buffer);
-								for (String error : new String(buffer, 0, nBytes).split("\n"))
-									callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+								if (callback != null)
+									for (String error : new String(buffer, 0, nBytes).split("\n"))
+										callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 							}
 						}
 					} catch (Exception ex) {
 						log.fatal(ex);
-						callback.OnErrorReceived(ex.getMessage());
+						if (callback != null)
+							callback.OnErrorReceived(ex.getMessage());
 					} finally {
 						log.info("Done");
-						dispose();
-						callback.OnScriptTerminated();
+						// dispose();
+						if (callback != null)
+							callback.OnScriptTerminated();
 					}
 				}
 			}
@@ -131,7 +137,7 @@ public class Execution {
 	 * @param callback
 	 */
 	public int startScript(final String path, final String[] commandsToClose, final AsyncCallback callback) {
-		if (!path.endsWith(".py")) {
+		if (!path.endsWith(".py") && callback != null) {
 			callback.OnErrorReceived("Wrong path to PyRAF script. Must be: /path/to/script/scriptName.py");
 			return -1;
 		}
@@ -162,7 +168,8 @@ public class Execution {
 								log.info("Input received: " + commandsToRun.get(0));
 								process.getOutputStream().write(commandsToRun.get(0).getBytes());
 								process.getOutputStream().flush();
-								callback.OnMessageSent(commandsToRun.get(0).trim());
+								if (callback != null)
+									callback.OnMessageSent(commandsToRun.get(0).trim());
 								wait(TIMEOUT);
 								commandsToRun.remove(0);
 							}
@@ -170,25 +177,30 @@ public class Execution {
 								log.trace("Output received.");
 								byte[] buffer = new byte[nBytes];
 								nBytes = process.getInputStream().read(buffer);
-								for (String response : new String(buffer, 0, nBytes).split("\n"))
-									callback.OnResponseReceived(response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+								if (callback != null)
+									for (String response : new String(buffer, 0, nBytes).split("\n"))
+										callback.OnResponseReceived(
+												response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 							}
 							while ((nBytes = process.getErrorStream().available()) != 0) {
 								log.trace("Error received.");
 								byte[] buffer = new byte[nBytes];
 								nBytes = process.getErrorStream().read(buffer);
-								for (String error : new String(buffer, 0, nBytes).split("\n"))
-									callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+								if (callback != null)
+									for (String error : new String(buffer, 0, nBytes).split("\n"))
+										callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 							}
 
 						}
 					} catch (Exception ex) {
 						log.fatal(ex);
-						callback.OnErrorReceived(ex.getMessage());
+						if (callback != null)
+							callback.OnErrorReceived(ex.getMessage());
 					} finally {
 						log.info("Done");
-						dispose();
-						callback.OnScriptTerminated();
+						// dispose();
+						if (callback != null)
+							callback.OnScriptTerminated();
 					}
 				}
 			}
@@ -243,7 +255,8 @@ public class Execution {
 								log.info("Input received: " + commandsToRun.get(0));
 								process.getOutputStream().write(commandsToRun.get(0).getBytes());
 								process.getOutputStream().flush();
-								callback.OnMessageSent(commandsToRun.get(0).trim());
+								if (callback != null)
+									callback.OnMessageSent(commandsToRun.get(0).trim());
 								wait(TIMEOUT);
 								commandsToRun.remove(0);
 							}
@@ -251,24 +264,29 @@ public class Execution {
 								log.trace("Output received.");
 								byte[] buffer = new byte[nBytes];
 								nBytes = process.getInputStream().read(buffer);
-								for (String response : new String(buffer, 0, nBytes).split("\n"))
-									callback.OnResponseReceived(response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+								if (callback != null)
+									for (String response : new String(buffer, 0, nBytes).split("\n"))
+										callback.OnResponseReceived(
+												response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 							}
 							while ((nBytes = process.getErrorStream().available()) != 0) {
 								log.trace("Error received.");
 								byte[] buffer = new byte[nBytes];
 								nBytes = process.getErrorStream().read(buffer);
-								for (String error : new String(buffer, 0, nBytes).split("\n"))
-									callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+								if (callback != null)
+									for (String error : new String(buffer, 0, nBytes).split("\n"))
+										callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 							}
 						}
 					} catch (Exception ex) {
 						log.fatal(ex);
-						callback.OnErrorReceived(ex.getMessage());
+						if (callback != null)
+							callback.OnErrorReceived(ex.getMessage());
 					} finally {
 						log.info("Done");
-						dispose();
-						callback.OnScriptTerminated();
+						// dispose();
+						if (callback != null)
+							callback.OnScriptTerminated();
 					}
 				}
 			}
@@ -289,9 +307,97 @@ public class Execution {
 		thread.start();
 		return openThread.size() - 1;
 	}
+	
+	/**
+	 * Exec a sequence of commands.
+	 * @param launchCommand
+	 * @param commands
+	 * @param callback
+	 */
+	public int execCommands(final String launchCommand, final String[] commands, final AsyncCallback callback) {
+		InterruptableThread thread = new InterruptableThread() {
+			@Override
+			public void run() {
+				synchronized (this) {
+					try {
+						checkDs9IsRunning();
+						int nBytes = 0, i = 0;
+						log.info("Begin to exec the command...");
+						process = Runtime.getRuntime().exec(launchCommand.split(" "));
+						while (i < commands.length && process.isAlive()) {
+							log.info("Waiting for activity...");
+							nBytes = 0;
+							while (this.process.getInputStream().available() == 0
+									&& this.process.getErrorStream().available() == 0 && this.process.isAlive()
+									&& !stop)
+								wait(TIMEOUT);
+
+							if (stop) {
+								onClosing();
+								return;
+							}
+							/**
+							 * Pass the commands one at a time
+							 */
+							if (i < commands.length) {
+								log.info("Input received: " + commands[i]);
+								process.getOutputStream().write(commands[i].getBytes());
+								process.getOutputStream().flush();
+								if (callback != null)
+									callback.OnMessageSent(commands[i].trim());
+								wait(TIMEOUT);
+								i++;
+							}
+							while ((nBytes = process.getInputStream().available()) != 0) {
+								log.trace("Output received.");
+								byte[] buffer = new byte[nBytes];
+								nBytes = process.getInputStream().read(buffer);
+								if (callback != null)
+									for (String response : new String(buffer, 0, nBytes).split("\n"))
+										callback.OnResponseReceived(
+												response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+							}
+							while ((nBytes = process.getErrorStream().available()) != 0) {
+								log.trace("Error received.");
+								byte[] buffer = new byte[nBytes];
+								nBytes = process.getErrorStream().read(buffer);
+								if (callback != null)
+									for (String error : new String(buffer, 0, nBytes).split("\n"))
+										callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+							}
+						}
+					} catch (Exception ex) {
+						log.fatal(ex);
+						if (callback != null)
+							callback.OnErrorReceived(ex.getMessage());
+					} finally {
+						log.info("Done");
+						// dispose();
+						if (callback != null)
+							callback.OnScriptTerminated();
+					}
+				}
+			}
+
+			@Override
+			public void onClosing() throws Exception {
+				if (getCommandsToClose() != null)
+					for (String command : getCommandsToClose())
+						process.getOutputStream().write(command.getBytes());
+				process.getInputStream().close();
+				process.getInputStream().close();
+				process.getOutputStream().close();
+				process.destroy();
+			}
+		};
+		openThread.add(thread);
+		thread.start();
+		return openThread.size() - 1;
+	}
 
 	/**
-	 * Verify if the process controlled by the given thread is alive and running.
+	 * Verify if the process controlled by the given thread is alive and
+	 * running.
 	 * 
 	 * @return
 	 */
@@ -323,19 +429,62 @@ public class Execution {
 	 * @param command
 	 */
 	public void sendCommand(final int id, final String command) {
+		if (command.equals("pyraf"))
+			openThread.get(id).isPyraf = true;
+		else if (command.equals(".exit") && openThread.get(id).isPyraf)
+			openThread.get(id).isPyraf = false;
+
 		openThread.get(id).appendCommandToRun(command + "\n");
 	}
 
 	/**
-	 * Send a command to run and a command executed to close properly the
-	 * given thread.
+	 * Send a command to run and a command executed to properly close the given
+	 * thread.
 	 * 
 	 * @param command
 	 * @param closingCommand
 	 */
 	public void sendCommand(final int id, final String command, final String closingCommand) {
+		if (command.equals("pyraf") && closingCommand.equals(".exit"))
+			openThread.get(id).isPyraf = true;
+		else if (command.equals(".exit") && openThread.get(id).isPyraf)
+			openThread.get(id).isPyraf = false;
 		openThread.get(id).appendCommandToRun(command + "\n");
 		openThread.get(id).appendClosingCommand(closingCommand);
+	}
+
+	/**
+	 * Send commands to the given thread.
+	 * 
+	 * @param commands
+	 */
+	public void sendCommands(final int id, final String[] commands) {
+		for (String command : commands) {
+			if (command.equals("pyraf"))
+				openThread.get(id).isPyraf = true;
+			else if (command.equals(".exit") && openThread.get(id).isPyraf)
+				openThread.get(id).isPyraf = false;
+			openThread.get(id).appendCommandToRun(command + "\n");
+		}
+	}
+
+	/**
+	 * Send commands to run and commands executed to properly close the given
+	 * thread.
+	 * 
+	 * @param commands
+	 * @param closingCommands
+	 */
+	public void sendCommand(final int id, final String[] commands, final String[] closingCommands) {
+		for (String command : commands) {
+			if (command.equals("pyraf"))
+				openThread.get(id).isPyraf = true;
+			else if (command.equals(".exit") && openThread.get(id).isPyraf)
+				openThread.get(id).isPyraf = false;
+			openThread.get(id).appendCommandToRun(command + "\n");
+		}
+		for (String closingCommand : closingCommands)
+			openThread.get(id).appendClosingCommand(closingCommand);
 	}
 
 	/**
@@ -388,9 +537,14 @@ public class Execution {
 
 	/**
 	 * Send the exit flag to the selected thread.
+	 * 
 	 * @param id
 	 */
 	public void stop(final int id) {
 		this.openThread.get(id).stopThread();
+	}
+
+	public boolean isPyraf(final int id) {
+		return this.openThread.get(id).isPyraf();
 	}
 }
