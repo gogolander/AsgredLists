@@ -63,7 +63,7 @@ sudo apt-get install maven
 ```
 Then open a terminal in the source folder and run the following command to launch the compilation:
 ```sh
-clean install prepare-package package
+mvn clean license:format install prepare-package package
 ```
 If the compilation ends successfully, you will find the executable file ```AsgredLists.jar``` in the subfolder
 ```
@@ -73,6 +73,7 @@ AsgredLists/target
 When started, the Maven compilation needs to download more than 10Mb of required JAR libraries. Keep it in mind if you are using a metered connection.
 
 # Execution
+![Image of Launch with Java Runtime](https://github.com/gogolander/AsgredLists/wiki/images/default_application.png)
 You have two choises:
  * use the command ```java -jar asgredLists.jar```
  * since the JAR file is an executable file, you can grant execution priviledge to it with the command ```chmod +x asgredLists.jar``` and associate it with the Java Runtime Machine in this way:
