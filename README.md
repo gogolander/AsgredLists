@@ -80,4 +80,8 @@ You have two choises:
   1. right-click on the JAR, open ```Properties``` and the go to the ```Open with``` tab;
   2. scroll the list until you find ```Oracle Java 8 Runtime```: select it and then click on ```Set as default```
   3. now you can run asgredLists just double-clicking it.
+  
+# Documentation
+
+For a full documentation about AsgredLists, how it works, how it done, please read our wiki-page: https://github.com/gogolander/AsgredLists/wiki
  

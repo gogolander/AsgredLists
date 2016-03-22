@@ -73,6 +73,7 @@ public class Execution {
 								onClosing();
 								return;
 							}
+							checkDs9IsRunning();
 							/**
 							 * Pass the commands one at a time
 							 */
@@ -156,11 +157,11 @@ public class Execution {
 							while (commandsToRun.size() == 0 && process.getInputStream().available() == 0
 									&& process.getErrorStream().available() == 0 && process.isAlive() && !stop)
 								wait(TIMEOUT);
-
 							if (stop) {
 								onClosing();
 								return;
 							}
+							checkDs9IsRunning();
 							/**
 							 * Pass the commands one at a time
 							 */
@@ -243,11 +244,11 @@ public class Execution {
 									&& this.process.getErrorStream().available() == 0 && this.process.isAlive()
 									&& !stop)
 								wait(TIMEOUT);
-
 							if (stop) {
 								onClosing();
 								return;
 							}
+							checkDs9IsRunning();
 							/**
 							 * Pass the commands one at a time
 							 */
@@ -320,7 +321,6 @@ public class Execution {
 			public void run() {
 				synchronized (this) {
 					try {
-						checkDs9IsRunning();
 						int nBytes = 0, i = 0;
 						log.info("Begin to exec the command...");
 						process = Runtime.getRuntime().exec(launchCommand.split(" "));
@@ -331,11 +331,11 @@ public class Execution {
 									&& this.process.getErrorStream().available() == 0 && this.process.isAlive()
 									&& !stop)
 								wait(TIMEOUT);
-
 							if (stop) {
 								onClosing();
 								return;
 							}
+							checkDs9IsRunning();
 							/**
 							 * Pass the commands one at a time
 							 */
