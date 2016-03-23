@@ -83,5 +83,5 @@ You have two choises:
   
 # Documentation
 
-For a full documentation about AsgredLists, how it works, how it done, please read our wiki-page: https://github.com/gogolander/AsgredLists/wiki
+For a full documentation about AsgredLists, how it works, how it is done, please read our wiki-page: https://github.com/gogolander/AsgredLists/wiki
  
