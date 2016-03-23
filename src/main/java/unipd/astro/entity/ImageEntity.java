@@ -160,13 +160,15 @@ public class ImageEntity implements Serializable {
          */
         String[] params = image.split("\t");
         String type = "IMAGE";
-        if (params[2].equals("LAMP")) {
+        if (params[2].toUpperCase().equals("CALIB")) {
             type = "LAMP";
         } else if (params[1].toLowerCase().contains("flat")) {
             type = "FLATFIELD";
         }
         
         ImageEntity newEntity = new ImageEntity();
+        if(params[0].endsWith(".fits"))
+        	params[0] = params[0].replace(".fits", "");
         newEntity.setFileName(params[0]);
         newEntity.setTargetName(params[1]);
         newEntity.setType(type);

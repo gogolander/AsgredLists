@@ -1514,16 +1514,14 @@ public class Main extends javax.swing.JPanel {
 
 	private void jDoItActionPerformed(java.awt.event.ActionEvent evt) {
 		try {
-			if (this.jCheckStartFromScrap.isSelected())
-				for (final File fileEntry : new File(this.basePath).listFiles())
-					if (!fileEntry.isDirectory())
-						if (!fileEntry.getName().equals("fits_list") && (fileEntry.getName().endsWith("bg.fits")
-								|| fileEntry.getName().endsWith("fc.fits") || fileEntry.getName().endsWith("wl.fits")
-								|| fileEntry.getName().endsWith("md.fits") || fileEntry.getName().endsWith("obj.fits")
-								|| fileEntry.getName().endsWith(".py") || !fileEntry.getName().startsWith("IMA")
-								|| !fileEntry.getName().startsWith("SCR") || fileEntry.equals("cursor")))
-							fileEntry.delete();
-
+			if (this.jCheckStartFromScrap.isSelected()) {
+				if(this.runningCommand >= 0 && this.process.isPyraf(runningCommand))
+					this.process.sendCommands(runningCommand, new String[] {
+							"!rm *.wl.fits", "!rm *.fc.fits", "!rm *.bg.fits", "!rm *.md.fits", "!rm *.py",
+							"!rm wl*", "!rm fc*", "!rm md*", "!rm std*", "!rm list_*"});
+				Thread.sleep(500);
+			}
+			
 			if (this.generatedList != null)
 				this.generatedList.clear();
 			else
@@ -1670,7 +1668,7 @@ public class Main extends javax.swing.JPanel {
 					tempStandards.put(key, (String) this.jTable1.getValueAt(x, y));
 				}
 			}
-			updateImagesTable();
+//			updateImagesTable();
 		}
 	}
 
@@ -1846,7 +1844,7 @@ public class Main extends javax.swing.JPanel {
 	private void jLoadDirectoryActionPerformed(java.awt.event.ActionEvent evt) {
 		process.sendCommand(runningCommand, "cd " + this.jPathDirectory.getText());
 		process.sendCommand(runningCommand,
-				"iraf.hselect(images=\"?????????.fits\", fields=\"$I,target,typ,exptime\", expr=\"yes\", Stdout=\"fits_list\")");
+				"iraf.hselect(images=\"????????.fits\", fields=\"$I,OBJECT,IMAGETYP,EXPTIME\", expr=\"yes\", Stdout=\"fits_list\")");
 		this.jPath.setText(basePath + "/fits_list");
 		this.jLoad.doClick();
 	}
