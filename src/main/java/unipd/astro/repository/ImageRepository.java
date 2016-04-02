@@ -37,7 +37,7 @@ public interface ImageRepository extends CrudRepository<ImageEntity, Integer> {
     List<ImageEntity> findByFileNameAndTargetName(String fileName, String targetName);
     List<ImageEntity> findByType(String type);
     
-    @Query("select fileName from ImageEntity image where type=?1")
+    @Query("select fileName from ImageEntity image where type=?1 and enabled = TRUE")
     List<String> getFileNameByType(String type);
     
     @Query("select fileName from ImageEntity image where isStandard=?1")
@@ -45,12 +45,12 @@ public interface ImageRepository extends CrudRepository<ImageEntity, Integer> {
     
 	List<ImageEntity> findByIsStandard(boolean isStandard);
 	
-	@Query("select fileName from ImageEntity image where type='IMAGE'")
+	@Query("select fileName from ImageEntity image where type='IMAGE' and enabled = TRUE")
 	List<String> getTargetList();
 	
 	@Query("select distinct target.image.targetName,target.standard.image.fileName" +
 			" from ScienceImage target"+
-			" where target.image.type='IMAGE'" +
+			" where target.image.type='IMAGE' and target.image.enabled = TRUE" +
 			" order by target.standard.image.fileName")
 	List<Object[]> getTargetNameAndStandardFileName();
 }

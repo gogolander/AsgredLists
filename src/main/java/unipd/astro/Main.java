@@ -48,7 +48,6 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultCaret;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
@@ -86,32 +85,53 @@ public class Main extends javax.swing.JPanel {
 	private HashMap<String, List<String>> generatedList;
 	private DataService dataService;
 
+	private boolean sendRms;
 	private int runningCommand = -1;
 	private Style In, Out, Error;
 	private List<String> scriptsList;
 	private String basePath;
 	private Execution process;
+	private double rms = 0;
 	private AsyncCallback callback = new AsyncCallback() {
 		@Override
 		public void OnResponseReceived(String response) {
 			try {
-				((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
 						"◀\t" + response + "\n", Out);
-				if (response.contains("rms=")) {
-					int index = response.lastIndexOf("rms=") + 4;
-					int startIdx = index;
-					while (response.charAt(index) != '.')
-						index++;
-					index++;
-					while ((int) response.charAt(index) < 58 && (int) response.charAt(index) > 47)
-						index++;
-					double rms = Double.parseDouble(response.substring(startIdx, index));
-					if (rms < (Double.parseDouble(dataService.getProperty("iraf.wlcal.rms_threshold")) / 100D)) {
-						jCommand.setText("y");
-						jSend.doClick();
-					}
+				jConsole.setCaretPosition(jConsole.getDocument().getLength());
+				String[] data = response.split(" ");
+				//Is the identify/reidentify text?
+				if(data[0].contains(".b[*")) {
+					//Is RMS lower than the threshold?
+					double actualRms = Double.parseDouble(data[data.length-1]);
+					if(actualRms < rms)
+						//Yes: accept the interpolation
+						if(sendRms)
+							process.sendTextToGraphics("q");
+						sendRms = !sendRms;
 				}
+				//Is apall autoanswer
+				else if( (response.startsWith("Fit the normalization spectrum for") && 
+						response.endsWith(".bg interactively (yes):")) ||
+						//Is apall autoanswer
+						(response.startsWith("Find apertures for ") ||
+						response.startsWith("Resize apertures for") ||
+						response.startsWith("Edit apertures for") ||
+						response.startsWith("Trace apertures for") ||
+						response.startsWith("Number of apertures to be found automatically (1):") ||
+						response.startsWith("Fit traced positions for ") ||
+						response.startsWith("Fit curve to aperture ") ||
+						response.startsWith("Write apertures for") ||
+						response.startsWith("Extract aperture spectra for ") ||
+						response.startsWith("Review extracted spectra from ") ||
+						response.startsWith("Review extracted spectrum for aperture "))) {
+					process.sendKeyToGraphics("Return");
+				}
+				//Is prered or wlcal autoanswer
+				else if(response.startsWith("Dispersion axis (1=along lines, 2=along columns, 3=along z) (1:3)") ||
+						(response.startsWith("Fit the normalization spectrum for") && 
+								response.endsWith(".b interactively (yes):")))
+					process.sendCommand(runningCommand, "\n");
 			} catch (BadLocationException e) {
 				log.fatal(e);
 			}
@@ -120,9 +140,9 @@ public class Main extends javax.swing.JPanel {
 		@Override
 		public void OnScriptTerminated() {
 			try {
-				((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "◀\tterminated.\n",
 						Out);
+				jConsole.setCaretPosition(jConsole.getDocument().getLength());
 			} catch (BadLocationException e) {
 				log.fatal(e);
 			}
@@ -137,9 +157,9 @@ public class Main extends javax.swing.JPanel {
 		@Override
 		public void OnErrorReceived(String message) {
 			try {
-				((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
 						"◀\t" + message + "\n", Error);
+				jConsole.setCaretPosition(jConsole.getDocument().getLength());
 			} catch (BadLocationException e) {
 				log.fatal(e);
 			}
@@ -148,9 +168,9 @@ public class Main extends javax.swing.JPanel {
 		@Override
 		public void OnMessageSent(String message) {
 			try {
-				((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
 						"▶\t" + message + "\n", In);
+				jConsole.setCaretPosition(jConsole.getDocument().getLength());
 			} catch (BadLocationException e) {
 				log.fatal(e);
 			}
@@ -1225,6 +1245,7 @@ public class Main extends javax.swing.JPanel {
 
 	private void startUp() {
 		try {
+			rms = (double)(jWlcalThreshold.getValue() / 100d);
 			// Start the console session under Linux
 			String OS = System.getProperty("os.name").toLowerCase();
 			if (OS.indexOf("nix") >= 0 || OS.indexOf("nux") >= 0 || OS.indexOf("aix") > 0) {
@@ -1232,9 +1253,17 @@ public class Main extends javax.swing.JPanel {
 				Thread.sleep(5);
 				process.sendCommand(this.runningCommand, "cd " + dataService.getProperty("iraf.home"));
 				process.sendCommand(this.runningCommand, "pyraf", ".exit");
-			} else
+
+				process.sendCommands(this.runningCommand,
+						new String[] { "set asgred = \"home$asgred/\"", "task $asgred = \"asgred$asgred.cl\"",
+								"reset helpdb = (envget (\"helpdb\") // \",asgred$helpdb.mip\")",
+								"set copred = \"home$copred/\"", "task $copred = \"copred$copred.cl\"",
+								"reset helpdb = (envget (\"helpdb\") // \",copred$helpdb.mip\")", "asgred", "?" });
+			} else {
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
 						"◀\tThe terminal is available only on Linux systems.", Error);
+				jConsole.setCaretPosition(jConsole.getDocument().getLength());
+			}
 		} catch (Exception e) {
 			log.fatal(e);
 		}
@@ -1363,17 +1392,16 @@ public class Main extends javax.swing.JPanel {
 			try {
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
 						"Ready to execute: insert a command below to execute it...\n", In);
+				jConsole.setCaretPosition(jConsole.getDocument().getLength());
 			} catch (BadLocationException e1) {
 				log.fatal(e1);
 			}
-			if (this.runningCommand != -1)
-				process.stop(this.runningCommand);
-			this.jConsole.setText("");
-			this.scriptsList = new ArrayList<>();
-			for (String script : this.generatedList.get("script"))
-				scriptsList.add(script);
-			this.runningCommand = process.startScript(Paths.get(basePath + "/" + scriptsList.get(0)).toString(),
-					new String[] { ".exit" }, callback);
+			if (this.runningCommand != -1) {
+				sendRms = true;
+				process.sendCommand(runningCommand, "cd " + this.basePath);
+				for (String script : this.generatedList.get("script"))
+					process.sendCommand(runningCommand, "pyexecute " + script);
+			}
 		} else
 			log.info("Nothing to do.");
 		log.info("Done.");
@@ -1453,6 +1481,7 @@ public class Main extends javax.swing.JPanel {
 
 	private void jWlcalThresholdStateChanged(javax.swing.event.ChangeEvent evt) {
 		this.jLabel13.setText(String.valueOf(this.jWlcalThreshold.getValue()) + " %");
+		rms = (double)(jWlcalThreshold.getValue() / 100d);
 	}
 
 	private void jBackgroundEndMouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
@@ -1488,7 +1517,7 @@ public class Main extends javax.swing.JPanel {
 				this.jCommand.setText("");
 				return;
 			}
-		((DefaultCaret) jConsole.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+		jConsole.setCaretPosition(jConsole.getDocument().getLength());
 		if (runningCommand == -1) {
 			process = new Execution();
 			if (message.equals("clear"))
@@ -1497,9 +1526,7 @@ public class Main extends javax.swing.JPanel {
 				this.runningCommand = process.startCommand("script -fqe /dev/null", new String[] { "exit" }, callback);
 				process.sendCommand(this.runningCommand, "cd " + dataService.getProperty("iraf.home"));
 				process.sendCommand(this.runningCommand, "pyraf", ".exit");
-			} else if (message.equals("mime wlcal"))
-				this.runningCommand = process.mimeWlcal(Paths.get("src/main/resources/mimeWlcal.py").toString(),
-						new String[] { "break" }, callback);
+			}
 			else
 				this.runningCommand = process.startCommand(this.jCommand.getText(), null, callback);
 		} else
@@ -1515,13 +1542,15 @@ public class Main extends javax.swing.JPanel {
 	private void jDoItActionPerformed(java.awt.event.ActionEvent evt) {
 		try {
 			if (this.jCheckStartFromScrap.isSelected()) {
-				if(this.runningCommand >= 0 && this.process.isPyraf(runningCommand))
-					this.process.sendCommands(runningCommand, new String[] {
-							"!rm *.wl.fits", "!rm *.fc.fits", "!rm *.bg.fits", "!rm *.md.fits", "!rm *.py",
-							"!rm wl*", "!rm fc*", "!rm md*", "!rm std*", "!rm list_*"});
+				if (this.runningCommand >= 0 && this.process.isPyraf(runningCommand))
+					this.process.sendCommands(runningCommand,
+							new String[] { "cd " + this.basePath, "!rm *.wc.fits", "!rm *.fc.fits", "!rm *.bg.fits",
+									"!rm *.md.fits", "!rm *.py", "!rm wc*", "!rm fc*", "!rm md*", "!rm std*",
+									"!rm list_*", "!rm *.b.fits", "!rm *.bf.fits", "!rm flat.*", "!rm *.std",
+									"!rm *.sens.fits", "!rm -r database/", "!rm *.obj.fits"});
 				Thread.sleep(500);
 			}
-			
+
 			if (this.generatedList != null)
 				this.generatedList.clear();
 			else
@@ -1573,9 +1602,10 @@ public class Main extends javax.swing.JPanel {
 		int rowLastLamp = 0;
 		TableModel model = this.jTable1.getModel();
 		for (int row = 0; row < model.getRowCount(); row++) {
-			if (((String) model.getValueAt(row, jTable1Cols.get("Type"))).equals("LAMP")) {
+			if ((boolean) model.getValueAt(row, jTable1Cols.get("Enabled"))
+					&& ((String) model.getValueAt(row, jTable1Cols.get("Type"))).equals("LAMP")) {
 				lampFileName = (String) model.getValueAt(row, jTable1Cols.get("Image"));
-				for (int i = rowLastLamp + 1; i < row; i++)
+				for (int i = rowLastLamp; i < row; i++)
 					if (((String) model.getValueAt(i, jTable1Cols.get("Type"))).equals("IMAGE"))
 						if (((String) model.getValueAt(i, jTable1Cols.get("Lamp"))).isEmpty()) {
 							model.setValueAt(lampFileName, i, jTable1Cols.get("Lamp"));
@@ -1586,8 +1616,9 @@ public class Main extends javax.swing.JPanel {
 			}
 		}
 		// use the last lamp for all the remaining images without a lamp
-		for (int i = rowLastLamp + 1; i < model.getRowCount(); i++) {
-			if (((String) model.getValueAt(i, jTable1Cols.get("Type"))).equals("IMAGE")) {
+		for (int i = rowLastLamp; i < model.getRowCount(); i++) {
+			if (((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")))
+					&& ((String) model.getValueAt(i, jTable1Cols.get("Type"))).equals("IMAGE")) {
 				if (((String) model.getValueAt(i, jTable1Cols.get("Lamp"))).isEmpty()) {
 					model.setValueAt(lampFileName, i, jTable1Cols.get("Lamp"));
 					tempLamps.put((String) model.getValueAt(i, jTable1Cols.get("Image")), lampFileName);
@@ -1599,9 +1630,10 @@ public class Main extends javax.swing.JPanel {
 		String standardFileName = "";
 		int rowLastStandard = 0;
 		for (int row = 0; row < model.getRowCount(); row++) {
-			if ((Boolean) model.getValueAt(row, jTable1Cols.get("Is standard?")) == true) {
+			if (((boolean) model.getValueAt(row, jTable1Cols.get("Enabled")))
+					&& (Boolean) model.getValueAt(row, jTable1Cols.get("Is standard?"))) {
 				standardFileName = (String) model.getValueAt(row, jTable1Cols.get("Image"));
-				for (int i = rowLastStandard + 1; i < row; i++) {
+				for (int i = rowLastStandard; i < row; i++) {
 					if ("IMAGE".equals(model.getValueAt(i, jTable1Cols.get("Type")))
 							&& (Boolean) model.getValueAt(i, jTable1Cols.get("Is standard?")) == false) {
 						if ("".equals(model.getValueAt(i, jTable1Cols.get("Standard")))) {
@@ -1615,7 +1647,7 @@ public class Main extends javax.swing.JPanel {
 			}
 		}
 		// use the last standard for all the remaining images without a standard
-		for (int i = rowLastStandard + 1; i < model.getRowCount(); i++) {
+		for (int i = rowLastStandard; i < model.getRowCount(); i++) {
 			if ("IMAGE".equals(model.getValueAt(i, jTable1Cols.get("Type")))
 					&& (Boolean) model.getValueAt(i, jTable1Cols.get("Is standard?")) == false) {
 				if ("".equals(model.getValueAt(i, jTable1Cols.get("Standard")))) {
@@ -1645,10 +1677,17 @@ public class Main extends javax.swing.JPanel {
 						.findByFileName((String) this.jTable1.getValueAt(x, jTable1Cols.get("Image")));
 				image.setIsStandard((boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Is standard?")));
 				dataService.getImageRepository().save(image);
-			} else if (y == jTable1Cols.get("Enabled")
-					&& (boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Is standard?")) == true) {
-				JOptionPane.showMessageDialog(this, "Images realtive to standard stars cannot be disabled.");
-				this.jTable1.setValueAt(true, x, jTable1Cols.get("Enabled"));
+			} else if (y == jTable1Cols.get("Enabled")) {
+				if ((boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Enabled"))
+						&& (boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Is standard?"))) {
+					JOptionPane.showMessageDialog(this, "Images realtive to standard stars cannot be disabled.");
+					this.jTable1.setValueAt(true, x, jTable1Cols.get("Enabled"));
+				} else {
+					ImageEntity image = dataService.getImageRepository()
+							.findByFileName((String) this.jTable1.getValueAt(x, jTable1Cols.get("Image")));
+					image.setEnabled((boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Enabled")));
+					dataService.getImageRepository().save(image);
+				}
 			} else if (y == jTable1Cols.get("Lamp")) {
 				if (this.jTable1.getValueAt(x, y) == null || this.jTable1.getValueAt(x, y).toString().isEmpty()) {
 					String key = (String) this.jTable1.getValueAt(x, this.jTable1Cols.get("Image"));
@@ -1668,7 +1707,7 @@ public class Main extends javax.swing.JPanel {
 					tempStandards.put(key, (String) this.jTable1.getValueAt(x, y));
 				}
 			}
-//			updateImagesTable();
+			// updateImagesTable();
 		}
 	}
 
@@ -2212,26 +2251,22 @@ public class Main extends javax.swing.JPanel {
 				for (ImageEntity image : flat.getImages())
 					temp += image.getFileName() + "\n";
 			}
-			writer.print(temp.trim());
+			writer.print(temp + "\n");
 			writer.close();
 
-			// Generate the list of IMA*.wl.fits
+			// Generate the list of IMA*.wc.fits
 			for (Observation observation : observations) {
 				if (observation.isEnabled() && observation.isDoWlcal()) {
-					temp = observation.getTargetName();
-					if (temp.contains("+"))
-						temp = temp.replaceAll("+", "p");
-					if (temp.contains("-"))
-						temp = temp.replaceAll("-", "m");
-					log.info("wl" + temp);
+					temp = normalizedTargetName(observation.getTargetName());
+					log.info("wc" + temp);
 					if (this.generatedList.get(observation.getTargetName()) != null)
-						this.generatedList.get(observation.getTargetName()).add("wl" + temp);
+						this.generatedList.get(observation.getTargetName()).add("wc" + temp);
 					else {
 						ArrayList<String> list = new ArrayList<>();
-						list.add("wl" + temp);
+						list.add("wc" + temp);
 						this.generatedList.put(observation.getTargetName(), list);
 					}
-					writer = new PrintWriter(Paths.get(this.basePath, "wl" + temp).toFile());
+					writer = new PrintWriter(Paths.get(this.basePath, "wc" + temp).toFile());
 					temp = "";
 					int i = 0;
 					for (ScienceImage item : observation.getScienceImages()) {
@@ -2240,7 +2275,7 @@ public class Main extends javax.swing.JPanel {
 								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
 							i++;
 						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
-							temp += item.getImage().getFileName() + ".wl\n";
+							temp += item.getImage().getFileName() + "\n";
 							i++;
 						}
 					}
@@ -2253,11 +2288,7 @@ public class Main extends javax.swing.JPanel {
 			// This list is used as input for the background task
 			for (Observation observation : observations) {
 				if (observation.isDoFcal()) {
-					temp = observation.getTargetName();
-					if (temp.contains("+"))
-						temp = temp.replaceAll("+", "p");
-					if (temp.contains("-"))
-						temp = temp.replaceAll("-", "m");
+					temp = normalizedTargetName(observation.getTargetName());
 					log.info("fc" + temp);
 					if (this.generatedList.get(observation.getTargetName()) != null)
 						this.generatedList.get(observation.getTargetName()).add("fc" + temp);
@@ -2279,7 +2310,7 @@ public class Main extends javax.swing.JPanel {
 							i++;
 						}
 					}
-					writer.print(temp.trim());
+					writer.print(temp + "\n");
 					writer.close();
 				}
 			}
@@ -2287,11 +2318,7 @@ public class Main extends javax.swing.JPanel {
 			// Generate the list of IMA*.bg.fits
 			for (Observation observation : observations) {
 				if (observation.isDoBackground()) {
-					temp = observation.getTargetName();
-					if (temp.contains("+"))
-						temp = temp.replaceAll("+", "p");
-					if (temp.contains("-"))
-						temp = temp.replaceAll("-", "m");
+					temp = normalizedTargetName(observation.getTargetName());
 					log.info("bg" + temp);
 					if (this.generatedList.get(observation.getTargetName()) != null)
 						this.generatedList.get(observation.getTargetName()).add("bg" + temp);
@@ -2313,7 +2340,7 @@ public class Main extends javax.swing.JPanel {
 							i++;
 						}
 					}
-					writer.print(temp.trim());
+					writer.print(temp + "\n");
 					writer.close();
 				}
 			}
@@ -2321,11 +2348,7 @@ public class Main extends javax.swing.JPanel {
 			// Generate the list of IMA*.md.fits
 			for (Observation observation : observations) {
 				if (observation.isDoApall()) {
-					temp = observation.getTargetName();
-					if (temp.contains("+"))
-						temp = temp.replaceAll("+", "p");
-					if (temp.contains("-"))
-						temp = temp.replaceAll("-", "m");
+					temp = normalizedTargetName(observation.getTargetName());
 					log.info("md" + temp);
 					if (this.generatedList.get(observation.getTargetName()) != null)
 						this.generatedList.get(observation.getTargetName()).add("md" + temp);
@@ -2347,17 +2370,18 @@ public class Main extends javax.swing.JPanel {
 							i++;
 						}
 					}
-					writer.print(temp.trim());
+					writer.print(temp + "\n");
 					writer.close();
 				}
 			}
 
-			// Generate the list of IMA*.wl.fits
+			// Generate the list of IMA*.wc.fits
 			// This list is used as input for standard parameter of fcal task
 			for (StandardImage standard : dataService.getStandardRepository().findAll()) {
-				for (Observation observation : standard.getObservations()) {
-					if (observation.isEnabled() && observation.isDoFcal()) {
-						temp = "";
+				temp = "";
+				for (Observation observation : dataService.getObservationRepository()
+						.findByStandardFileNameAndIsEnabledIsTrue(standard.getImage().getFileName())) {
+					if (observation.isDoFcal()) {
 						log.info("std" + standard.getImage().getFileName());
 						if (this.generatedList.get(observation.getTargetName()) != null)
 							this.generatedList.get(observation.getTargetName())
@@ -2367,28 +2391,23 @@ public class Main extends javax.swing.JPanel {
 							list.add("std" + standard.getImage().getFileName());
 							this.generatedList.put(observation.getTargetName(), list);
 						}
-						writer = new PrintWriter(
-								Paths.get(this.basePath, "std" + standard.getImage().getFileName()).toFile());
-						int i = 0;
-						for (ScienceImage item : standard.getScienceImages()) {
+
+						for (ScienceImage item : observation.getScienceImages()) {
 							/*
 							 * Use file name instead of standard name to avoid
 							 * confusion: the same standard used twice during
 							 * the night MUST be treated as two different stars
 							 */
-							TableModel model = jTable1.getModel();
-							while (i < model.getRowCount() && !model.getValueAt(i, jTable1Cols.get("Image"))
-									.equals(item.getImage().getFileName()))
-								i++;
-							if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
-								if (item.getObservation().isDoFcal())
-									temp += item.getImage().getFileName() + ".wl\n";
-								i++;
-							}
+							if (item.getImage().isEnabled())
+								temp += item.getImage().getFileName() + "\n";
 						}
-						writer.print(temp.trim());
-						writer.close();
 					}
+				}
+				if (!temp.isEmpty()) {
+					writer = new PrintWriter(
+							Paths.get(this.basePath, "std" + standard.getImage().getFileName()).toFile());
+					writer.write(temp + "\n");
+					writer.close();
 				}
 			}
 		} catch (IOException ex) {
@@ -2405,11 +2424,7 @@ public class Main extends javax.swing.JPanel {
 		log.info("Generating a script for each target...");
 		scriptsList = new ArrayList<>();
 		for (Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
-			String targetNormalized = observation.getTargetName();
-			if (targetNormalized.contains("+"))
-				targetNormalized = targetNormalized.replaceAll("+", "p");
-			if (targetNormalized.contains("-"))
-				targetNormalized = targetNormalized.replaceAll("-", "m");
+			String targetNormalized = normalizedTargetName(observation.getTargetName());
 			PrintWriter writer = null;
 			try {
 				String temp = "", tempLamp = "";
@@ -2469,20 +2484,20 @@ public class Main extends javax.swing.JPanel {
 					for (ImageEntity image : flat.getImages())
 						temp += image.getFileName() + "\n";
 				}
-				writer.print(temp.trim());
+				writer.print(temp.trim()+"\n");
 				writer.close();
 
-				// Generate the list of IMA*.wl.fits
+				// Generate the list of IMA*.wc.fits
 				if (observation.isDoWlcal()) {
-					log.info("wl" + targetNormalized);
+					log.info("wc" + targetNormalized);
 					if (this.generatedList.get(observation.getTargetName()) != null)
-						this.generatedList.get(observation.getTargetName()).add("wl" + targetNormalized);
+						this.generatedList.get(observation.getTargetName()).add("wc" + targetNormalized);
 					else {
 						ArrayList<String> list = new ArrayList<>();
-						list.add("wl" + targetNormalized);
+						list.add("wc" + targetNormalized);
 						this.generatedList.put(observation.getTargetName(), list);
 					}
-					writer = new PrintWriter(Paths.get(this.basePath, "wl" + targetNormalized).toFile());
+					writer = new PrintWriter(Paths.get(this.basePath, "wc" + targetNormalized).toFile());
 					temp = "";
 					int i = 0;
 					for (ScienceImage item : observation.getScienceImages()) {
@@ -2491,7 +2506,7 @@ public class Main extends javax.swing.JPanel {
 								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
 							i++;
 						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
-							temp += item.getImage().getFileName() + ".wl\n";
+							temp += item.getImage().getFileName() + "\n";
 							i++;
 						}
 					}
@@ -2523,7 +2538,7 @@ public class Main extends javax.swing.JPanel {
 							i++;
 						}
 					}
-					writer.print(temp.trim());
+					writer.print(temp.trim() + "\n");
 					writer.close();
 				}
 
@@ -2550,7 +2565,7 @@ public class Main extends javax.swing.JPanel {
 							i++;
 						}
 					}
-					writer.print(temp.trim());
+					writer.print(temp.trim() + "\n");
 					writer.close();
 
 					// Generate background cursor file
@@ -2584,7 +2599,7 @@ public class Main extends javax.swing.JPanel {
 							i++;
 						}
 					}
-					writer.print(temp.trim());
+					writer.print(temp.trim() + "\n");
 					writer.close();
 				}
 
@@ -2606,57 +2621,58 @@ public class Main extends javax.swing.JPanel {
 
 				writer.println("from pyraf import iraf");
 				writer.println("os.chdir(\"" + this.basePath + "\")");
-
+				writer.println("iraf.asgred(_doprint=1)");
 				// exec prered2
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
-				writer.println("iraf.asgred.prered2(flat=\"list_flat_" + targetNormalized + "\", comp=\"list_lamps_"
-						+ targetNormalized + "\", object=\"list_obj_" + targetNormalized + "\", order=11)");
+				writer.println("iraf.prered2(flat=\"list_flat_" + targetNormalized + "\", comp=\"list_lamps_"
+						+ targetNormalized + "\", object=\"list_obj_" + targetNormalized + "\", outflat=\"flat."
+						+ targetNormalized + "\", trimsec=[1:2040,40:490], mode=\"ql\")");
 				// exec wlcal
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
-				String firstLamp = dataService.getLampRepository().findAll().iterator().next().getImage().getFileName();
-				writer.println(
-						"iraf.asgred.wlcal(input=\"list_obj_" + targetNormalized + "\", refer=\"" + firstLamp + "\")");
+				String firstLamp = dataService.getScienceRepository().getLamps().get(0);
+				writer.println("iraf.wlcal(input=\"list_obj_" + targetNormalized + "\", refer=\"" + firstLamp + "\","
+						+ " linelis=\"hefear\", mode=\"ql\")");
 
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("fcal", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
-				writer.println("iraf.asgred.fcal(obj=\"wl" + targetNormalized + "\", stand=\""
+				writer.println("iraf.fcal(obj=\"wl" + targetNormalized + "\", stand=\""
 						+ observation.getStandard().getImage().getFileName() + "\", dir=\"onedstds$"
 						+ dataService.getStandardAtlas()
 								.findByStandardName(observation.getStandard().getImage().getTargetName())
 								.getCatalogueName()
-						+ "\", " + "star=\""
+						+ "/\", " + "star=\""
 						+ dataService.getStandardAtlas()
 								.findByStandardName(observation.getStandard().getImage().getTargetName()).getDatName()
-						+ "\")");
+						+ "\", mode=\"ql\")");
 
 				// exec background
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("background", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoBackground())
-					writer.println("iraf.asgred.background(input=\"fc" + targetNormalized + "\", output=\"bg"
-							+ targetNormalized + "\", cursor=\"cursor\")");
+					writer.println("iraf.background(input=\"@fc" + targetNormalized + "\", output=\"@bg"
+							+ targetNormalized + "\", axis=2, mode=\"ql\")");
 
 				// exec apall
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("apall", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoApall())
-					writer.println("iraf.asgred.apall(input=\"@bg" + targetNormalized + "\", output=\"@md"
-							+ targetNormalized + "\")");
+					writer.println("iraf.apall(input=\"@bg" + targetNormalized + "\", output=\"@md" + targetNormalized
+							+ "\", t_order=3, t_niter=5, mode=\"ql\")");
 
 				// exec scombine
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("scombine", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoScombine())
-					writer.println("iraf.asgred.scombine(input=\"md" + targetNormalized + "\", output=\""
-							+ targetNormalized + ".md\")");
+					writer.println("iraf.scombine(input=\"@md" + targetNormalized + "\", output=\"" + targetNormalized
+							+ ".md\", mode=\"ql\")");
 
 				String start = this.jImcopyStart.getValue().toString();
 				String end = this.jImcopyEnd.getValue().toString();
@@ -2666,8 +2682,8 @@ public class Main extends javax.swing.JPanel {
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("imcopy", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoImcopy())
-					writer.println("iraf.asgred.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
-							+ "]\", output=\"" + targetNormalized + ".obj\")");
+					writer.println("iraf.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
+							+ "]\", output=\"" + targetNormalized + ".obj\", mode=\"ql\")");
 			} catch (IOException ex) {
 				log.fatal(ex.getMessage(), ex);
 				JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -2681,7 +2697,6 @@ public class Main extends javax.swing.JPanel {
 
 	public void writeOneGiantScript() {
 		PrintWriter writer = null;
-		boolean generateCursor = false;
 		try {
 			log.info("Generating one script...");
 			// Let's generate the PyRAF script
@@ -2703,85 +2718,78 @@ public class Main extends javax.swing.JPanel {
 
 			writer.println("from pyraf import iraf");
 			writer.println("os.chdir(\"" + this.basePath + "\")");
+			writer.println("iraf.asgred(_doprint=1)");
 			// exec prered2
 			writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 			writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
 			writer.println(new String(new char[80]).replace("\0", "#"));
-			writer.println(
-					"iraf.asgred.prered2(flat=\"list_flat\", comp=\"list_lamps\", object=\"list_obj\", outflat=\"Flat\", order=11, mode=\"q\")");
+			writer.println("iraf.prered2(flat=\"list_flat\", comp=\"list_lamps\", object=\"list_obj\","
+					+ "trimsec=\"[1:2040,40:490]\", outflat=\"flat.all\", mode=\"ql\")");
 			// exec wlcal
 			writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 			writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
 			writer.println(new String(new char[80]).replace("\0", "#"));
 
-			String firstLamp = dataService.getLampRepository().findAll().iterator().next().getImage().getFileName();
-			writer.println("iraf.asgred.wlcal(input=\"list_obj\", refer=\"" + firstLamp + "\")");
+			String firstLamp = dataService.getScienceRepository().getLamps().get(0);
+			writer.println(
+					"iraf.wlcal(input=\"list_obj\", refer=\"" + firstLamp + "\", linelis=\"hefear\", mode=\"ql\")");
 
 			// exec fcal
 			for (StandardImage standard : dataService.getStandardRepository().findAll()) {
-				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
-				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils
-						.center("Flux calibration for " + standard.getImage().getTargetName(), 78));
-				writer.println(new String(new char[80]).replace("\0", "#"));
-				if (!standard.getObservations().isEmpty()) {
-					writer.println("iraf.asgred.fcal(obj=\"std" + standard.getImage().getFileName() + "\", stand=\""
+				if (dataService.getObservationRepository()
+						.findByStandardFileNameAndIsEnabledIsTrue(standard.getImage().getFileName()).size() > 0) {
+					writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+					writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils
+							.center("Flux calibration for " + standard.getImage().getTargetName(), 78));
+					writer.println(new String(new char[80]).replace("\0", "#"));
+					writer.println("iraf.fcal(obj=\"std" + standard.getImage().getFileName() + "\", stand=\""
 							+ standard.getImage().getFileName() + "\", dir=\"onedstds$"
 							+ dataService.getStandardAtlas().findByStandardName(standard.getImage().getTargetName())
 									.getCatalogueName()
-							+ "\", " + "star=\"" + dataService.getStandardAtlas()
+							+ "/\", " + "star=\"" + dataService.getStandardAtlas()
 									.findByStandardName(standard.getImage().getTargetName()).getDatName()
 							+ "\")");
 				}
 			}
+
 			for (Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils
 						.center("reduction for " + observation.getTargetName(), 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 
-				String targetNormalized = observation.getTargetName();
-				if (targetNormalized.contains("+"))
-					targetNormalized = targetNormalized.replaceAll("+", "p");
-				if (targetNormalized.contains("-"))
-					targetNormalized = targetNormalized.replaceAll("-", "m");
+				String targetNormalized = normalizedTargetName(observation.getTargetName());
 
 				// exec background
-				if (observation.isDoBackground()) {
-					generateCursor = true;
-					writer.println("iraf.asgred.background(input=\"fc" + targetNormalized + "\", output=\"bg"
-							+ targetNormalized + "\", cursor=\"cursor\")");
-				}
+				if (observation.isDoBackground())
+					writer.println("iraf.background(input=\"@fc" + targetNormalized + "\", output=\"@bg"
+							+ targetNormalized + "\", axis=2)");
 
 				// exec apall
 				if (observation.isDoApall())
-					writer.println("iraf.asgred.apall(input=\"@bg" + targetNormalized + "\", output=\"@md"
-							+ targetNormalized + "\")");
+					writer.println("iraf.apall(input=\"@bg" + targetNormalized + "\", output=\"@md" +
+							targetNormalized + "\", t_order = 3., t_niter = 5)");
 
 				// exec scombine
 				if (observation.isDoScombine())
-					writer.println("iraf.asgred.scombine(input=\"md" + targetNormalized + "\", output=\""
-							+ targetNormalized + ".md\")");
+					writer.println("iraf.scombine(input=\"@md" + targetNormalized + "\", output=\"" + targetNormalized
+							+ ".md\")");
 
 				String start = this.jImcopyStart.getValue().toString();
 				String end = this.jImcopyEnd.getValue().toString();
 
 				// exec imcopy
 				if (observation.isDoImcopy())
-					writer.println("iraf.asgred.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
+					writer.println("iraf.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
 							+ "]\", output=\"" + targetNormalized + ".obj\")");
 			}
 			writer.close();
-			// Generate the background cursor file
-			if (generateCursor) {
-				writer = new PrintWriter(Paths.get(this.basePath, "cursor").toFile());
-				writer.print(this.jBackgroundStart.getValue().toString() + " "
-						+ this.jBackgroundEnd.getValue().toString() + "\n");
-				writer.print("q"); // TODO: verify
-				writer.close();
-			}
-		} catch (IOException ex) {
+		} catch (
+
+		IOException ex) {
 			log.fatal(ex.getMessage(), ex);
 			JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+
 		} finally {
 			if (writer != null)
 				writer.close();
@@ -2868,6 +2876,19 @@ public class Main extends javax.swing.JPanel {
 
 	public void dispose() {
 		this.process.dispose();
+	}
+
+	public String normalizedTargetName(String targetName) {
+		String tmp = targetName;
+		if (tmp.contains("-"))
+			tmp = tmp.replace("-", "m");
+		if (tmp.contains("+"))
+			tmp = tmp.replace("+", "p");
+		if (tmp.contains(" "))
+			tmp = tmp.replace(" ", "");
+		if (tmp.contains("\""))
+			tmp = tmp.replace("\"", "");
+		return tmp;
 	}
 
 	private javax.swing.ButtonGroup groupAction;

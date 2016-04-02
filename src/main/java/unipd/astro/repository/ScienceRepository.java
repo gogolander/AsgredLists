@@ -34,7 +34,7 @@ public interface ScienceRepository extends CrudRepository<ScienceImage, Integer>
 				" where s in (" +
 					" select image" +
 					" from ScienceImage image" +
-					" where image.standard is null or image.lamp is null)")
+					" where (image.standard is null or image.lamp is null))")
 	int findConflicts();
 	
 	@Query("select count(s)" +
@@ -42,7 +42,8 @@ public interface ScienceRepository extends CrudRepository<ScienceImage, Integer>
 			" where s in (" +
 				" select image" +
 					" from ScienceImage image" +
-					" where image.image.targetName=?1 and (image.standard is null or image.lamp is null))")
+					" where image.image.targetName=?1 and image.standard is null" +
+					" or image.lamp is null)")
 	int findConflictsForTargetName(String targetName);
 	
 	@Query("select count(s)" +
@@ -65,4 +66,11 @@ public interface ScienceRepository extends CrudRepository<ScienceImage, Integer>
 			" from ScienceImage target"+
 				" where target.image.targetName=?1 and target.standard.image.fileName=?2")
 	List<ScienceImage> getScienceImageByTargetNameAndStandardFileName(String targetName, String standardFileName);
+	
+	@Query("select distinct science.lamp.image.fileName" +
+			" from ScienceImage science"+
+				" where science.observation.isEnabled = TRUE"+
+				" and science.image.enabled = TRUE"
+				+ " order by science.lamp.image.fileName asc")
+	List<String> getLamps();
 }

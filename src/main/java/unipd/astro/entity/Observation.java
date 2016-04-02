@@ -35,31 +35,31 @@ public class Observation implements Serializable {
     @Column(name="Observation_Id")
     private int id;
     
-    @Column
+    @Column(name="targetName")
     private String targetName;
     
-    @Column
+    @Column(name="isEnabled")
     private boolean isEnabled = true;
     
-    @Column
+    @Column(name="doPrered")
     private boolean doPrered = true;
     
-    @Column
+    @Column(name="doWlcal")
     private boolean doWlcal = true;
     
-    @Column
+    @Column(name="doFcal")
     private boolean doFcal = true;
     
-    @Column
+    @Column(name="doBackground")
     private boolean doBackground = true;
     
-    @Column
+    @Column(name="doApall")
     private boolean doApall = true;
     
-    @Column
+    @Column(name="doScombine")
     private boolean doScombine = true;
     
-    @Column
+    @Column(name="doImcopy")
     private boolean doImcopy = true;
 
 	@OneToMany(mappedBy="observation", cascade={CascadeType.REMOVE})

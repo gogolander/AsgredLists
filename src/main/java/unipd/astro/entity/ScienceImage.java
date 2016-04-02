@@ -44,14 +44,6 @@ public class ScienceImage implements Serializable {
 	@OneToOne
 	@JoinColumn(name="Image_Id")
 	ImageEntity image;
-	
-	public Observation getObservation() {
-		return observation;
-	}
-
-	public void setObservation(Observation observation) {
-		this.observation = observation;
-	}
 
 	@ManyToOne
 	@JoinColumn(name="Lamp_Id", nullable=true)
@@ -64,6 +56,14 @@ public class ScienceImage implements Serializable {
 	@ManyToOne
 	@JoinColumn(name="Observation_Id", nullable=true)
 	Observation observation;
+	
+	public Observation getObservation() {
+		return observation;
+	}
+
+	public void setObservation(Observation observation) {
+		this.observation = observation;
+	}
 	
 	public LampImage getLamp() {
 		return lamp;

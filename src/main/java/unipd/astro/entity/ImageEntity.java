@@ -32,13 +32,13 @@ import unipd.astro.service.DataService;
 @Entity
 @Table(name = "IMAGES")
 public class ImageEntity implements Serializable {
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    public static long getSerialVersionUID() {
-        return serialVersionUID;
-    }
+	public static long getSerialVersionUID() {
+		return serialVersionUID;
+	}
 
-    public LampImage getLamp() {
+	public LampImage getLamp() {
 		return lamp;
 	}
 
@@ -67,39 +67,42 @@ public class ImageEntity implements Serializable {
 	}
 
 	@Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name="ImageEntity_Id")
-    private Long id;
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	@Column(name = "ImageEntity_Id")
+	private Long id;
 
-    @Column(name = "FileName")
-    private String fileName;
+	@Column(name = "FileName")
+	private String fileName;
 
-    @Column(name = "TargetName")
-    private String targetName;
+	@Column(name = "TargetName")
+	private String targetName;
 
-    @Column(name = "Type")
-    private String type;
+	@Column(name = "Type")
+	private String type;
 
-    @Column(name = "IsStandard")
-    private boolean isStandard;
+	@Column(name = "IsStandard")
+	private boolean isStandard;
 
-    @Column(name = "ExpTime")
-    private float expTime;
+	@Column(name = "ExpTime")
+	private float expTime;
+	
+	@Column(name = "Enabled")
+	private boolean enabled;
 
-    @ManyToOne
-    @JoinColumn(name="Flat_Id")
-    FlatfieldImage flat;
-    
-    @OneToOne(mappedBy="image")
-    LampImage lamp;
-    
-    @OneToOne(mappedBy="image")
-    ScienceImage science;
-    
-    @OneToOne(mappedBy="image")
-    StandardImage standard;
-    
-    public static long getSerialversionuid() {
+	@ManyToOne
+	@JoinColumn(name = "Flat_Id")
+	FlatfieldImage flat;
+
+	@OneToOne(mappedBy = "image")
+	LampImage lamp;
+
+	@OneToOne(mappedBy = "image")
+	ScienceImage science;
+
+	@OneToOne(mappedBy = "image")
+	StandardImage standard;
+
+	public static long getSerialversionuid() {
 		return serialVersionUID;
 	}
 
@@ -148,32 +151,45 @@ public class ImageEntity implements Serializable {
 	}
 
 	public Long getId() {
-        return id;
-    }
-    
-    public static ImageEntity parseEntity(String image) {
-        if (image.startsWith("#")) {
-            return null;
-        }
-        /**
-         * PARAMS MAP: file name, target name, image type, exposure time
-         */
-        String[] params = image.split("\t");
-        String type = "IMAGE";
-        if (params[2].toUpperCase().equals("CALIB")) {
-            type = "LAMP";
-        } else if (params[1].toLowerCase().contains("flat")) {
-            type = "FLATFIELD";
-        }
-        
-        ImageEntity newEntity = new ImageEntity();
-        if(params[0].endsWith(".fits"))
-        	params[0] = params[0].replace(".fits", "");
-        newEntity.setFileName(params[0]);
-        newEntity.setTargetName(params[1]);
-        newEntity.setType(type);
-        newEntity.setIsStandard((DataService.getInstance().getStandardAtlas().findByStandardName(params[1]) != null));
-        newEntity.setExpTime(Float.parseFloat(params[3]));
-        return newEntity;
-    }
+		return id;
+	}
+
+	public static ImageEntity parseEntity(String image) {
+		if (image.startsWith("#")) {
+			return null;
+		}
+		/**
+		 * PARAMS MAP: file name, target name, image type, exposure time
+		 */
+		String[] params = image.split("\t");
+		String type = "IMAGE";
+		if (params[2].toUpperCase().equals("CALIB")) {
+			type = "LAMP";
+		} else if (params[1].toLowerCase().contains("flat")) {
+			type = "FLATFIELD";
+		}
+
+		ImageEntity newEntity = new ImageEntity();
+		if (params[0].endsWith(".fits"))
+			params[0] = params[0].replace(".fits", "");
+		if (params[1].contains(" "))
+			params[1] = params[1].replace(" ", "");
+		if (params[1].contains("\""))
+			params[1] = params[1].replace("\"", "");
+		newEntity.setFileName(params[0]);
+		newEntity.setTargetName(params[1]);
+		newEntity.setType(type);
+		newEntity.setIsStandard((DataService.getInstance().getStandardAtlas().findByStandardName(params[1]) != null));
+		newEntity.setExpTime(Float.parseFloat(params[3]));
+		newEntity.setEnabled(true);
+		return newEntity;
+	}
+
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
 }

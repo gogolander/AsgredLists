@@ -34,5 +34,9 @@ public interface ObservationRepository extends CrudRepository<Observation, Integ
 				" where observation.targetName=?1 and observation.standard.image.fileName=?2")
 	Observation findByTargetNameAndStandardFileName(String targetName, String standardFileName);
 	
+	@Query("select observation" +
+			" from Observation observation"+
+				" where observation.standard.image.fileName=?1 and isEnabled = TRUE")
+	List<Observation> findByStandardFileNameAndIsEnabledIsTrue(String standardFileName);
 	List<Observation> findByIsEnabled(boolean isEnabled);
 }

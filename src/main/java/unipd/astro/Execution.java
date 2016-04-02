@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import org.apache.log4j.Logger;
-import unipd.astro.service.DataService;
 
 /**
  * Execution is the interface between AsgredLists and any external process
@@ -37,98 +36,6 @@ public class Execution {
 
 	public Execution() {
 		openThread = new ArrayList<>();
-	}
-
-	/**
-	 * This method mimes the respond from wlcal. Used to test the interaction
-	 * between PyRAF and AsgredLists.
-	 * 
-	 * @param scriptPath
-	 * @param callback
-	 */
-	public int mimeWlcal(final String scriptPath, final String[] commandsToClose, final AsyncCallback callback) {
-		InterruptableThread thread = new InterruptableThread() {
-			@Override
-			public void run() {
-				synchronized (this) {
-					try {
-						int nBytes = 0;
-						log.info("Starting wlcal simulation...");
-						log.trace("Creating the process...");
-						System.setProperty("user.dir", DataService.getInstance().getProperty("iraf.home"));// perché
-																											// non
-																											// fa
-																											// niente?
-						log.trace("Done.");
-						log.trace("Starting it...");
-						process = Runtime.getRuntime().exec(new String[] { "python3", scriptPath });
-						log.trace("Done.");
-						while (process.isAlive()) {
-							log.info("Waiting for activity...");
-							while (commandsToRun.size() == 0 && process.getInputStream().available() == 0
-									&& process.getInputStream().available() == 0 && process.isAlive() && !stop)
-								wait(TIMEOUT);
-
-							if (stop) {
-								onClosing();
-								return;
-							}
-							checkDs9IsRunning();
-							/**
-							 * Pass the commands one at a time
-							 */
-							if (commandsToRun.size() > 0 && process.isAlive()) {
-								log.info("Input received: " + commandsToRun.get(0));
-								process.getOutputStream().write(commandsToRun.get(0).getBytes());
-								process.getOutputStream().flush();
-								if (callback != null)
-									callback.OnMessageSent(commandsToRun.get(0).trim());
-								wait(TIMEOUT);
-								commandsToRun.remove(0);
-							}
-							while ((nBytes = process.getInputStream().available()) != 0) {
-								log.trace("Output received.");
-								byte[] buffer = new byte[nBytes];
-								process.getInputStream().read(buffer);
-								if (callback != null)
-									for (String response : new String(buffer, 0, nBytes).split("\n"))
-										callback.OnResponseReceived(
-												response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
-							}
-							while ((nBytes = process.getErrorStream().available()) != 0) {
-								log.trace("Error received.");
-								byte[] buffer = new byte[nBytes];
-								process.getErrorStream().read(buffer);
-								if (callback != null)
-									for (String error : new String(buffer, 0, nBytes).split("\n"))
-										callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
-							}
-						}
-					} catch (Exception ex) {
-						log.fatal(ex);
-						if (callback != null)
-							callback.OnErrorReceived(ex.getMessage());
-					} finally {
-						log.info("Done");
-						// dispose();
-						if (callback != null)
-							callback.OnScriptTerminated();
-					}
-				}
-			}
-
-			@Override
-			public void onClosing() throws Exception {
-				process.getInputStream().close();
-				process.getInputStream().close();
-				process.getOutputStream().close();
-				process.destroy();
-			}
-		};
-		thread.setCommandsToClose(commandsToClose);
-		openThread.add(thread);
-		thread.start();
-		return openThread.size() - 1;
 	}
 
 	/**
@@ -529,6 +436,34 @@ public class Execution {
 					}
 				}
 			}.start();
+			log.info("Done.");
+		} catch (Exception ex) {
+			log.fatal(ex.getMessage());
+		}
+	}
+	
+	/**
+	 * Send a text to a graphics window not directly controlled by pyraf
+	 */
+	public void sendTextToGraphics(String text) {
+		try {
+			log.info("Sending the text \"" + text + "\"...");
+			Runtime.getRuntime().exec("sh " + Main.class.getClassLoader().getResource("sendText.sh").getPath() 
+					+ "  " + text);
+			log.info("Done.");
+		} catch (Exception ex) {
+			log.fatal(ex.getMessage());
+		}
+	}
+	
+	/**
+	 * Send a key to a graphics window not directly controlled by pyraf
+	 */
+	public void sendKeyToGraphics(String key) {
+		try {
+			log.info("Sending the text \"" + key + "\"...");
+			Runtime.getRuntime().exec("sh " + Main.class.getClassLoader().getResource("sendKey.sh").getPath() 
+					+ "  " + key);
 			log.info("Done.");
 		} catch (Exception ex) {
 			log.fatal(ex.getMessage());
