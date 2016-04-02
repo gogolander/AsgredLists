@@ -14,6 +14,7 @@ AsgredLists requires:
  * PyRAF;
  * asgred;
  * python (>=3.0);
+ * xdotool;
  * JDK (>=1.8).
 
 ### Pre-requirements installation for Ubuntu/Debian
@@ -36,10 +37,10 @@ sudo add-apt-repository ppa:webupd8team/java
 sudo apt-get update
 sudo apt-get install oracle-java8-installer
 ```
-##### How to install python
-Now install python using the following command:
+##### How to install python and xdotool
+Now install python and xdotool using the following command:
 ```sh
-sudo apt-get install python3
+sudo apt-get install python3 xdotool
 ```
 ##### How to install IRAF and PyRAF
 Download <a href="http://www.astro.uson.mx/favilac/downloads/ubuntu-iraf/iso/">this image</a> containing both IRAF and PyRAF.
