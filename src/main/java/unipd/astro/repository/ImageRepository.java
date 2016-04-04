@@ -37,7 +37,7 @@ public interface ImageRepository extends CrudRepository<ImageEntity, Integer> {
     List<ImageEntity> findByFileNameAndTargetName(String fileName, String targetName);
     List<ImageEntity> findByType(String type);
     
-    @Query("select fileName from ImageEntity image where type=?1 and enabled = TRUE")
+    @Query("select fileName from ImageEntity image where type=?1")
     List<String> getFileNameByType(String type);
     
     @Query("select fileName from ImageEntity image where isStandard=?1")
@@ -53,4 +53,10 @@ public interface ImageRepository extends CrudRepository<ImageEntity, Integer> {
 			" where target.image.type='IMAGE' and target.image.enabled = TRUE" +
 			" order by target.standard.image.fileName")
 	List<Object[]> getTargetNameAndStandardFileName();
+	
+	@Query("select fileName from ImageEntity image where isStandard=?1 and enabled = ?2")
+	List<String> getFileNameByIsStandardAndIsEnabled(boolean isStandard, boolean isEnabled);
+
+	@Query("select fileName from ImageEntity image where type=?1 and enabled = ?2")
+	List<String> getFileNameByTypeAndIsEnabled(String type, boolean isEnabled);
 }

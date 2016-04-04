@@ -84,14 +84,24 @@ public class Main extends javax.swing.JPanel {
 	private HashMap<String, String> tempLamps = new HashMap<>();
 	private HashMap<String, List<String>> generatedList;
 	private DataService dataService;
-
+	
+	private JComboBox comboStd, comboLamps, comboLinesList;
+	private ActionListener autoHide = new ActionListener() {
+		@Override
+		public void actionPerformed(ActionEvent evt) {
+			jTable1.clearSelection();
+			((JComboBox) evt.getSource()).hidePopup();
+			((JComboBox) evt.getSource()).setSelectedIndex(-1);
+		}
+	};
 	private boolean sendRms;
-	private int runningCommand = -1;
+	private int runningCommand = -1, task = 0;
 	private Style In, Out, Error;
 	private List<String> scriptsList;
 	private String basePath;
 	private Execution process;
 	private double rms = 0;
+	private String linelist = "";
 	private AsyncCallback callback = new AsyncCallback() {
 		@Override
 		public void OnResponseReceived(String response) {
@@ -99,40 +109,71 @@ public class Main extends javax.swing.JPanel {
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
 						"◀\t" + response + "\n", Out);
 				jConsole.setCaretPosition(jConsole.getDocument().getLength());
-				String[] data = response.split(" ");
-				//Is the identify/reidentify text?
-				if(data[0].contains(".b[*")) {
-					//Is RMS lower than the threshold?
-					double actualRms = Double.parseDouble(data[data.length-1]);
-					if(actualRms < rms)
-						//Yes: accept the interpolation
-						if(sendRms)
-							process.sendTextToGraphics("q");
-						sendRms = !sendRms;
+
+				if (response.startsWith("prered2"))
+					task = 1;
+				else if (response.startsWith("wlcal"))
+					task = 2;
+				else if (response.startsWith("fcal"))
+					task = 3;
+				else if (response.startsWith("background"))
+					task = 4;
+				else if (response.startsWith("apall"))
+					task = 5;
+				else if (response.startsWith("scombine"))
+					task = 6;
+				else if (response.startsWith("imcopy"))
+					task = 7;
+
+				switch (task) {
+				case 1:
+					if (response.startsWith("Dispersion axis (1=along lines, 2=along columns, 3=along z) (1:3)")
+							|| (response.startsWith("Fit the normalization spectrum for")
+									&& response.endsWith(".b interactively (yes):")))
+						process.sendCommand(runningCommand, "\n");
+					break;
+				case 2:
+					if (response.startsWith("Dispersion axis (1=along lines, 2=along columns, 3=along z) (1:3)")
+							|| response.startsWith("Write coordinate map to the database"))
+						process.sendCommand(runningCommand, "\n");
+					else {
+						String[] data = response.split(" ");
+						if (data[0].contains(".b[*,")) {
+							// Is RMS lower than the threshold?
+							double actualRms = Double.parseDouble(data[data.length - 1]);
+							if (actualRms < rms)
+								// Yes: accept the interpolation
+								if (sendRms)
+									process.sendTextToGraphics("q");
+							sendRms = !sendRms;
+						}
+					}
+					break;
+				case 3:
+				case 5:
+					if (response.startsWith("Find") || response.startsWith("Resize") || response.startsWith("Edit")
+							|| response.startsWith("Trace") || response.startsWith("Fit")
+							|| response.startsWith("Write") || response.startsWith("Extract")
+							|| response.startsWith("Review"))
+						process.sendKeyToGraphics("Return");
+					break;
+				// case 4:
+				// (new Thread() {
+				// @Override
+				// public void run() {
+				// try {
+				// sleep(1000);
+				// } catch (InterruptedException e) {
+				// e.printStackTrace();
+				// }
+				// process.sendTextToGraphics("1000 1010");
+				// process.sendKeyToGraphics("Return");
+				// task = 0;
+				// }
+				//
+				// }).start();
 				}
-				//Is apall autoanswer
-				else if( (response.startsWith("Fit the normalization spectrum for") && 
-						response.endsWith(".bg interactively (yes):")) ||
-						//Is apall autoanswer
-						(response.startsWith("Find apertures for ") ||
-						response.startsWith("Resize apertures for") ||
-						response.startsWith("Edit apertures for") ||
-						response.startsWith("Trace apertures for") ||
-						response.startsWith("Number of apertures to be found automatically (1):") ||
-						response.startsWith("Fit traced positions for ") ||
-						response.startsWith("Fit curve to aperture ") ||
-						response.startsWith("Write apertures for") ||
-						response.startsWith("Extract aperture spectra for ") ||
-						response.startsWith("Review extracted spectra from ") ||
-						response.startsWith("Review extracted spectrum for aperture "))) {
-					process.sendKeyToGraphics("Return");
-				}
-				//Is prered or wlcal autoanswer
-				else if(response.startsWith("Dispersion axis (1=along lines, 2=along columns, 3=along z) (1:3)") ||
-						(response.startsWith("Fit the normalization spectrum for") && 
-								response.endsWith(".b interactively (yes):")))
-					process.sendCommand(runningCommand, "\n");
-			} catch (BadLocationException e) {
+			} catch (Exception e) {
 				log.fatal(e);
 			}
 		}
@@ -175,6 +216,7 @@ public class Main extends javax.swing.JPanel {
 				log.fatal(e);
 			}
 		}
+
 	};
 
 	public Main() {
@@ -251,7 +293,6 @@ public class Main extends javax.swing.JPanel {
 		jOptionsPanel = new org.jdesktop.swingx.JXPanel();
 		jLabel7 = new javax.swing.JLabel();
 		jPanel10 = new javax.swing.JPanel();
-		jSolve = new javax.swing.JButton();
 		jLabel5 = new javax.swing.JLabel();
 		jLabel6 = new javax.swing.JLabel();
 		jPanel9 = new javax.swing.JPanel();
@@ -468,22 +509,29 @@ public class Main extends javax.swing.JPanel {
 
 		jStep2.setBorder(javax.swing.BorderFactory.createTitledBorder("STEP 2"));
 
-		jTable1.setModel(new javax.swing.table.DefaultTableModel(
-				new Object[][] { { null, null, null, null, null, null, null, null } }, new String[] { "Enabled",
-						"Image", "Target name", "Type", "Is standard?", "Exp Time", "Lamp", "Standard" }) {
-			Class[] types = new Class[] { java.lang.Boolean.class, java.lang.String.class, java.lang.String.class,
-					java.lang.String.class, java.lang.Boolean.class, java.lang.Float.class, java.lang.String.class,
-					java.lang.String.class };
-			boolean[] canEdit = new boolean[] { true, false, false, true, true, false, true, true };
-
-			public Class getColumnClass(int columnIndex) {
-				return types[columnIndex];
+		jTable1.setModel(new DefaultTableModel(
+			new Object[][] {
+			},
+			new String[] {
+				"Enabled", "Image", "Target name", "Type", "Is standard?", "Exp Time", "Lines list", "Lamp", "Standard"
 			}
-
-			public boolean isCellEditable(int rowIndex, int columnIndex) {
-				return canEdit[columnIndex];
+		) {
+			Class[] columnTypes = new Class[] {
+				Boolean.class, String.class, String.class, String.class, Boolean.class, Float.class, String.class, String.class, String.class
+			};
+			public Class getColumnClass(int columnIndex) {
+				return columnTypes[columnIndex];
 			}
 		});
+		this.jTable1.getColumnModel().getColumn(0).setPreferredWidth(55);
+		this.jTable1.getColumnModel().getColumn(1).setPreferredWidth(60);
+		this.jTable1.getColumnModel().getColumn(2).setPreferredWidth(200);
+		this.jTable1.getColumnModel().getColumn(3).setPreferredWidth(60);
+		this.jTable1.getColumnModel().getColumn(4).setPreferredWidth(55);
+		this.jTable1.getColumnModel().getColumn(5).setPreferredWidth(55);
+		this.jTable1.getColumnModel().getColumn(6).setPreferredWidth(60);
+		this.jTable1.getColumnModel().getColumn(7).setPreferredWidth(90);
+		this.jTable1.getColumnModel().getColumn(8).setPreferredWidth(90);
 		for (int i = 0; i < jTable1.getColumnCount(); i++)
 			jTable1Cols.put(jTable1.getModel().getColumnName(i), i);
 		jTable1.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_ALL_COLUMNS);
@@ -495,16 +543,6 @@ public class Main extends javax.swing.JPanel {
 			}
 		});
 		jScrollPane1.setViewportView(jTable1);
-		if (jTable1.getColumnModel().getColumnCount() > 0) {
-			jTable1.getColumnModel().getColumn(0).setPreferredWidth(60);
-			jTable1.getColumnModel().getColumn(1).setPreferredWidth(60);
-			jTable1.getColumnModel().getColumn(2).setPreferredWidth(200);
-			jTable1.getColumnModel().getColumn(3).setPreferredWidth(60);
-			jTable1.getColumnModel().getColumn(4).setPreferredWidth(60);
-			jTable1.getColumnModel().getColumn(5).setPreferredWidth(55);
-			jTable1.getColumnModel().getColumn(6).setPreferredWidth(90);
-			jTable1.getColumnModel().getColumn(7).setPreferredWidth(90);
-		}
 
 		jLabel2.setText("Verify the data association and correct all conflicts:");
 
@@ -529,13 +567,6 @@ public class Main extends javax.swing.JPanel {
 				.addGap(0, 12, Short.MAX_VALUE));
 		jPanel10Layout.setVerticalGroup(jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
 				.addGap(0, 12, Short.MAX_VALUE));
-
-		jSolve.setText("<html><center>Try to resolve<br>conflicts</center></html>");
-		jSolve.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jSolveActionPerformed(evt);
-			}
-		});
 
 		jLabel5.setBackground(new java.awt.Color(255, 251, 216));
 		jLabel5.setText("FLATFIELD");
@@ -597,128 +628,104 @@ public class Main extends javax.swing.JPanel {
 				.addGap(0, 12, Short.MAX_VALUE));
 
 		javax.swing.GroupLayout jOptionsPanelLayout = new javax.swing.GroupLayout(jOptionsPanel);
-		jOptionsPanel.setLayout(jOptionsPanelLayout);
-		jOptionsPanelLayout
-				.setHorizontalGroup(jOptionsPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-						.addGroup(jOptionsPanelLayout.createSequentialGroup().addGroup(jOptionsPanelLayout
-								.createParallelGroup(
-										javax.swing.GroupLayout.Alignment.LEADING)
-								.addGroup(
-										jOptionsPanelLayout.createSequentialGroup().addGap(20, 20, 20)
-												.addGroup(
-														jOptionsPanelLayout
-																.createParallelGroup(
-																		javax.swing.GroupLayout.Alignment.TRAILING)
-																.addComponent(jLabel5).addComponent(jLabel6)
-																.addComponent(jLabel7).addComponent(jLabel8)
-																.addComponent(jLabel9))
-										.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-										.addGroup(jOptionsPanelLayout
-												.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-												.addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE,
-														javax.swing.GroupLayout.DEFAULT_SIZE,
-														javax.swing.GroupLayout.PREFERRED_SIZE)
-												.addComponent(jPanel10, javax.swing.GroupLayout.PREFERRED_SIZE,
-														javax.swing.GroupLayout.DEFAULT_SIZE,
-														javax.swing.GroupLayout.PREFERRED_SIZE)
-												.addGroup(jOptionsPanelLayout.createSequentialGroup()
-														.addGroup(jOptionsPanelLayout
-																.createParallelGroup(
-																		javax.swing.GroupLayout.Alignment.LEADING)
-																.addComponent(jPanel11,
-																		javax.swing.GroupLayout.PREFERRED_SIZE,
-																		javax.swing.GroupLayout.DEFAULT_SIZE,
-																		javax.swing.GroupLayout.PREFERRED_SIZE)
-																.addComponent(jPanel8,
-																		javax.swing.GroupLayout.PREFERRED_SIZE,
-																		javax.swing.GroupLayout.DEFAULT_SIZE,
-																		javax.swing.GroupLayout.PREFERRED_SIZE)
-																.addComponent(jPanel9,
-																		javax.swing.GroupLayout.PREFERRED_SIZE,
-																		javax.swing.GroupLayout.DEFAULT_SIZE,
-																		javax.swing.GroupLayout.PREFERRED_SIZE))
-														.addGap(18, 18, 18).addComponent(jSolve))))
-								.addGroup(jOptionsPanelLayout.createSequentialGroup().addContainerGap().addComponent(
-										jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
-		jOptionsPanelLayout.setVerticalGroup(jOptionsPanelLayout
-				.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jOptionsPanelLayout.createSequentialGroup().addGap(0, 0, 0).addComponent(jLabel4)
-						.addGroup(jOptionsPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+		jOptionsPanelLayout.setHorizontalGroup(
+			jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jOptionsPanelLayout.createSequentialGroup()
+					.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING, false)
+						.addGroup(Alignment.LEADING, jOptionsPanelLayout.createSequentialGroup()
+							.addContainerGap()
+							.addComponent(this.jLabel4, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+						.addGroup(Alignment.LEADING, jOptionsPanelLayout.createSequentialGroup()
+							.addGap(20)
+							.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
+								.addComponent(this.jLabel5)
+								.addComponent(this.jLabel6)
+								.addComponent(this.jLabel7)
+								.addComponent(this.jLabel8)
+								.addComponent(this.jLabel9))
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+								.addComponent(this.jPanel6, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+								.addComponent(this.jPanel10, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+								.addComponent(this.jPanel11, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+								.addComponent(this.jPanel8, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+								.addComponent(this.jPanel9, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))))
+					.addContainerGap(22, Short.MAX_VALUE))
+		);
+		jOptionsPanelLayout.setVerticalGroup(
+			jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jOptionsPanelLayout.createSequentialGroup()
+					.addContainerGap()
+					.addComponent(this.jLabel4)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
+						.addGroup(jOptionsPanelLayout.createSequentialGroup()
+							.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
 								.addGroup(jOptionsPanelLayout.createSequentialGroup()
-										.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-										.addGroup(jOptionsPanelLayout
-												.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-												.addGroup(jOptionsPanelLayout.createSequentialGroup()
-														.addGroup(jOptionsPanelLayout
-																.createParallelGroup(
-																		javax.swing.GroupLayout.Alignment.TRAILING)
-																.addGroup(jOptionsPanelLayout.createSequentialGroup()
-																		.addGroup(jOptionsPanelLayout
-																				.createParallelGroup(
-																						javax.swing.GroupLayout.Alignment.TRAILING)
-																				.addComponent(jLabel5)
-																				.addComponent(jPanel6,
-																						javax.swing.GroupLayout.PREFERRED_SIZE,
-																						javax.swing.GroupLayout.DEFAULT_SIZE,
-																						javax.swing.GroupLayout.PREFERRED_SIZE))
-																		.addPreferredGap(
-																				javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-																		.addComponent(jLabel6))
-																.addComponent(jPanel8,
-																		javax.swing.GroupLayout.PREFERRED_SIZE,
-																		javax.swing.GroupLayout.DEFAULT_SIZE,
-																		javax.swing.GroupLayout.PREFERRED_SIZE))
-														.addPreferredGap(
-																javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-														.addComponent(jLabel7))
-												.addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE,
-														javax.swing.GroupLayout.DEFAULT_SIZE,
-														javax.swing.GroupLayout.PREFERRED_SIZE))
-										.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-										.addGroup(jOptionsPanelLayout
-												.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-												.addComponent(jPanel11, javax.swing.GroupLayout.PREFERRED_SIZE,
-														javax.swing.GroupLayout.DEFAULT_SIZE,
-														javax.swing.GroupLayout.PREFERRED_SIZE)
-												.addComponent(jLabel8)))
-								.addGroup(javax.swing.GroupLayout.Alignment.TRAILING,
-										jOptionsPanelLayout.createSequentialGroup().addGap(26, 26, 26).addComponent(
-												jSolve, javax.swing.GroupLayout.PREFERRED_SIZE, 54,
-												javax.swing.GroupLayout.PREFERRED_SIZE)))
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-						.addGroup(jOptionsPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-								.addComponent(jLabel9, javax.swing.GroupLayout.Alignment.TRAILING)
-								.addComponent(jPanel10, javax.swing.GroupLayout.Alignment.TRAILING,
-										javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE,
-										javax.swing.GroupLayout.PREFERRED_SIZE))
-						.addContainerGap()));
+									.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
+										.addComponent(this.jLabel5)
+										.addComponent(this.jPanel6, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+									.addPreferredGap(ComponentPlacement.RELATED)
+									.addComponent(this.jLabel6))
+								.addComponent(this.jPanel8, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(this.jLabel7))
+						.addComponent(this.jPanel9, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
+						.addComponent(this.jPanel11, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addComponent(this.jLabel8))
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+						.addComponent(this.jLabel9, Alignment.TRAILING)
+						.addComponent(this.jPanel10, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+					.addContainerGap())
+		);
+		jOptionsPanel.setLayout(jOptionsPanelLayout);
+		jSolve = new javax.swing.JButton();
+		
+				jSolve.setText("<html><center>Try to resolve<br>conflicts</center></html>");
+				jSolve.addActionListener(new java.awt.event.ActionListener() {
+					public void actionPerformed(java.awt.event.ActionEvent evt) {
+						jSolveActionPerformed(evt);
+					}
+				});
 
 		javax.swing.GroupLayout jStep2Layout = new javax.swing.GroupLayout(jStep2.getContentPane());
-		jStep2Layout.setHorizontalGroup(jStep2Layout.createParallelGroup(Alignment.LEADING).addGroup(jStep2Layout
-				.createSequentialGroup().addContainerGap()
-				.addGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
-						.addGroup(jStep2Layout.createSequentialGroup().addComponent(this.jLabel2).addGap(429)
-								.addComponent(this.jOptionsPanel, GroupLayout.DEFAULT_SIZE, 370, Short.MAX_VALUE))
+		jStep2Layout.setHorizontalGroup(
+			jStep2Layout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jStep2Layout.createSequentialGroup()
+					.addContainerGap()
+					.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING)
 						.addGroup(jStep2Layout.createSequentialGroup()
-								.addComponent(this.jScrollPane1, GroupLayout.PREFERRED_SIZE, 794,
-										GroupLayout.PREFERRED_SIZE)
-								.addPreferredGap(ComponentPlacement.RELATED, 276, Short.MAX_VALUE).addComponent(
-										this.jStep2Next, GroupLayout.PREFERRED_SIZE, 95, GroupLayout.PREFERRED_SIZE)))
-				.addContainerGap()));
-		jStep2Layout.setVerticalGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
-				.addGroup(jStep2Layout.createSequentialGroup().addContainerGap()
-						.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING)
-								.addGroup(jStep2Layout.createSequentialGroup().addComponent(this.jLabel2).addGap(18)
-										.addComponent(this.jScrollPane1, GroupLayout.PREFERRED_SIZE, 167,
-												GroupLayout.PREFERRED_SIZE))
+							.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING)
+								.addComponent(this.jLabel2)
+								.addComponent(this.jScrollPane1, GroupLayout.DEFAULT_SIZE, 972, Short.MAX_VALUE))
+							.addGap(18)
+							.addGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
+								.addComponent(this.jOptionsPanel, GroupLayout.PREFERRED_SIZE, 142, GroupLayout.PREFERRED_SIZE)
+								.addComponent(this.jSolve, GroupLayout.PREFERRED_SIZE, 175, GroupLayout.PREFERRED_SIZE)))
+						.addComponent(this.jStep2Next, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 95, GroupLayout.PREFERRED_SIZE))
+					.addContainerGap())
+		);
+		jStep2Layout.setVerticalGroup(
+			jStep2Layout.createParallelGroup(Alignment.TRAILING)
+				.addGroup(jStep2Layout.createSequentialGroup()
+					.addContainerGap()
+					.addGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
 						.addGroup(jStep2Layout.createSequentialGroup()
-								.addComponent(this.jOptionsPanel, GroupLayout.PREFERRED_SIZE, 125,
-										GroupLayout.PREFERRED_SIZE)
-								.addPreferredGap(ComponentPlacement.RELATED, 51, Short.MAX_VALUE).addComponent(
-										this.jStep2Next, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)))
-				.addContainerGap()));
+							.addComponent(this.jLabel2)
+							.addGap(18)
+							.addComponent(this.jScrollPane1, GroupLayout.PREFERRED_SIZE, 167, GroupLayout.PREFERRED_SIZE))
+						.addGroup(jStep2Layout.createSequentialGroup()
+							.addComponent(this.jOptionsPanel, 0, 0, Short.MAX_VALUE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(this.jSolve, GroupLayout.PREFERRED_SIZE, 54, GroupLayout.PREFERRED_SIZE)
+							.addGap(6)))
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(this.jStep2Next, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap())
+		);
 		jStep2.getContentPane().setLayout(jStep2Layout);
 		jShowStep2.setText("Go to step 2");
 		this.jShowStep2
@@ -1245,7 +1252,7 @@ public class Main extends javax.swing.JPanel {
 
 	private void startUp() {
 		try {
-			rms = (double)(jWlcalThreshold.getValue() / 100d);
+			rms = (double) (jWlcalThreshold.getValue() / 100d);
 			// Start the console session under Linux
 			String OS = System.getProperty("os.name").toLowerCase();
 			if (OS.indexOf("nix") >= 0 || OS.indexOf("nux") >= 0 || OS.indexOf("aix") > 0) {
@@ -1272,7 +1279,7 @@ public class Main extends javax.swing.JPanel {
 	private void finalInitComponents() {
 		if (Runtime.getRuntime() != null)
 			dataService = DataService.getInstance();
-
+		
 		this.process = new Execution();
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 			@Override
@@ -1302,7 +1309,7 @@ public class Main extends javax.swing.JPanel {
 				// 4. conflicts: HSV=0,100,80; RGB=204,0,0
 				// 5. flat: HSV=55,15,100; RGB=255,252,216
 
-				if (row > 0) {
+				if (row >= 0) {
 					Color color = Color.WHITE;
 					this.setForeground(Color.BLACK);
 					// Lamps
@@ -1310,8 +1317,8 @@ public class Main extends javax.swing.JPanel {
 						color = new Color(255, 243, 115);
 					// Conflicts
 					else if (table.getValueAt(row, jTable1Cols.get("Type")).equals("IMAGE")
-							&& (!tempLamps.containsKey(table.getValueAt(row, jTable1Cols.get("Image")))
-									|| !tempStandards.containsKey(table.getValueAt(row, jTable1Cols.get("Image"))))) {
+							&& !(tempLamps.containsKey(table.getValueAt(row, jTable1Cols.get("Image")))
+									&& tempStandards.containsKey(table.getValueAt(row, jTable1Cols.get("Image"))))) {
 						color = new Color(204, 0, 0);
 						this.setForeground(Color.WHITE);
 					} // Objects and standards
@@ -1334,8 +1341,6 @@ public class Main extends javax.swing.JPanel {
 				return this;
 			}
 		});
-		this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Type"))
-				.setCellEditor(new DefaultCellEditor(new JComboBox(new String[] { "IMAGE", "FLATFIELD", "LAMP" })));
 
 		this.jTable2.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
 			@Override
@@ -1481,7 +1486,7 @@ public class Main extends javax.swing.JPanel {
 
 	private void jWlcalThresholdStateChanged(javax.swing.event.ChangeEvent evt) {
 		this.jLabel13.setText(String.valueOf(this.jWlcalThreshold.getValue()) + " %");
-		rms = (double)(jWlcalThreshold.getValue() / 100d);
+		rms = (double) (jWlcalThreshold.getValue() / 100d);
 	}
 
 	private void jBackgroundEndMouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
@@ -1526,8 +1531,7 @@ public class Main extends javax.swing.JPanel {
 				this.runningCommand = process.startCommand("script -fqe /dev/null", new String[] { "exit" }, callback);
 				process.sendCommand(this.runningCommand, "cd " + dataService.getProperty("iraf.home"));
 				process.sendCommand(this.runningCommand, "pyraf", ".exit");
-			}
-			else
+			} else
 				this.runningCommand = process.startCommand(this.jCommand.getText(), null, callback);
 		} else
 			process.sendCommand(this.runningCommand, message);
@@ -1547,7 +1551,7 @@ public class Main extends javax.swing.JPanel {
 							new String[] { "cd " + this.basePath, "!rm *.wc.fits", "!rm *.fc.fits", "!rm *.bg.fits",
 									"!rm *.md.fits", "!rm *.py", "!rm wc*", "!rm fc*", "!rm md*", "!rm std*",
 									"!rm list_*", "!rm *.b.fits", "!rm *.bf.fits", "!rm flat.*", "!rm *.std",
-									"!rm *.sens.fits", "!rm -r database/", "!rm *.obj.fits"});
+									"!rm *.sens.fits", "!rm -r database/", "!rm *.obj.fits" });
 				Thread.sleep(500);
 			}
 
@@ -1672,21 +1676,73 @@ public class Main extends javax.swing.JPanel {
 						.findByFileName((String) this.jTable1.getValueAt(x, jTable1Cols.get("Image")));
 				image.setType((String) this.jTable1.getValueAt(x, jTable1Cols.get("Type")));
 				dataService.getImageRepository().save(image);
+				updateComboStd();
+				if(image.getType().equals("IMAGE"))
+					updateComboLamps();
 			} else if (y == jTable1Cols.get("Is standard?")) {
 				ImageEntity image = dataService.getImageRepository()
 						.findByFileName((String) this.jTable1.getValueAt(x, jTable1Cols.get("Image")));
 				image.setIsStandard((boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Is standard?")));
 				dataService.getImageRepository().save(image);
-			} else if (y == jTable1Cols.get("Enabled")) {
-				if ((boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Enabled"))
-						&& (boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Is standard?"))) {
-					JOptionPane.showMessageDialog(this, "Images realtive to standard stars cannot be disabled.");
-					this.jTable1.setValueAt(true, x, jTable1Cols.get("Enabled"));
+				//Propagate consequences
+				if (!(boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Is standard?"))) {
+					TableModel model = this.jTable1.getModel();
+					for (int i = 0; i < model.getRowCount(); i++)
+						if (model.getValueAt(i, jTable1Cols.get("Standard")) != null
+								&& model.getValueAt(i, jTable1Cols.get("Standard")).equals(image.getFileName())) {
+							String key = (String) this.jTable1.getValueAt(i, this.jTable1Cols.get("Image"));
+							if (tempStandards.containsKey(key))
+								tempStandards.remove(key);
+							model.setValueAt("", i, jTable1Cols.get("Standard"));
+						}
 				} else {
-					ImageEntity image = dataService.getImageRepository()
-							.findByFileName((String) this.jTable1.getValueAt(x, jTable1Cols.get("Image")));
-					image.setEnabled((boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Enabled")));
-					dataService.getImageRepository().save(image);
+					String key = (String) this.jTable1.getValueAt(x, this.jTable1Cols.get("Image"));
+					tempStandards.put(key, key);
+					jTable1.setValueAt(jTable1.getValueAt(x, jTable1Cols.get("Image")), x, jTable1Cols.get("Standard"));
+				}
+				updateComboStd();
+			} else if (y == jTable1Cols.get("Enabled")) {
+				ImageEntity image = dataService.getImageRepository()
+						.findByFileName((String) this.jTable1.getValueAt(x, jTable1Cols.get("Image")));
+				image.setEnabled((boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Enabled")));
+				dataService.getImageRepository().save(image);
+				//Propagate consequences for standards
+				if (image.isStandard()) {
+					if (!(boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Enabled"))) {
+						TableModel model = this.jTable1.getModel();
+						for (int i = 0; i < model.getRowCount(); i++)
+							if (model.getValueAt(i, jTable1Cols.get("Standard")) != null
+									&& model.getValueAt(i, jTable1Cols.get("Standard")).equals(image.getFileName())) {
+								String key = (String) this.jTable1.getValueAt(i, this.jTable1Cols.get("Image"));
+								if (tempStandards.containsKey(key))
+									tempStandards.remove(key);
+								model.setValueAt("", i, jTable1Cols.get("Standard"));
+							}
+					} else {
+						String key = (String) this.jTable1.getValueAt(x, this.jTable1Cols.get("Image"));
+						tempStandards.put(key, key);
+						jTable1.setValueAt(jTable1.getValueAt(x, jTable1Cols.get("Image")), x, jTable1Cols.get("Standard"));
+					}
+					updateComboStd();
+				}
+				//Propagate consequences for lamps
+				else if(image.getType().equals("LAMP")) {
+					if (!(boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Enabled"))) {
+						TableModel model = this.jTable1.getModel();
+						for (int i = 0; i < model.getRowCount(); i++)
+							if (model.getValueAt(i, jTable1Cols.get("Lamp")) != null
+									&& model.getValueAt(i, jTable1Cols.get("Lamp")).equals(image.getFileName())) {
+								String key = (String) this.jTable1.getValueAt(i, this.jTable1Cols.get("Image"));
+								if (tempLamps.containsKey(key))
+									tempLamps.remove(key);
+								model.setValueAt("", i, jTable1Cols.get("Lamp"));
+							}
+					} else {
+						String key = (String) this.jTable1.getValueAt(x, this.jTable1Cols.get("Image"));
+						tempLamps.put(key, key);
+						jTable1.setValueAt(jTable1.getValueAt(x, jTable1Cols.get("Image")), x, jTable1Cols.get("Lamp"));
+					}
+					updateComboLamps();
 				}
 			} else if (y == jTable1Cols.get("Lamp")) {
 				if (this.jTable1.getValueAt(x, y) == null || this.jTable1.getValueAt(x, y).toString().isEmpty()) {
@@ -1706,8 +1762,24 @@ public class Main extends javax.swing.JPanel {
 					String key = (String) this.jTable1.getValueAt(x, this.jTable1Cols.get("Image"));
 					tempStandards.put(key, (String) this.jTable1.getValueAt(x, y));
 				}
+			} else if (y == jTable1Cols.get("Lines list")) {
+				//change lineslist
+				//TODO: add support for different lines list for different lamps
+				if(((String)this.jTable1.getValueAt(x, y)).toLowerCase().equals("fear"))
+					linelist="FeAr";
+				else if(((String)this.jTable1.getValueAt(x, y)).toLowerCase().equals("hefear"))
+					linelist="HeFeAr";
+				else if(((String)this.jTable1.getValueAt(x, y)).toLowerCase().equals("ne"))
+					linelist="Ne";
+				else if(((String)this.jTable1.getValueAt(x, y)).toLowerCase().equals("hgar"))
+					linelist="HgAr";
+				if(((String)this.jTable1.getValueAt(x, y)).toLowerCase().equals("hgarne"))
+					linelist="HgArNe";
+				TableModel model = this.jTable1.getModel();
+				for (int i = 0; i < model.getRowCount(); i++)
+					if (model.getValueAt(i, jTable1Cols.get("Type")).equals("LAMP"))
+						jTable1.setValueAt(linelist, i, jTable1Cols.get("Lines list"));
 			}
-			// updateImagesTable();
 		}
 	}
 
@@ -1960,6 +2032,27 @@ public class Main extends javax.swing.JPanel {
 				data[this.jTable1Cols.get("Exp Time")] = new Float(item.getExpTime());
 				data[this.jTable1Cols.get("Is standard?")] = item.isStandard();
 				data[this.jTable1Cols.get("Type")] = item.getType();
+				data[this.jTable1Cols.get("Lines list")] = "";
+				if(item.getType().equals("LAMP") && (item.getTargetName().toLowerCase().equals("fear") ||
+						item.getTargetName().toLowerCase().equals("hefear") ||
+						item.getTargetName().toLowerCase().equals("ne") ||
+						item.getTargetName().toLowerCase().equals("hgar") ||
+						item.getTargetName().toLowerCase().equals("hgarne"))) {
+					if(item.getTargetName().toLowerCase().equals("fear"))
+						linelist="FeAr";
+					else if(item.getTargetName().toLowerCase().equals("hefear"))
+						linelist="HeFeAr";
+					else if(item.getTargetName().toLowerCase().equals("ne"))
+						linelist="Ne";
+					else if(item.getTargetName().toLowerCase().equals("hgar"))
+						linelist="HgAr";
+					if(item.getTargetName().toLowerCase().equals("hgarne"))
+						linelist="HgArNe";
+					
+					data[this.jTable1Cols.get("Lines list")] = linelist;
+				}
+				else
+					data[this.jTable1Cols.get("Lines list")] = "";
 				data[this.jTable1Cols.get("Lamp")] = "";
 				if (item.isStandard()) {
 					data[this.jTable1Cols.get("Standard")] = item.getFileName();
@@ -1976,31 +2069,34 @@ public class Main extends javax.swing.JPanel {
 
 	public void updateImagesTable() {
 		log.info("Updating jTable1...");
-		ActionListener autoHide = new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent evt) {
-				jTable1.clearSelection();
-				((JComboBox) evt.getSource()).hidePopup();
-				((JComboBox) evt.getSource()).setSelectedIndex(-1);
-			}
-		};
 		log.trace("Creating cell editors...");
 		log.trace("Creating comboStd...");
-		JComboBox comboStd = new JComboBox();
-		comboStd.addItem("");
-		for (String entity : dataService.getImageRepository().getFileNameByIsStandard(true))
-			comboStd.addItem(entity);
-		comboStd.addActionListener(autoHide);
+		if(comboStd == null) {
+			comboStd = new JComboBox();
+			comboStd.addActionListener(autoHide);
+		}
+		updateComboStd();
 		log.trace("Done. Creating comboLamps...");
-		JComboBox comboLamps = new JComboBox();
-		comboLamps.addItem("");
-		for (String entity : dataService.getImageRepository().getFileNameByType("LAMP"))
-			comboLamps.addItem(entity);
-		comboLamps.addActionListener(autoHide);
+		if(comboLamps == null) {
+			comboLamps = new JComboBox();
+			comboLamps.addActionListener(autoHide);			
+		}
+		updateComboLamps();
+		if(comboLinesList == null) {
+			comboLinesList = new JComboBox();
+			comboLinesList.addActionListener(autoHide);
+			comboLinesList.addItem("FeAr");
+			comboLinesList.addItem("HeFeAr");
+			comboLinesList.addItem("Ne");
+			comboLinesList.addItem("HgAr");
+			comboLinesList.addItem("HgArNe");
+		}
 		this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Lamp"))
 				.setCellEditor(new DefaultCellEditor(comboLamps));
 		this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Standard"))
 				.setCellEditor(new DefaultCellEditor(comboStd));
+		this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Lines list"))
+		.setCellEditor(new DefaultCellEditor(comboLinesList));
 		log.info("Done. Updating the table...");
 		List<ImageEntity> images = new ArrayList<ImageEntity>();
 		for (ImageEntity item : dataService.getImageRepository().findAll())
@@ -2022,7 +2118,6 @@ public class Main extends javax.swing.JPanel {
 					this.jTable1.setValueAt(images.get(i).getFileName(), i, this.jTable1Cols.get("Standard"));
 				} else
 					this.jTable1.setValueAt("", i, this.jTable1Cols.get("Standard"));
-
 			}
 		}
 		log.info("Done.");
@@ -2030,6 +2125,20 @@ public class Main extends javax.swing.JPanel {
 		jTable1.updateUI();
 	}
 
+	private void updateComboStd() {
+		comboStd.removeAllItems();
+		comboStd.addItem("");
+		for (String entity : dataService.getImageRepository().getFileNameByIsStandardAndIsEnabled(true, true))
+			comboStd.addItem(entity);
+	}
+	
+	private void updateComboLamps() {
+		comboLamps.removeAllItems();
+		comboLamps.addItem("");
+		for (String entity : dataService.getImageRepository().getFileNameByIsStandardAndIsEnabled(true, true))
+			comboLamps.addItem(entity);
+	}
+	
 	public void updateTasksTable() {
 		log.info("Update table jTable2...");
 		DefaultTableModel model = (DefaultTableModel) this.jTable2.getModel();
@@ -2484,7 +2593,7 @@ public class Main extends javax.swing.JPanel {
 					for (ImageEntity image : flat.getImages())
 						temp += image.getFileName() + "\n";
 				}
-				writer.print(temp.trim()+"\n");
+				writer.print(temp.trim() + "\n");
 				writer.close();
 
 				// Generate the list of IMA*.wc.fits
@@ -2623,6 +2732,7 @@ public class Main extends javax.swing.JPanel {
 				writer.println("os.chdir(\"" + this.basePath + "\")");
 				writer.println("iraf.asgred(_doprint=1)");
 				// exec prered2
+				writer.println("print(\"prered2\")");
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
@@ -2630,13 +2740,15 @@ public class Main extends javax.swing.JPanel {
 						+ targetNormalized + "\", object=\"list_obj_" + targetNormalized + "\", outflat=\"flat."
 						+ targetNormalized + "\", trimsec=[1:2040,40:490], mode=\"ql\")");
 				// exec wlcal
+				writer.println("print(\"wlcal\")");
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				String firstLamp = dataService.getScienceRepository().getLamps().get(0);
 				writer.println("iraf.wlcal(input=\"list_obj_" + targetNormalized + "\", refer=\"" + firstLamp + "\","
-						+ " linelis=\"hefear\", mode=\"ql\")");
-
+						+ " linelis=\"" + linelist.toLowerCase() + "\", mode=\"ql\")");
+				// exec fcal
+				writer.println("print(\"fcal\")");
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("fcal", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
@@ -2655,29 +2767,33 @@ public class Main extends javax.swing.JPanel {
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("background", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoBackground())
-					writer.println("iraf.background(input=\"@fc" + targetNormalized + "\", output=\"@bg"
-							+ targetNormalized + "\", axis=2, mode=\"ql\")");
-
+					for (ScienceImage image : observation.getScienceImages())
+						if (image.getImage().isEnabled()) {
+							writer.println("print(\"background\")");
+							writer.println(
+									"iraf.background(input=\"" + image.getImage().getFileName() + ".fc\", output=\""
+											+ image.getImage().getFileName() + ".bg\", axis=2," + " mode=\"ql\")");
+						}
 				// exec apall
+				writer.println("print(\"apall\")");
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("apall", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoApall())
 					writer.println("iraf.apall(input=\"@bg" + targetNormalized + "\", output=\"@md" + targetNormalized
 							+ "\", t_order=3, t_niter=5, mode=\"ql\")");
-
 				// exec scombine
+				writer.println("print(\"scombine\")");
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("scombine", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoScombine())
 					writer.println("iraf.scombine(input=\"@md" + targetNormalized + "\", output=\"" + targetNormalized
-							+ ".md\", mode=\"ql\")");
-
+							+ ".md\", reject=\"minmax\", mode=\"ql\")");
 				String start = this.jImcopyStart.getValue().toString();
 				String end = this.jImcopyEnd.getValue().toString();
-
 				// exec imcopy
+				writer.println("print(\"imcopy\")");
 				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("imcopy", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
@@ -2718,23 +2834,24 @@ public class Main extends javax.swing.JPanel {
 
 			writer.println("from pyraf import iraf");
 			writer.println("os.chdir(\"" + this.basePath + "\")");
-			writer.println("iraf.asgred(_doprint=1)");
+			writer.println("iraf.asgred()");
 			// exec prered2
+			writer.println("print(\"prered2\")");
 			writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 			writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
 			writer.println(new String(new char[80]).replace("\0", "#"));
 			writer.println("iraf.prered2(flat=\"list_flat\", comp=\"list_lamps\", object=\"list_obj\","
 					+ "trimsec=\"[1:2040,40:490]\", outflat=\"flat.all\", mode=\"ql\")");
 			// exec wlcal
+			writer.println("print(\"wlcal\")");
 			writer.println("\n" + new String(new char[80]).replace("\0", "#"));
 			writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
 			writer.println(new String(new char[80]).replace("\0", "#"));
-
 			String firstLamp = dataService.getScienceRepository().getLamps().get(0);
 			writer.println(
-					"iraf.wlcal(input=\"list_obj\", refer=\"" + firstLamp + "\", linelis=\"hefear\", mode=\"ql\")");
-
+					"iraf.wlcal(input=\"list_obj\", refer=\"" + firstLamp + "\", linelis=\"" + linelist.toLowerCase() + "\", mode=\"ql\")");
 			// exec fcal
+			writer.println("print(\"fcal\")");
 			for (StandardImage standard : dataService.getStandardRepository().findAll()) {
 				if (dataService.getObservationRepository()
 						.findByStandardFileNameAndIsEnabledIsTrue(standard.getImage().getFileName()).size() > 0) {
@@ -2757,28 +2874,30 @@ public class Main extends javax.swing.JPanel {
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils
 						.center("reduction for " + observation.getTargetName(), 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
-
 				String targetNormalized = normalizedTargetName(observation.getTargetName());
-
 				// exec background
 				if (observation.isDoBackground())
-					writer.println("iraf.background(input=\"@fc" + targetNormalized + "\", output=\"@bg"
-							+ targetNormalized + "\", axis=2)");
-
+					for (ScienceImage image : observation.getScienceImages())
+						if (image.getImage().isEnabled()) {
+							writer.println("print(\"background\")");
+							writer.println(
+									"iraf.background(input=\"" + image.getImage().getFileName() + ".fc\", output=\""
+											+ image.getImage().getFileName() + ".bg\", axis=2, mode=\"ql\")");
+						}
 				// exec apall
+				writer.println("print(\"apall\")");
 				if (observation.isDoApall())
-					writer.println("iraf.apall(input=\"@bg" + targetNormalized + "\", output=\"@md" +
-							targetNormalized + "\", t_order = 3., t_niter = 5)");
-
+					writer.println("iraf.apall(input=\"@bg" + targetNormalized + "\", output=\"@md" + targetNormalized
+							+ "\", t_order = 3., t_niter = 5)");
 				// exec scombine
+				writer.println("print(\"scombine\")");
 				if (observation.isDoScombine())
 					writer.println("iraf.scombine(input=\"@md" + targetNormalized + "\", output=\"" + targetNormalized
-							+ ".md\")");
-
+							+ ".md\", reject=\"minmax\")");
 				String start = this.jImcopyStart.getValue().toString();
 				String end = this.jImcopyEnd.getValue().toString();
-
 				// exec imcopy
+				writer.println("print(\"imcopy\")");
 				if (observation.isDoImcopy())
 					writer.println("iraf.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
 							+ "]\", output=\"" + targetNormalized + ".obj\")");
