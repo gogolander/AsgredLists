@@ -18,6 +18,8 @@ package unipd.astro;
 
 import org.apache.log4j.Logger;
 
+import unipd.astro.service.DataService;
+
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.File;
@@ -48,6 +50,13 @@ public class AsgredLists {
     		}
     		else log.info("Yes. Nothing to do.");
     		log.info("Done.");
+    		log.info("Does \"loadTasks.py\" exist?");
+    		if(!Paths.get(DataService.getInstance().getProperty("iraf.home"), "loadTasks.py").toFile().exists()) {
+    			log.info("No. Copying the default one to the home...");
+    			Files.copy(Main.class.getClassLoader().getResourceAsStream("loadTasks.py"), Paths.get(DataService.getInstance().getProperty("iraf.home"), "loadTasks.py"));
+    			log.info("Copied.");
+    		}
+    		else log.info("Yes. Nothing to do.");
     		Main mainFrame = new Main();
             mainFrame.initDatabase();
             JFrame frame = new JFrame();

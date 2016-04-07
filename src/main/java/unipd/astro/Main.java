@@ -156,22 +156,6 @@ public class Main extends javax.swing.JPanel {
 							|| response.startsWith("Write") || response.startsWith("Extract")
 							|| response.startsWith("Review"))
 						process.sendKeyToGraphics("Return");
-					break;
-				// case 4:
-				// (new Thread() {
-				// @Override
-				// public void run() {
-				// try {
-				// sleep(1000);
-				// } catch (InterruptedException e) {
-				// e.printStackTrace();
-				// }
-				// process.sendTextToGraphics("1000 1010");
-				// process.sendKeyToGraphics("Return");
-				// task = 0;
-				// }
-				//
-				// }).start();
 				}
 			} catch (Exception e) {
 				log.fatal(e);
@@ -1260,12 +1244,10 @@ public class Main extends javax.swing.JPanel {
 				Thread.sleep(5);
 				process.sendCommand(this.runningCommand, "cd " + dataService.getProperty("iraf.home"));
 				process.sendCommand(this.runningCommand, "pyraf", ".exit");
-
 				process.sendCommands(this.runningCommand,
-						new String[] { "set asgred = \"home$asgred/\"", "task $asgred = \"asgred$asgred.cl\"",
-								"reset helpdb = (envget (\"helpdb\") // \",asgred$helpdb.mip\")",
-								"set copred = \"home$copred/\"", "task $copred = \"copred$copred.cl\"",
-								"reset helpdb = (envget (\"helpdb\") // \",copred$helpdb.mip\")", "asgred", "?" });
+						new String[] { "pyexecute " + 
+								Paths.get(dataService.getProperty("iraf.home"), 
+										"loadTasks.py").toString(), "?" });
 			} else {
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
 						"◀\tThe terminal is available only on Linux systems.", Error);
@@ -2678,11 +2660,11 @@ public class Main extends javax.swing.JPanel {
 					writer.close();
 
 					// Generate background cursor file
-					writer = new PrintWriter(Paths.get(this.basePath, "cursor").toFile());
-					writer.print(this.jBackgroundStart.getValue().toString() + " "
-							+ this.jBackgroundEnd.getValue().toString() + "\n");
-					writer.print("q");
-					writer.close();
+					if(!Paths.get(this.basePath, "bgcols").toFile().exists()) {
+						PrintWriter bgcols = new PrintWriter(Paths.get(this.basePath, "bgcols").toFile());
+						bgcols.write(this.jBackgroundStart.getValue().toString() + " " + this.jBackgroundEnd.getValue().toString());
+						bgcols.close();
+					}
 				}
 
 				// Generate the list of IMA*.md.fits
@@ -2733,7 +2715,7 @@ public class Main extends javax.swing.JPanel {
 				writer.println("iraf.asgred(_doprint=1)");
 				// exec prered2
 				writer.println("print(\"prered2\")");
-				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.println("iraf.prered2(flat=\"list_flat_" + targetNormalized + "\", comp=\"list_lamps_"
@@ -2741,7 +2723,7 @@ public class Main extends javax.swing.JPanel {
 						+ targetNormalized + "\", trimsec=[1:2040,40:490], mode=\"ql\")");
 				// exec wlcal
 				writer.println("print(\"wlcal\")");
-				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				String firstLamp = dataService.getScienceRepository().getLamps().get(0);
@@ -2749,7 +2731,7 @@ public class Main extends javax.swing.JPanel {
 						+ " linelis=\"" + linelist.toLowerCase() + "\", mode=\"ql\")");
 				// exec fcal
 				writer.println("print(\"fcal\")");
-				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("fcal", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.println("iraf.fcal(obj=\"wl" + targetNormalized + "\", stand=\""
@@ -2763,7 +2745,7 @@ public class Main extends javax.swing.JPanel {
 						+ "\", mode=\"ql\")");
 
 				// exec background
-				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("background", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoBackground())
@@ -2772,11 +2754,12 @@ public class Main extends javax.swing.JPanel {
 							writer.println("print(\"background\")");
 							writer.println(
 									"iraf.background(input=\"" + image.getImage().getFileName() + ".fc\", output=\""
-											+ image.getImage().getFileName() + ".bg\", axis=2," + " mode=\"ql\")");
+											+ image.getImage().getFileName() + ".bg\", axis=2," + " mode=\"ql\", "
+													+ "Stdin=\"bgcols\")");
 						}
 				// exec apall
 				writer.println("print(\"apall\")");
-				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("apall", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoApall())
@@ -2784,7 +2767,7 @@ public class Main extends javax.swing.JPanel {
 							+ "\", t_order=3, t_niter=5, mode=\"ql\")");
 				// exec scombine
 				writer.println("print(\"scombine\")");
-				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("scombine", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoScombine())
@@ -2794,7 +2777,7 @@ public class Main extends javax.swing.JPanel {
 				String end = this.jImcopyEnd.getValue().toString();
 				// exec imcopy
 				writer.println("print(\"imcopy\")");
-				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("imcopy", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoImcopy())
@@ -2837,14 +2820,14 @@ public class Main extends javax.swing.JPanel {
 			writer.println("iraf.asgred()");
 			// exec prered2
 			writer.println("print(\"prered2\")");
-			writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+			writer.println(new String(new char[80]).replace("\0", "#"));
 			writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
 			writer.println(new String(new char[80]).replace("\0", "#"));
 			writer.println("iraf.prered2(flat=\"list_flat\", comp=\"list_lamps\", object=\"list_obj\","
 					+ "trimsec=\"[1:2040,40:490]\", outflat=\"flat.all\", mode=\"ql\")");
 			// exec wlcal
 			writer.println("print(\"wlcal\")");
-			writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+			writer.println(new String(new char[80]).replace("\0", "#"));
 			writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
 			writer.println(new String(new char[80]).replace("\0", "#"));
 			String firstLamp = dataService.getScienceRepository().getLamps().get(0);
@@ -2855,7 +2838,7 @@ public class Main extends javax.swing.JPanel {
 			for (StandardImage standard : dataService.getStandardRepository().findAll()) {
 				if (dataService.getObservationRepository()
 						.findByStandardFileNameAndIsEnabledIsTrue(standard.getImage().getFileName()).size() > 0) {
-					writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+					writer.println(new String(new char[80]).replace("\0", "#"));
 					writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils
 							.center("Flux calibration for " + standard.getImage().getTargetName(), 78));
 					writer.println(new String(new char[80]).replace("\0", "#"));
@@ -2870,19 +2853,25 @@ public class Main extends javax.swing.JPanel {
 			}
 
 			for (Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
-				writer.println("\n" + new String(new char[80]).replace("\0", "#"));
+				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils
 						.center("reduction for " + observation.getTargetName(), 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				String targetNormalized = normalizedTargetName(observation.getTargetName());
 				// exec background
 				if (observation.isDoBackground())
+					if(!Paths.get(this.basePath, "bgcols").toFile().exists()) {
+						PrintWriter bgcols = new PrintWriter(Paths.get(this.basePath, "bgcols").toFile());
+						bgcols.write(this.jBackgroundStart.getValue().toString() + " " + this.jBackgroundEnd.getValue().toString());
+						bgcols.close();
+					}
 					for (ScienceImage image : observation.getScienceImages())
 						if (image.getImage().isEnabled()) {
 							writer.println("print(\"background\")");
 							writer.println(
 									"iraf.background(input=\"" + image.getImage().getFileName() + ".fc\", output=\""
-											+ image.getImage().getFileName() + ".bg\", axis=2, mode=\"ql\")");
+											+ image.getImage().getFileName() + ".bg\", axis=2, "
+													+ "mode=\"ql\", Stdin=\"bgcols\")");
 						}
 				// exec apall
 				writer.println("print(\"apall\")");
