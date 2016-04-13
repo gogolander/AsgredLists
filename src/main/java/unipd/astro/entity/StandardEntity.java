@@ -34,7 +34,7 @@ public class StandardEntity implements Serializable {
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
+    private int id;
     
     @Column(name = "StandardName")
     private String standardName;
@@ -45,7 +45,7 @@ public class StandardEntity implements Serializable {
     @Column(name = "AliasName")
     private String aliasName;
 
-    public Long getId() {
+    public int getId() {
         return id;
     }
 

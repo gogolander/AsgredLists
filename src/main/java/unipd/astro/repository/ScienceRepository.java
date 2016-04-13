@@ -67,10 +67,10 @@ public interface ScienceRepository extends CrudRepository<ScienceImage, Integer>
 				" where target.image.targetName=?1 and target.standard.image.fileName=?2")
 	List<ScienceImage> getScienceImageByTargetNameAndStandardFileName(String targetName, String standardFileName);
 	
-	@Query("select distinct science.lamp.image.fileName" +
+	@Query("select distinct science.lamp.lampName" +
 			" from ScienceImage science"+
 				" where science.observation.isEnabled = TRUE"+
 				" and science.image.enabled = TRUE"
-				+ " order by science.lamp.image.fileName asc")
+				+ " order by science.lamp.lampName asc")
 	List<String> getLamps();
 }

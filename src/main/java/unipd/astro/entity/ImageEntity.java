@@ -18,6 +18,7 @@ package unipd.astro.entity;
 
 import java.io.Serializable;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -38,12 +39,48 @@ public class ImageEntity implements Serializable {
 		return serialVersionUID;
 	}
 
-	public LampImage getLamp() {
-		return lamp;
-	}
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	@Column(name = "ImageEntity_Id")
+	private int id;
 
-	public void setLamp(LampImage lamp) {
-		this.lamp = lamp;
+	@Column(name = "FileName")
+	private String fileName;
+
+	@Column(name = "TargetName")
+	private String targetName;
+
+	@Column(name = "Type")
+	private String type;
+
+	@Column(name = "IsStandard")
+	private boolean isStandard;
+
+	@Column(name = "ExpTime")
+	private float expTime;
+	
+	@Column(name = "Enabled")
+	private boolean enabled;
+
+	@Column(name = "Grouped")
+	private boolean grouped;
+	
+	@ManyToOne
+	@JoinColumn(name = "Flat_Id")
+	private FlatfieldImage flat;
+
+	@ManyToOne(cascade={CascadeType.REMOVE})
+	@JoinColumn(name = "Lamp_Id")
+	private LampImage lamp;
+	
+	@OneToOne(mappedBy = "image")
+	private ScienceImage science;
+
+	@OneToOne(mappedBy = "image")
+	private StandardImage standard;
+	
+	public static long getSerialversionuid() {
+		return serialVersionUID;
 	}
 
 	public ScienceImage getScience() {
@@ -65,47 +102,7 @@ public class ImageEntity implements Serializable {
 	public void setFlat(FlatfieldImage flat) {
 		this.flat = flat;
 	}
-
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	@Column(name = "ImageEntity_Id")
-	private Long id;
-
-	@Column(name = "FileName")
-	private String fileName;
-
-	@Column(name = "TargetName")
-	private String targetName;
-
-	@Column(name = "Type")
-	private String type;
-
-	@Column(name = "IsStandard")
-	private boolean isStandard;
-
-	@Column(name = "ExpTime")
-	private float expTime;
 	
-	@Column(name = "Enabled")
-	private boolean enabled;
-
-	@ManyToOne
-	@JoinColumn(name = "Flat_Id")
-	FlatfieldImage flat;
-
-	@OneToOne(mappedBy = "image")
-	LampImage lamp;
-
-	@OneToOne(mappedBy = "image")
-	ScienceImage science;
-
-	@OneToOne(mappedBy = "image")
-	StandardImage standard;
-
-	public static long getSerialversionuid() {
-		return serialVersionUID;
-	}
-
 	public FlatfieldImage getFlat() {
 		return flat;
 	}
@@ -150,7 +147,7 @@ public class ImageEntity implements Serializable {
 		this.expTime = expTime;
 	}
 
-	public Long getId() {
+	public int getId() {
 		return id;
 	}
 
@@ -182,6 +179,7 @@ public class ImageEntity implements Serializable {
 		newEntity.setIsStandard((DataService.getInstance().getStandardAtlas().findByStandardName(params[1]) != null));
 		newEntity.setExpTime(Float.parseFloat(params[3]));
 		newEntity.setEnabled(true);
+		newEntity.setGrouped(false);
 		return newEntity;
 	}
 
@@ -191,5 +189,21 @@ public class ImageEntity implements Serializable {
 
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
+	}
+
+	public boolean isGrouped() {
+		return grouped;
+	}
+
+	public void setGrouped(boolean grouped) {
+		this.grouped = grouped;
+	}
+
+	public LampImage getLamp() {
+		return lamp;
+	}
+
+	public void setLamp(LampImage lamp) {
+		this.lamp = lamp;
 	}
 }

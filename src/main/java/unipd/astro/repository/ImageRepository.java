@@ -27,7 +27,7 @@ import unipd.astro.entity.ImageEntity;
 
 /**
  *
- * @author Enzo
+ * @author Vincenzo Abate
  */
 @Repository("ImageRepository")
 @Transactional(propagation = Propagation.REQUIRED)
@@ -36,6 +36,7 @@ public interface ImageRepository extends CrudRepository<ImageEntity, Integer> {
     ImageEntity findByFileName(String fileName);
     List<ImageEntity> findByFileNameAndTargetName(String fileName, String targetName);
     List<ImageEntity> findByType(String type);
+    List<ImageEntity> findByGrouped(boolean isGrouped);
     
     @Query("select fileName from ImageEntity image where type=?1")
     List<String> getFileNameByType(String type);
@@ -59,4 +60,7 @@ public interface ImageRepository extends CrudRepository<ImageEntity, Integer> {
 
 	@Query("select fileName from ImageEntity image where type=?1 and enabled = ?2")
 	List<String> getFileNameByTypeAndIsEnabled(String type, boolean isEnabled);
+	
+	@Query("SELECT fileName FROM ImageEntity image WHERE image.grouped=?1 AND image.type LIKE 'LAMP'")
+	List<String> getLampsByGrouped(boolean grouped);
 }

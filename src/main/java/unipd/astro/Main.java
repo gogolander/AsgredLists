@@ -41,7 +41,9 @@ import org.apache.log4j.Logger;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -51,7 +53,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
-
 import unipd.astro.entity.FlatfieldImage;
 import unipd.astro.entity.ImageEntity;
 import unipd.astro.entity.LampImage;
@@ -62,6 +63,7 @@ import unipd.astro.entity.StandardImage;
 import unipd.astro.service.DataService;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import javax.swing.ButtonGroup;
@@ -70,22 +72,21 @@ import javax.swing.GroupLayout.Alignment;
 import javax.swing.GroupLayout;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import java.awt.Font;
-
 import javax.swing.JCheckBox;
 import javax.swing.JTextPane;
 
 @SuppressWarnings({ "serial", "unchecked", "rawtypes" })
 public class Main extends javax.swing.JPanel {
 	private static Logger log = Logger.getLogger(Main.class.getName());
-	private int selectedAction = 0;
 	private HashMap<String, Integer> jTable1Cols = new HashMap<>();
 	private HashMap<String, Integer> jTable2Cols = new HashMap<>();
 	private HashMap<String, String> tempStandards = new HashMap<>();
 	private HashMap<String, String> tempLamps = new HashMap<>();
 	private HashMap<String, List<String>> generatedList;
 	private DataService dataService;
-	
-	private JComboBox comboStd, comboLamps, comboLinesList;
+
+	private JComboBox comboStd, comboLinesList;
+	private JComboBox comboLamps;
 	private ActionListener autoHide = new ActionListener() {
 		@Override
 		public void actionPerformed(ActionEvent evt) {
@@ -95,13 +96,12 @@ public class Main extends javax.swing.JPanel {
 		}
 	};
 	private boolean sendRms;
-	private int runningCommand = -1, task = 0;
+	private int selectedAction = 0, runningCommand = -1, task = 0, groups = 0;
 	private Style In, Out, Error;
 	private List<String> scriptsList;
 	private String basePath;
 	private Execution process;
 	private double rms = 0;
-	private String linelist = "";
 	private AsyncCallback callback = new AsyncCallback() {
 		@Override
 		public void OnResponseReceived(String response) {
@@ -493,16 +493,29 @@ public class Main extends javax.swing.JPanel {
 
 		jStep2.setBorder(javax.swing.BorderFactory.createTitledBorder("STEP 2"));
 
-		jTable1.setModel(new DefaultTableModel(
-			new Object[][] {
-			},
-			new String[] {
-				"Enabled", "Image", "Target name", "Type", "Is standard?", "Exp Time", "Lines list", "Lamp", "Standard"
+		this.popupMenu = new JPopupMenu();
+		this.popupGroup = new JMenuItem();
+		this.popupGroup.setText("Group together");
+		this.popupGroup.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				popupGroupActionPerformed(e);
 			}
-		) {
-			Class[] columnTypes = new Class[] {
-				Boolean.class, String.class, String.class, String.class, Boolean.class, Float.class, String.class, String.class, String.class
-			};
+		});
+		this.popupDisband = new JMenuItem();
+		this.popupDisband.setText("Disband group");
+		this.popupDisband.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				popupDisbandActionPerformed(e);
+			}
+		});
+		this.popupMenu.add(this.popupGroup);
+		this.popupMenu.add(this.popupDisband);
+
+		jTable1.setModel(new DefaultTableModel(new Object[][] {}, new String[] { "Enabled", "Image", "Target name",
+				"Type", "Is standard?", "Exp Time", "Lines list", "Lamp", "Standard" }) {
+			Class[] columnTypes = new Class[] { Boolean.class, String.class, String.class, String.class, Boolean.class,
+					Float.class, String.class, String.class, String.class };
+
 			public Class getColumnClass(int columnIndex) {
 				return columnTypes[columnIndex];
 			}
@@ -525,6 +538,29 @@ public class Main extends javax.swing.JPanel {
 			public void propertyChange(java.beans.PropertyChangeEvent evt) {
 				jTable1PropertyChange(evt);
 			}
+		});
+		jTable1.addMouseListener(new MouseListener() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				jTable1MouseClicked(e);
+			}
+
+			@Override
+			public void mousePressed(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e) {
+			}
+
 		});
 		jScrollPane1.setViewportView(jTable1);
 
@@ -612,104 +648,110 @@ public class Main extends javax.swing.JPanel {
 				.addGap(0, 12, Short.MAX_VALUE));
 
 		javax.swing.GroupLayout jOptionsPanelLayout = new javax.swing.GroupLayout(jOptionsPanel);
-		jOptionsPanelLayout.setHorizontalGroup(
-			jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+		jOptionsPanelLayout.setHorizontalGroup(jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
 				.addGroup(jOptionsPanelLayout.createSequentialGroup()
-					.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING, false)
-						.addGroup(Alignment.LEADING, jOptionsPanelLayout.createSequentialGroup()
-							.addContainerGap()
-							.addComponent(this.jLabel4, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-						.addGroup(Alignment.LEADING, jOptionsPanelLayout.createSequentialGroup()
-							.addGap(20)
-							.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
-								.addComponent(this.jLabel5)
-								.addComponent(this.jLabel6)
-								.addComponent(this.jLabel7)
-								.addComponent(this.jLabel8)
-								.addComponent(this.jLabel9))
-							.addPreferredGap(ComponentPlacement.RELATED)
-							.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
-								.addComponent(this.jPanel6, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-								.addComponent(this.jPanel10, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-								.addComponent(this.jPanel11, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-								.addComponent(this.jPanel8, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-								.addComponent(this.jPanel9, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))))
-					.addContainerGap(22, Short.MAX_VALUE))
-		);
-		jOptionsPanelLayout.setVerticalGroup(
-			jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jOptionsPanelLayout.createSequentialGroup()
-					.addContainerGap()
-					.addComponent(this.jLabel4)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
-						.addGroup(jOptionsPanelLayout.createSequentialGroup()
-							.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
-								.addGroup(jOptionsPanelLayout.createSequentialGroup()
-									.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
-										.addComponent(this.jLabel5)
-										.addComponent(this.jPanel6, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-									.addPreferredGap(ComponentPlacement.RELATED)
-									.addComponent(this.jLabel6))
-								.addComponent(this.jPanel8, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-							.addPreferredGap(ComponentPlacement.RELATED)
-							.addComponent(this.jLabel7))
-						.addComponent(this.jPanel9, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
-						.addComponent(this.jPanel11, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-						.addComponent(this.jLabel8))
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
-						.addComponent(this.jLabel9, Alignment.TRAILING)
-						.addComponent(this.jPanel10, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addContainerGap())
-		);
+						.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING, false)
+								.addGroup(Alignment.LEADING,
+										jOptionsPanelLayout.createSequentialGroup().addContainerGap().addComponent(
+												this.jLabel4, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE,
+												Short.MAX_VALUE))
+								.addGroup(Alignment.LEADING,
+										jOptionsPanelLayout.createSequentialGroup().addGap(20)
+												.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
+														.addComponent(this.jLabel5).addComponent(this.jLabel6)
+														.addComponent(this.jLabel7).addComponent(this.jLabel8)
+														.addComponent(this.jLabel9))
+								.addPreferredGap(ComponentPlacement.RELATED)
+								.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+										.addComponent(this.jPanel6, GroupLayout.PREFERRED_SIZE,
+												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+										.addComponent(this.jPanel10, GroupLayout.PREFERRED_SIZE,
+												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+										.addComponent(this.jPanel11, GroupLayout.PREFERRED_SIZE,
+												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+										.addComponent(this.jPanel8, GroupLayout.PREFERRED_SIZE,
+												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+										.addComponent(this.jPanel9, GroupLayout.PREFERRED_SIZE,
+												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))))
+						.addContainerGap(22, Short.MAX_VALUE)));
+		jOptionsPanelLayout.setVerticalGroup(jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jOptionsPanelLayout.createSequentialGroup().addContainerGap().addComponent(this.jLabel4)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
+								.addGroup(jOptionsPanelLayout.createSequentialGroup().addGroup(jOptionsPanelLayout
+										.createParallelGroup(Alignment.TRAILING)
+										.addGroup(jOptionsPanelLayout.createSequentialGroup()
+												.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
+														.addComponent(this.jLabel5).addComponent(this.jPanel6,
+																GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+																GroupLayout.PREFERRED_SIZE))
+												.addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jLabel6))
+										.addComponent(this.jPanel8, GroupLayout.PREFERRED_SIZE,
+												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+										.addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jLabel7))
+								.addComponent(this.jPanel9, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE))
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
+								.addComponent(this.jPanel11, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE)
+								.addComponent(this.jLabel8))
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+								.addComponent(this.jLabel9, Alignment.TRAILING).addComponent(this.jPanel10,
+										Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE))
+						.addContainerGap()));
 		jOptionsPanel.setLayout(jOptionsPanelLayout);
 		jSolve = new javax.swing.JButton();
-		
-				jSolve.setText("<html><center>Try to resolve<br>conflicts</center></html>");
-				jSolve.addActionListener(new java.awt.event.ActionListener() {
-					public void actionPerformed(java.awt.event.ActionEvent evt) {
-						jSolveActionPerformed(evt);
-					}
-				});
+
+		jSolve.setText("<html><center>Try to resolve<br>conflicts</center></html>");
+		jSolve.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				jSolveActionPerformed(evt);
+			}
+		});
 
 		javax.swing.GroupLayout jStep2Layout = new javax.swing.GroupLayout(jStep2.getContentPane());
-		jStep2Layout.setHorizontalGroup(
-			jStep2Layout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jStep2Layout.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING)
-						.addGroup(jStep2Layout.createSequentialGroup()
-							.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING)
-								.addComponent(this.jLabel2)
-								.addComponent(this.jScrollPane1, GroupLayout.DEFAULT_SIZE, 972, Short.MAX_VALUE))
-							.addGap(18)
-							.addGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
-								.addComponent(this.jOptionsPanel, GroupLayout.PREFERRED_SIZE, 142, GroupLayout.PREFERRED_SIZE)
-								.addComponent(this.jSolve, GroupLayout.PREFERRED_SIZE, 175, GroupLayout.PREFERRED_SIZE)))
-						.addComponent(this.jStep2Next, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 95, GroupLayout.PREFERRED_SIZE))
-					.addContainerGap())
-		);
-		jStep2Layout.setVerticalGroup(
-			jStep2Layout.createParallelGroup(Alignment.TRAILING)
-				.addGroup(jStep2Layout.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
-						.addGroup(jStep2Layout.createSequentialGroup()
-							.addComponent(this.jLabel2)
-							.addGap(18)
-							.addComponent(this.jScrollPane1, GroupLayout.PREFERRED_SIZE, 167, GroupLayout.PREFERRED_SIZE))
-						.addGroup(jStep2Layout.createSequentialGroup()
-							.addComponent(this.jOptionsPanel, 0, 0, Short.MAX_VALUE)
-							.addPreferredGap(ComponentPlacement.RELATED)
-							.addComponent(this.jSolve, GroupLayout.PREFERRED_SIZE, 54, GroupLayout.PREFERRED_SIZE)
-							.addGap(6)))
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(this.jStep2Next, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap())
-		);
+		jStep2Layout
+				.setHorizontalGroup(
+						jStep2Layout.createParallelGroup(Alignment.LEADING)
+								.addGroup(
+										jStep2Layout.createSequentialGroup().addContainerGap()
+												.addGroup(jStep2Layout
+														.createParallelGroup(
+																Alignment.LEADING)
+														.addGroup(jStep2Layout.createSequentialGroup()
+																.addGroup(jStep2Layout
+																		.createParallelGroup(Alignment.LEADING)
+																		.addComponent(this.jLabel2)
+																		.addComponent(this.jScrollPane1,
+																				GroupLayout.DEFAULT_SIZE, 972,
+																				Short.MAX_VALUE))
+										.addGap(18)
+										.addGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
+												.addComponent(this.jOptionsPanel, GroupLayout.PREFERRED_SIZE, 142,
+														GroupLayout.PREFERRED_SIZE)
+												.addComponent(this.jSolve, GroupLayout.PREFERRED_SIZE, 175,
+														GroupLayout.PREFERRED_SIZE))).addComponent(this.jStep2Next,
+																Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 95,
+																GroupLayout.PREFERRED_SIZE))
+												.addContainerGap()));
+		jStep2Layout.setVerticalGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
+				.addGroup(jStep2Layout.createSequentialGroup().addContainerGap()
+						.addGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
+								.addGroup(jStep2Layout.createSequentialGroup().addComponent(this.jLabel2).addGap(18)
+										.addComponent(this.jScrollPane1, GroupLayout.PREFERRED_SIZE, 167,
+												GroupLayout.PREFERRED_SIZE))
+								.addGroup(jStep2Layout.createSequentialGroup()
+										.addComponent(this.jOptionsPanel, 0, 0, Short.MAX_VALUE)
+										.addPreferredGap(ComponentPlacement.RELATED)
+										.addComponent(this.jSolve, GroupLayout.PREFERRED_SIZE, 54,
+												GroupLayout.PREFERRED_SIZE)
+										.addGap(6)))
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(this.jStep2Next, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)
+						.addContainerGap()));
 		jStep2.getContentPane().setLayout(jStep2Layout);
 		jShowStep2.setText("Go to step 2");
 		this.jShowStep2
@@ -1218,7 +1260,28 @@ public class Main extends javax.swing.JPanel {
 		jAdvancedOptionsPanel.setLayout(jAdvancedOptionsPanelLayout);
 
 		jTabbedPane1.addTab("Advanced Options for PyRAF tasks", jAdvancedOptionsPanel);
+		jTabbedPane1.addMouseListener(new MouseListener() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				jTabbedPane1MouseClicked(e);
+			}
 
+			@Override
+			public void mousePressed(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e) {
+			}
+		});
 		javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
 		this.setLayout(layout);
 		layout.setHorizontalGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addGroup(
@@ -1245,9 +1308,10 @@ public class Main extends javax.swing.JPanel {
 				process.sendCommand(this.runningCommand, "cd " + dataService.getProperty("iraf.home"));
 				process.sendCommand(this.runningCommand, "pyraf", ".exit");
 				process.sendCommands(this.runningCommand,
-						new String[] { "pyexecute " + 
-								Paths.get(dataService.getProperty("iraf.home"), 
-										"loadTasks.py").toString(), "?" });
+						new String[] {
+								"pyexecute "
+										+ Paths.get(dataService.getProperty("iraf.home"), "loadTasks.py").toString(),
+								"?" });
 			} else {
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
 						"◀\tThe terminal is available only on Linux systems.", Error);
@@ -1261,7 +1325,7 @@ public class Main extends javax.swing.JPanel {
 	private void finalInitComponents() {
 		if (Runtime.getRuntime() != null)
 			dataService = DataService.getInstance();
-		
+
 		this.process = new Execution();
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 			@Override
@@ -1590,10 +1654,16 @@ public class Main extends javax.swing.JPanel {
 		for (int row = 0; row < model.getRowCount(); row++) {
 			if ((boolean) model.getValueAt(row, jTable1Cols.get("Enabled"))
 					&& ((String) model.getValueAt(row, jTable1Cols.get("Type"))).equals("LAMP")) {
-				lampFileName = (String) model.getValueAt(row, jTable1Cols.get("Image"));
+				ImageEntity image = dataService.getImageRepository()
+						.findByFileName((String) model.getValueAt(row, jTable1Cols.get("Image")));
+				if (image.isGrouped()) {
+					lampFileName = (String) model.getValueAt(row, jTable1Cols.get("Target name"));
+					lampFileName = lampFileName.substring(lampFileName.indexOf("(") + 1, lampFileName.indexOf(")"));
+				} else
+					lampFileName = (String) model.getValueAt(row, jTable1Cols.get("Image"));
 				for (int i = rowLastLamp; i < row; i++)
-					if (((String) model.getValueAt(i, jTable1Cols.get("Type"))).equals("IMAGE"))
-						if (((String) model.getValueAt(i, jTable1Cols.get("Lamp"))).isEmpty()) {
+					if ("IMAGE".equals(model.getValueAt(i, jTable1Cols.get("Type"))))
+						if ("".equals(model.getValueAt(i, jTable1Cols.get("Lamp")))) {
 							model.setValueAt(lampFileName, i, jTable1Cols.get("Lamp"));
 							tempLamps.put((String) model.getValueAt(i, jTable1Cols.get("Image")), lampFileName);
 							lamp_fixed++;
@@ -1605,7 +1675,7 @@ public class Main extends javax.swing.JPanel {
 		for (int i = rowLastLamp; i < model.getRowCount(); i++) {
 			if (((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")))
 					&& ((String) model.getValueAt(i, jTable1Cols.get("Type"))).equals("IMAGE")) {
-				if (((String) model.getValueAt(i, jTable1Cols.get("Lamp"))).isEmpty()) {
+				if ("".equals(model.getValueAt(i, jTable1Cols.get("Lamp")))) {
 					model.setValueAt(lampFileName, i, jTable1Cols.get("Lamp"));
 					tempLamps.put((String) model.getValueAt(i, jTable1Cols.get("Image")), lampFileName);
 					lamp_fixed++;
@@ -1659,19 +1729,18 @@ public class Main extends javax.swing.JPanel {
 				image.setType((String) this.jTable1.getValueAt(x, jTable1Cols.get("Type")));
 				dataService.getImageRepository().save(image);
 				updateComboStd();
-				if(image.getType().equals("IMAGE"))
+				if (image.getType().equals("IMAGE"))
 					updateComboLamps();
 			} else if (y == jTable1Cols.get("Is standard?")) {
 				ImageEntity image = dataService.getImageRepository()
 						.findByFileName((String) this.jTable1.getValueAt(x, jTable1Cols.get("Image")));
 				image.setIsStandard((boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Is standard?")));
 				dataService.getImageRepository().save(image);
-				//Propagate consequences
-				if (!(boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Is standard?"))) {
+				// Propagate consequences
+				if (!image.isEnabled()) {
 					TableModel model = this.jTable1.getModel();
 					for (int i = 0; i < model.getRowCount(); i++)
-						if (model.getValueAt(i, jTable1Cols.get("Standard")) != null
-								&& model.getValueAt(i, jTable1Cols.get("Standard")).equals(image.getFileName())) {
+						if (image.getFileName().equals(model.getValueAt(i, jTable1Cols.get("Standard")))) {
 							String key = (String) this.jTable1.getValueAt(i, this.jTable1Cols.get("Image"));
 							if (tempStandards.containsKey(key))
 								tempStandards.remove(key);
@@ -1686,11 +1755,11 @@ public class Main extends javax.swing.JPanel {
 			} else if (y == jTable1Cols.get("Enabled")) {
 				ImageEntity image = dataService.getImageRepository()
 						.findByFileName((String) this.jTable1.getValueAt(x, jTable1Cols.get("Image")));
-				image.setEnabled((boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Enabled")));
+				image.setEnabled((boolean) jTable1.getValueAt(x, y));
 				dataService.getImageRepository().save(image);
-				//Propagate consequences for standards
+				// Propagate consequences for standards
 				if (image.isStandard()) {
-					if (!(boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Enabled"))) {
+					if (!image.isEnabled()) {
 						TableModel model = this.jTable1.getModel();
 						for (int i = 0; i < model.getRowCount(); i++)
 							if (model.getValueAt(i, jTable1Cols.get("Standard")) != null
@@ -1703,31 +1772,66 @@ public class Main extends javax.swing.JPanel {
 					} else {
 						String key = (String) this.jTable1.getValueAt(x, this.jTable1Cols.get("Image"));
 						tempStandards.put(key, key);
-						jTable1.setValueAt(jTable1.getValueAt(x, jTable1Cols.get("Image")), x, jTable1Cols.get("Standard"));
+						jTable1.setValueAt(jTable1.getValueAt(x, jTable1Cols.get("Image")), x,
+								jTable1Cols.get("Standard"));
 					}
 					updateComboStd();
 				}
-				//Propagate consequences for lamps
-				else if(image.getType().equals("LAMP")) {
-					if (!(boolean) this.jTable1.getValueAt(x, jTable1Cols.get("Enabled"))) {
-						TableModel model = this.jTable1.getModel();
-						for (int i = 0; i < model.getRowCount(); i++)
-							if (model.getValueAt(i, jTable1Cols.get("Lamp")) != null
-									&& model.getValueAt(i, jTable1Cols.get("Lamp")).equals(image.getFileName())) {
-								String key = (String) this.jTable1.getValueAt(i, this.jTable1Cols.get("Image"));
-								if (tempLamps.containsKey(key))
-									tempLamps.remove(key);
+				// Propagate consequences for lamps
+				else if (image.getType().equals("LAMP")) {
+					// HashSet<String> items = new HashSet<>();
+					// for (int i = 0; i < comboLamps.getItemCount(); i++)
+					// if (!image.getFileName().equals(comboLamps.getItemAt(i)))
+					// items.add((String) comboLamps.getItemAt(i));
+					// if it is grouped
+					if (image.isGrouped()) {
+						// disband the group and remove all associations
+						DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+						String groupName = (String) model.getValueAt(x, jTable1Cols.get("Target name"));
+						groupName = groupName.substring(groupName.indexOf("(") + 1, groupName.indexOf(")"));
+						for (int i = 0; i < model.getRowCount(); i++) {
+							if (groupName.equals(model.getValueAt(i, jTable1Cols.get("Lamp")))) {
+								if (tempLamps.containsKey(model.getValueAt(i, jTable1Cols.get("Image"))))
+									tempLamps.remove(model.getValueAt(i, jTable1Cols.get("Image")));
+								model.setValueAt("", i, jTable1Cols.get("Lamp"));
+							} else if (i != x && ((String) model.getValueAt(i, jTable1Cols.get("Target name")))
+									.endsWith(groupName + ")")) {
+								ImageEntity other = dataService.getImageRepository()
+										.findByFileName((String) model.getValueAt(i, jTable1Cols.get("Image")));
+								other.setGrouped(false);
+								dataService.getImageRepository().save(other);
+								model.setValueAt(other.getTargetName(), i, jTable1Cols.get("Target name"));
+								// items.add(other.getFileName());
+							} else if (i == x) {
+								image.setGrouped(false);
+								dataService.getImageRepository().save(image);
+								model.setValueAt(image.getTargetName(), i, jTable1Cols.get("Target name"));
+							}
+						}
+						// remove it from comboLamps
+						// comboLamps.removeAllItems();
+						// for (String item : items)
+						// comboLamps.addItem(item);
+					} else {
+						// if it is not grouped
+						// remove all associations
+						DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+						for (int i = 0; i < model.getRowCount(); i++) {
+							if (image.getFileName().equals(model.getValueAt(i, jTable1Cols.get("Lamp")))) {
+								if (tempLamps.containsKey(model.getValueAt(i, jTable1Cols.get("Image"))))
+									tempLamps.remove(model.getValueAt(i, jTable1Cols.get("Image")));
 								model.setValueAt("", i, jTable1Cols.get("Lamp"));
 							}
-					} else {
-						String key = (String) this.jTable1.getValueAt(x, this.jTable1Cols.get("Image"));
-						tempLamps.put(key, key);
-						jTable1.setValueAt(jTable1.getValueAt(x, jTable1Cols.get("Image")), x, jTable1Cols.get("Lamp"));
+						}
+						// remove it from comboLamps
+						// comboLamps.removeAllItems();
+						// for (String item : items)
+						// comboLamps.addItem(item);
 					}
 					updateComboLamps();
 				}
 			} else if (y == jTable1Cols.get("Lamp")) {
-				if (this.jTable1.getValueAt(x, y) == null || this.jTable1.getValueAt(x, y).toString().isEmpty()) {
+				if ("".equals(this.jTable1.getValueAt(x, y))) {
 					String key = (String) this.jTable1.getValueAt(x, this.jTable1Cols.get("Image"));
 					if (tempLamps.containsKey(key))
 						tempLamps.remove(key);
@@ -1736,7 +1840,7 @@ public class Main extends javax.swing.JPanel {
 					tempLamps.put(key, (String) this.jTable1.getValueAt(x, y));
 				}
 			} else if (y == jTable1Cols.get("Standard")) {
-				if (this.jTable1.getValueAt(x, y) == null || this.jTable1.getValueAt(x, y).toString().isEmpty()) {
+				if ("".equals(this.jTable1.getValueAt(x, y))) {
 					String key = (String) this.jTable1.getValueAt(x, this.jTable1Cols.get("Image"));
 					if (tempStandards.containsKey(key))
 						tempStandards.remove(key);
@@ -1744,24 +1848,30 @@ public class Main extends javax.swing.JPanel {
 					String key = (String) this.jTable1.getValueAt(x, this.jTable1Cols.get("Image"));
 					tempStandards.put(key, (String) this.jTable1.getValueAt(x, y));
 				}
-			} else if (y == jTable1Cols.get("Lines list")) {
-				//change lineslist
-				//TODO: add support for different lines list for different lamps
-				if(((String)this.jTable1.getValueAt(x, y)).toLowerCase().equals("fear"))
-					linelist="FeAr";
-				else if(((String)this.jTable1.getValueAt(x, y)).toLowerCase().equals("hefear"))
-					linelist="HeFeAr";
-				else if(((String)this.jTable1.getValueAt(x, y)).toLowerCase().equals("ne"))
-					linelist="Ne";
-				else if(((String)this.jTable1.getValueAt(x, y)).toLowerCase().equals("hgar"))
-					linelist="HgAr";
-				if(((String)this.jTable1.getValueAt(x, y)).toLowerCase().equals("hgarne"))
-					linelist="HgArNe";
-				TableModel model = this.jTable1.getModel();
-				for (int i = 0; i < model.getRowCount(); i++)
-					if (model.getValueAt(i, jTable1Cols.get("Type")).equals("LAMP"))
-						jTable1.setValueAt(linelist, i, jTable1Cols.get("Lines list"));
 			}
+			// else if (y == jTable1Cols.get("Lines list")) {
+			// // change lineslist
+			// // TODO: add support for different lines list for different
+			// // lamps
+			// if (((String) this.jTable1.getValueAt(x, y)) == null
+			// || ((String) this.jTable1.getValueAt(x, y)).isEmpty()) {
+			// if (((String) this.jTable1.getValueAt(x,
+			// y)).toLowerCase().equals("fear"))
+			// linelist = "FeAr";
+			// else if (((String) this.jTable1.getValueAt(x,
+			// y)).toLowerCase().equals("hefear"))
+			// linelist = "HeFeAr";
+			// else if (((String) this.jTable1.getValueAt(x,
+			// y)).toLowerCase().equals("ne"))
+			// linelist = "Ne";
+			// else if (((String) this.jTable1.getValueAt(x,
+			// y)).toLowerCase().equals("hgar"))
+			// linelist = "HgAr";
+			// else if (((String) this.jTable1.getValueAt(x,
+			// y)).toLowerCase().equals("hgarne"))
+			// linelist = "HgArNe";
+			// }
+			// }
 		}
 	}
 
@@ -1977,6 +2087,144 @@ public class Main extends javax.swing.JPanel {
 		this.jShowStep4.doClick();
 	}
 
+	private void jTable1MouseClicked(MouseEvent e) {
+		if (e.getButton() == MouseEvent.BUTTON3 && jTable1.getSelectedRowCount() == 2) {
+			popupMenu.setLocation(e.getLocationOnScreen());
+			popupMenu.setVisible(true);
+		} else
+			popupMenu.setVisible(false);
+	}
+
+	private void jTabbedPane1MouseClicked(MouseEvent e) {
+		if (popupMenu.isVisible()) {
+			jTable1.clearSelection();
+			popupMenu.setVisible(false);
+		}
+	}
+
+	private void popupGroupActionPerformed(ActionEvent e) {
+		groups++;
+		popupMenu.setVisible(false);
+		int rows[] = jTable1.getSelectedRows();
+		TableModel model = jTable1.getModel();
+		if (model.getValueAt(rows[0], jTable1Cols.get("Type")).equals("LAMP")
+				&& model.getValueAt(rows[1], jTable1Cols.get("Type")).equals("LAMP")) {
+			ImageEntity image1 = dataService.getImageRepository()
+					.findByFileName((String) model.getValueAt(rows[0], jTable1Cols.get("Image")));
+			ImageEntity image2 = dataService.getImageRepository()
+					.findByFileName((String) model.getValueAt(rows[1], jTable1Cols.get("Image")));
+			if (image1.isGrouped()) {
+				// Disband the old group
+				ImageEntity other = null;
+				String key = (String) model.getValueAt(rows[0], jTable1Cols.get("Target name"));
+				key = key.substring(key.indexOf("(") + 1, key.indexOf(")"));
+				for (int i = 0; i < model.getRowCount(); i++)
+					if (i != rows[0]
+							&& ((String) model.getValueAt(i, jTable1Cols.get("Target name"))).endsWith(key + ")")) {
+						other = dataService.getImageRepository()
+								.findByFileName((String) model.getValueAt(i, jTable1Cols.get("Image")));
+						model.setValueAt(other.getTargetName(), i, jTable1Cols.get("Target name"));
+						other.setGrouped(false);
+						dataService.getImageRepository().save(other);
+						break;
+					}
+				// Delete old associations
+				for (int i = 0; i < model.getRowCount(); i++) {
+					if (i == rows[0] || key.equals(jTable1.getValueAt(i, jTable1Cols.get("Lamp")))) {
+						jTable1.setValueAt("", i, jTable1Cols.get("Lamp"));
+						if (tempLamps.containsKey(jTable1.getValueAt(i, jTable1Cols.get("Image"))))
+							tempLamps.remove((String) jTable1.getValueAt(i, jTable1Cols.get("Image")));
+					}
+				}
+			}
+			if (image2.isGrouped()) {
+				// Disband the old group
+				ImageEntity other = null;
+				String key = (String) model.getValueAt(rows[1], jTable1Cols.get("Target name"));
+				key = key.substring(key.indexOf("(") + 1, key.indexOf(")"));
+				for (int i = 0; i < model.getRowCount(); i++)
+					if (i != rows[1]
+							&& ((String) model.getValueAt(i, jTable1Cols.get("Target name"))).endsWith(key + ")")) {
+						other = dataService.getImageRepository()
+								.findByFileName((String) model.getValueAt(i, jTable1Cols.get("Image")));
+						model.setValueAt(other.getTargetName(), i, jTable1Cols.get("Target name"));
+						other.setGrouped(false);
+						dataService.getImageRepository().save(other);
+						break;
+					}
+				// Delete old associations
+				for (int i = 0; i < model.getRowCount(); i++) {
+					if (i == rows[1] || key.equals(jTable1.getValueAt(i, jTable1Cols.get("Lamp")))) {
+						jTable1.setValueAt("", i, jTable1Cols.get("Lamp"));
+						if (tempLamps.containsKey(jTable1.getValueAt(i, jTable1Cols.get("Image"))))
+							tempLamps.remove((String) jTable1.getValueAt(i, jTable1Cols.get("Image")));
+					}
+				}
+			}
+
+			// create the new group
+			image1.setGrouped(true);
+			image2.setGrouped(true);
+			dataService.getImageRepository().save(image1);
+			dataService.getImageRepository().save(image2);
+			// update the table
+			model.setValueAt(image1.getTargetName() + " (LAMP" + groups + ")", rows[0], jTable1Cols.get("Target name"));
+			model.setValueAt(image2.getTargetName() + " (LAMP" + groups + ")", rows[1], jTable1Cols.get("Target name"));
+			model.setValueAt(true, rows[0], jTable1Cols.get("Enabled"));
+			model.setValueAt(true, rows[1], jTable1Cols.get("Enabled"));
+			model.setValueAt("HgArNe", rows[0], jTable1Cols.get("Lines list"));
+			model.setValueAt("HgArNe", rows[1], jTable1Cols.get("Lines list"));
+			// update the associations
+			for (int i = 0; i < model.getRowCount(); i++) {
+				if (image1.getFileName().equals(jTable1.getValueAt(i, jTable1Cols.get("Lamp")))
+						|| image2.getFileName().equals(jTable1.getValueAt(i, jTable1Cols.get("Lamp")))) {
+					jTable1.setValueAt("LAMP" + groups, i, jTable1Cols.get("Lamp"));
+					if (tempLamps.containsKey(jTable1.getValueAt(i, jTable1Cols.get("Image"))))
+						tempLamps.put((String) jTable1.getValueAt(i, jTable1Cols.get("Image")), "LAMP" + groups);
+				}
+			}
+		}
+		jTable1.clearSelection();
+		updateComboLamps();
+	}
+
+	private void popupDisbandActionPerformed(ActionEvent e) {
+		popupMenu.setVisible(false);
+		int rows[] = jTable1.getSelectedRows();
+		TableModel model = jTable1.getModel();
+		for (int idx : rows) {
+			ImageEntity image = dataService.getImageRepository()
+					.findByFileName((String) model.getValueAt(idx, jTable1Cols.get("Image")));
+			// Delete old group for image
+			image.setGrouped(false);
+			dataService.getImageRepository().save(image);
+			String key = (String) model.getValueAt(idx, jTable1Cols.get("Target name"));
+			model.setValueAt(image.getTargetName(), idx, jTable1Cols.get("Target name"));
+			if (key.endsWith(")")) {
+				key = key.substring(key.indexOf("(") + 1, key.indexOf(")"));
+				// Delete old associations
+				for (int i = 0; i < model.getRowCount(); i++) {
+					if (((String) model.getValueAt(i, jTable1Cols.get("Target name"))).endsWith(key + ")")) {
+						image = dataService.getImageRepository()
+								.findByFileName((String) model.getValueAt(i, jTable1Cols.get("Image")));
+						if (image.isGrouped()) {
+							image.setGrouped(false);
+							dataService.getImageRepository().save(image);
+							model.setValueAt(image.getTargetName(), i, jTable1Cols.get("Target name"));
+						}
+					} else if (jTable1.getValueAt(i, jTable1Cols.get("Lamp")) != null
+							&& jTable1.getValueAt(i, jTable1Cols.get("Lamp")).equals(key)) {
+						if (tempLamps.containsKey(jTable1.getValueAt(i, jTable1Cols.get("Image"))))
+							tempLamps.remove(jTable1.getValueAt(i, jTable1Cols.get("Image")));
+						jTable1.setValueAt("", i, jTable1Cols.get("Lamp"));
+					}
+				}
+			}
+		}
+		jTable1.clearSelection();
+		updateComboLamps();
+	}
+
 	public void parseFile(String filePath) throws FileNotFoundException, IOException {
 		log.info("Clearing jTable1...");
 		DefaultTableModel model = ((DefaultTableModel) this.jTable1.getModel());
@@ -1995,6 +2243,7 @@ public class Main extends javax.swing.JPanel {
 		dataService.getObservationRepository().deleteAll();
 		dataService.getScienceRepository().deleteAll();
 		dataService.getStandardRepository().deleteAll();
+//		dataService.getLampRepository().query();
 		dataService.getLampRepository().deleteAll();
 		dataService.getFlatRepository().deleteAll();
 		dataService.getImageRepository().deleteAll();
@@ -2015,25 +2264,25 @@ public class Main extends javax.swing.JPanel {
 				data[this.jTable1Cols.get("Is standard?")] = item.isStandard();
 				data[this.jTable1Cols.get("Type")] = item.getType();
 				data[this.jTable1Cols.get("Lines list")] = "";
-				if(item.getType().equals("LAMP") && (item.getTargetName().toLowerCase().equals("fear") ||
-						item.getTargetName().toLowerCase().equals("hefear") ||
-						item.getTargetName().toLowerCase().equals("ne") ||
-						item.getTargetName().toLowerCase().equals("hgar") ||
-						item.getTargetName().toLowerCase().equals("hgarne"))) {
-					if(item.getTargetName().toLowerCase().equals("fear"))
-						linelist="FeAr";
-					else if(item.getTargetName().toLowerCase().equals("hefear"))
-						linelist="HeFeAr";
-					else if(item.getTargetName().toLowerCase().equals("ne"))
-						linelist="Ne";
-					else if(item.getTargetName().toLowerCase().equals("hgar"))
-						linelist="HgAr";
-					if(item.getTargetName().toLowerCase().equals("hgarne"))
-						linelist="HgArNe";
-					
+				if (item.getType().equals("LAMP") && (item.getTargetName().toLowerCase().equals("fear")
+						|| item.getTargetName().toLowerCase().equals("hefear")
+						|| item.getTargetName().toLowerCase().equals("ne")
+						|| item.getTargetName().toLowerCase().equals("hgar")
+						|| item.getTargetName().toLowerCase().equals("hgarne"))) {
+					String linelist = "";
+					if (item.getTargetName().toLowerCase().equals("fear"))
+						linelist = "FeAr";
+					else if (item.getTargetName().toLowerCase().equals("hefear"))
+						linelist = "HeFeAr";
+					else if (item.getTargetName().toLowerCase().equals("ne"))
+						linelist = "Ne";
+					else if (item.getTargetName().toLowerCase().equals("hgar"))
+						linelist = "HgAr";
+					if (item.getTargetName().toLowerCase().equals("hgarne"))
+						linelist = "HgArNe";
+
 					data[this.jTable1Cols.get("Lines list")] = linelist;
-				}
-				else
+				} else
 					data[this.jTable1Cols.get("Lines list")] = "";
 				data[this.jTable1Cols.get("Lamp")] = "";
 				if (item.isStandard()) {
@@ -2053,18 +2302,22 @@ public class Main extends javax.swing.JPanel {
 		log.info("Updating jTable1...");
 		log.trace("Creating cell editors...");
 		log.trace("Creating comboStd...");
-		if(comboStd == null) {
+		if (comboStd == null) {
 			comboStd = new JComboBox();
 			comboStd.addActionListener(autoHide);
+			this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Standard"))
+					.setCellEditor(new DefaultCellEditor(comboStd));
 		}
 		updateComboStd();
 		log.trace("Done. Creating comboLamps...");
-		if(comboLamps == null) {
+		if (comboLamps == null) {
 			comboLamps = new JComboBox();
-			comboLamps.addActionListener(autoHide);			
+			comboLamps.addActionListener(autoHide);
+			this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Lamp"))
+					.setCellEditor(new DefaultCellEditor(comboLamps));
 		}
 		updateComboLamps();
-		if(comboLinesList == null) {
+		if (comboLinesList == null) {
 			comboLinesList = new JComboBox();
 			comboLinesList.addActionListener(autoHide);
 			comboLinesList.addItem("FeAr");
@@ -2072,13 +2325,9 @@ public class Main extends javax.swing.JPanel {
 			comboLinesList.addItem("Ne");
 			comboLinesList.addItem("HgAr");
 			comboLinesList.addItem("HgArNe");
+			this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Lines list"))
+					.setCellEditor(new DefaultCellEditor(comboLinesList));
 		}
-		this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Lamp"))
-				.setCellEditor(new DefaultCellEditor(comboLamps));
-		this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Standard"))
-				.setCellEditor(new DefaultCellEditor(comboStd));
-		this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Lines list"))
-		.setCellEditor(new DefaultCellEditor(comboLinesList));
 		log.info("Done. Updating the table...");
 		List<ImageEntity> images = new ArrayList<ImageEntity>();
 		for (ImageEntity item : dataService.getImageRepository().findAll())
@@ -2113,14 +2362,30 @@ public class Main extends javax.swing.JPanel {
 		for (String entity : dataService.getImageRepository().getFileNameByIsStandardAndIsEnabled(true, true))
 			comboStd.addItem(entity);
 	}
-	
+
 	private void updateComboLamps() {
 		comboLamps.removeAllItems();
 		comboLamps.addItem("");
-		for (String entity : dataService.getImageRepository().getFileNameByIsStandardAndIsEnabled(true, true))
-			comboLamps.addItem(entity);
+		HashSet<String> items = new HashSet<>();
+		for (ImageEntity entity : dataService.getImageRepository().findByType("LAMP"))
+			if (entity.isEnabled()) {
+				if (!entity.isGrouped())
+					items.add(entity.getFileName());
+				else {
+					TableModel model = jTable1.getModel();
+					for (int i = 0; i < model.getRowCount(); i++)
+						if (entity.getFileName().equals(model.getValueAt(i, jTable1Cols.get("Image")))) {
+							String key = (String) model.getValueAt(i, jTable1Cols.get("Target name"));
+							key = key.substring(key.indexOf("(") + 1, key.indexOf(")"));
+							items.add(key);
+							break;
+						}
+				}
+			}
+		for (String item : items)
+			comboLamps.addItem(item);
 	}
-	
+
 	public void updateTasksTable() {
 		log.info("Update table jTable2...");
 		DefaultTableModel model = (DefaultTableModel) this.jTable2.getModel();
@@ -2180,13 +2445,56 @@ public class Main extends javax.swing.JPanel {
 		log.info("LAMP");
 		images = dataService.getImageRepository().findByType("LAMP");
 		log.trace("Associating with the images of type \"LAMP\"...");
-		ArrayList<LampImage> lamps = new ArrayList<>();
+		HashSet<LampImage> lamps = new HashSet<>();
 		for (ImageEntity image : images) {
-			LampImage lamp = new LampImage();
-			lamp.setFlat(flat);
-			lamp.setImage(image);
-			image.setLamp(lamp);
-			lamps.add(lamp);
+			if (image.isEnabled()) {
+				if (!image.isGrouped()) {
+					LampImage lamp = new LampImage();
+					lamp.setFlat(flat);
+					if (lamp.getImages() == null)
+						lamp.setImages(new ArrayList<ImageEntity>());
+					lamp.getImages().add(image);
+					lamp.setLampName(image.getFileName());
+					DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+					for (int i = 0; i < model.getRowCount(); i++)
+						if (model.getValueAt(i, jTable1Cols.get("Image")).equals(image.getFileName()))
+							lamp.setLineList((String) model.getValueAt(i, jTable1Cols.get("Lines list")));
+					image.setLamp(lamp);
+					dataService.getLampRepository().save(lamp);
+				} else {
+					String groupName = "";
+					DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+					for (int i = 0; i < model.getRowCount(); i++)
+						if (model.getValueAt(i, jTable1Cols.get("Image")).equals(image.getFileName())) {
+							groupName = (String) model.getValueAt(i, jTable1Cols.get("Target name"));
+							break;
+						}
+					groupName = groupName.substring(groupName.indexOf("(") + 1, groupName.indexOf(")"));
+					LampImage lamp = dataService.getLampRepository().findByLampName(groupName);
+					if (lamp != null) {
+						if (lamp.getImages().size() < 2) {
+							image.setLamp(lamp);
+							// lamp.setFlat(flat);
+							lamp.getImages().add(image);
+							// lamps.add(lamp);
+						}
+					} else {
+						lamp = new LampImage();
+						lamp.setFlat(flat);
+						lamp.setImages(new ArrayList<ImageEntity>());
+						lamp.getImages().add(image);
+						lamp.setLampName(groupName);
+						for (int i = 0; i < model.getRowCount(); i++)
+							if (model.getValueAt(i, jTable1Cols.get("Image")).equals(image.getFileName())) {
+								lamp.setLineList((String) model.getValueAt(i, jTable1Cols.get("Lines list")));
+								break;
+							}
+						image.setLamp(lamp);
+						dataService.getLampRepository().save(lamp);
+						lamps.add(lamp);
+					}
+				}
+			}
 		}
 		dataService.getLampRepository().save(lamps);
 		dataService.getImageRepository().save(images);
@@ -2205,11 +2513,13 @@ public class Main extends javax.swing.JPanel {
 			image.setStandard(standard);
 			standard.setFlat(flat);
 			if (this.tempLamps.containsKey(image.getFileName())) {
-				ImageEntity lampImage = dataService.getImageRepository()
-						.findByFileName(this.tempLamps.get(image.getFileName()));
-				standard.setLamp(lampImage.getLamp());
-				lampImage.getLamp().getStandardImages().add(standard);
-				lamps.add(lampImage.getLamp());
+				LampImage lamp = dataService.getLampRepository()
+						.findByLampName(this.tempLamps.get(image.getFileName()));
+				standard.setLamp(lamp);
+				if (lamp.getStandardImages() == null)
+					lamp.setStandardImages(new ArrayList<StandardImage>());
+				lamp.getStandardImages().add(standard);
+				lamps.add(lamp);
 			}
 			standards.add(standard);
 		}
@@ -2229,11 +2539,11 @@ public class Main extends javax.swing.JPanel {
 			science.setImage(image);
 			science.setFlat(flat);
 			if (this.tempLamps.containsKey(image.getFileName())) {
-				ImageEntity lampImage = dataService.getImageRepository()
-						.findByFileName(this.tempLamps.get(image.getFileName()));
-				science.setLamp(lampImage.getLamp());
-				lampImage.getLamp().getScienceImages().add(science);
-				lamps.add(lampImage.getLamp());
+				LampImage lamp = dataService.getLampRepository()
+						.findByLampName(this.tempLamps.get(image.getFileName()));
+				science.setLamp(lamp);
+				lamp.getScienceImages().add(science);
+				lamps.add(lamp);
 			}
 			if (this.tempStandards.containsKey(image.getFileName())) {
 				ImageEntity standardImage = dataService.getImageRepository()
@@ -2294,23 +2604,18 @@ public class Main extends javax.swing.JPanel {
 			}
 			writer = new PrintWriter(Paths.get(this.basePath, "list_obj").toFile());
 			List<Observation> observations = dataService.getObservationRepository().findByIsEnabled(true);
-			HashSet<String> lampName = new HashSet<String>();
 			for (Observation observation : observations) {
-				int i = 0;
 				for (ScienceImage science : observation.getScienceImages()) {
-					TableModel model = jTable1.getModel();
-					while (i < model.getRowCount()
-							&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(science.getImage().getFileName()))
-						i++;
-					if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
-						temp += science.getImage().getFileName() + "\t" + science.getLamp().getImage().getFileName()
-								+ "\n";
-						lampName.add(science.getLamp().getImage().getFileName());
-						i++;
+					if (science.getImage().isEnabled()) {
+						temp += science.getImage().getFileName() + "\t" + science.getLamp().getLampName() + "\n";
 					}
 				}
+				// // Always add the standard to wavelength calibration
+				// temp += observation.getStandard().getImage().getFileName() +
+				// "\t"
+				// + observation.getStandard().getLamp().getLampName() + "\n";
 			}
-			for (String item : lampName)
+			for (String item : dataService.getImageRepository().getFileNameByTypeAndIsEnabled("LAMP", true))
 				tempLamp += item + "\n";
 
 			writer.print(temp.trim());
@@ -2359,17 +2664,9 @@ public class Main extends javax.swing.JPanel {
 					}
 					writer = new PrintWriter(Paths.get(this.basePath, "wc" + temp).toFile());
 					temp = "";
-					int i = 0;
-					for (ScienceImage item : observation.getScienceImages()) {
-						TableModel model = jTable1.getModel();
-						while (i < model.getRowCount()
-								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
-							i++;
-						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+					for (ScienceImage item : observation.getScienceImages())
+						if (item.getImage().isEnabled())
 							temp += item.getImage().getFileName() + "\n";
-							i++;
-						}
-					}
 					writer.print(temp.trim());
 					writer.close();
 				}
@@ -2390,17 +2687,9 @@ public class Main extends javax.swing.JPanel {
 					}
 					writer = new PrintWriter(Paths.get(this.basePath, "fc" + temp).toFile());
 					temp = "";
-					int i = 0;
-					for (ScienceImage item : observation.getScienceImages()) {
-						TableModel model = jTable1.getModel();
-						while (i < model.getRowCount()
-								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
-							i++;
-						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+					for (ScienceImage item : observation.getScienceImages())
+						if (item.getImage().isEnabled())
 							temp += item.getImage().getFileName() + ".fc\n";
-							i++;
-						}
-					}
 					writer.print(temp + "\n");
 					writer.close();
 				}
@@ -2420,17 +2709,9 @@ public class Main extends javax.swing.JPanel {
 					}
 					writer = new PrintWriter(Paths.get(this.basePath, "bg" + temp).toFile());
 					temp = "";
-					int i = 0;
-					for (ScienceImage item : observation.getScienceImages()) {
-						TableModel model = jTable1.getModel();
-						while (i < model.getRowCount()
-								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
-							i++;
-						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+					for (ScienceImage item : observation.getScienceImages())
+						if (item.getImage().isEnabled())
 							temp += item.getImage().getFileName() + ".bg\n";
-							i++;
-						}
-					}
 					writer.print(temp + "\n");
 					writer.close();
 				}
@@ -2450,17 +2731,9 @@ public class Main extends javax.swing.JPanel {
 					}
 					writer = new PrintWriter(Paths.get(this.basePath, "md" + temp).toFile());
 					temp = "";
-					int i = 0;
-					for (ScienceImage item : observation.getScienceImages()) {
-						TableModel model = jTable1.getModel();
-						while (i < model.getRowCount()
-								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
-							i++;
-						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+					for (ScienceImage item : observation.getScienceImages())
+						if (item.getImage().isEnabled())
 							temp += item.getImage().getFileName() + ".md\n";
-							i++;
-						}
-					}
 					writer.print(temp + "\n");
 					writer.close();
 				}
@@ -2531,18 +2804,24 @@ public class Main extends javax.swing.JPanel {
 				writer = new PrintWriter(Paths.get(this.basePath, "list_obj_" + targetNormalized).toFile());
 				HashSet<String> lampName = new HashSet<String>();
 				for (ScienceImage science : observation.getScienceImages()) {
-					int i = 0;
-					TableModel model = jTable1.getModel();
-					while (i < model.getRowCount()
-							&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(science.getImage().getFileName()))
-						i++;
-					if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
-						temp += science.getImage().getFileName() + "\t" + science.getLamp().getImage().getFileName()
-								+ "\n";
-						lampName.add(science.getLamp().getImage().getFileName());
-						i++;
+					if (science.getImage().isEnabled()) {
+						if (science.getLamp().getImages().get(0).isGrouped())
+							temp += science.getImage().getFileName() + "\t" + science.getLamp().getLampName()
+									+ normalizedTargetName(observation.getTargetName()) + "\n";
+						else
+							temp += science.getImage().getFileName() + "\t" + science.getLamp().getLampName() + "\n";
+						for (ImageEntity image : science.getLamp().getImages())
+							lampName.add(image.getFileName());
 					}
 				}
+				// Always add the standard to the wavelength calibration
+				if (observation.getStandard().getLamp().getImages().size() == 1)
+					temp += observation.getStandard().getImage().getFileName() + "\t"
+							+ observation.getStandard().getLamp().getLampName() + "\n";
+				else
+					temp += observation.getStandard().getImage().getFileName() + "\t"
+							+ observation.getStandard().getLamp().getLampName()
+							+ normalizedTargetName(observation.getTargetName()) + "\n";
 				for (String item : lampName)
 					tempLamp += item + "\n";
 
@@ -2590,17 +2869,9 @@ public class Main extends javax.swing.JPanel {
 					}
 					writer = new PrintWriter(Paths.get(this.basePath, "wc" + targetNormalized).toFile());
 					temp = "";
-					int i = 0;
-					for (ScienceImage item : observation.getScienceImages()) {
-						TableModel model = jTable1.getModel();
-						while (i < model.getRowCount()
-								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
-							i++;
-						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+					for (ScienceImage item : observation.getScienceImages())
+						if (item.getImage().isEnabled())
 							temp += item.getImage().getFileName() + "\n";
-							i++;
-						}
-					}
 					writer.print(temp.trim());
 					writer.close();
 				}
@@ -2618,17 +2889,9 @@ public class Main extends javax.swing.JPanel {
 					}
 					writer = new PrintWriter(Paths.get(this.basePath, "fc" + targetNormalized).toFile());
 					temp = "";
-					int i = 0;
-					for (ScienceImage item : observation.getScienceImages()) {
-						TableModel model = jTable1.getModel();
-						while (i < model.getRowCount()
-								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
-							i++;
-						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+					for (ScienceImage item : observation.getScienceImages())
+						if (item.getImage().isEnabled())
 							temp += item.getImage().getFileName() + ".fc\n";
-							i++;
-						}
-					}
 					writer.print(temp.trim() + "\n");
 					writer.close();
 				}
@@ -2645,24 +2908,17 @@ public class Main extends javax.swing.JPanel {
 					}
 					writer = new PrintWriter(Paths.get(this.basePath, "bg" + targetNormalized).toFile());
 					temp = "";
-					int i = 0;
-					for (ScienceImage item : observation.getScienceImages()) {
-						TableModel model = jTable1.getModel();
-						while (i < model.getRowCount()
-								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
-							i++;
-						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+					for (ScienceImage item : observation.getScienceImages())
+						if (item.getImage().isEnabled())
 							temp += item.getImage().getFileName() + ".bg\n";
-							i++;
-						}
-					}
 					writer.print(temp.trim() + "\n");
 					writer.close();
 
 					// Generate background cursor file
-					if(!Paths.get(this.basePath, "bgcols").toFile().exists()) {
+					if (!Paths.get(this.basePath, "bgcols").toFile().exists()) {
 						PrintWriter bgcols = new PrintWriter(Paths.get(this.basePath, "bgcols").toFile());
-						bgcols.write(this.jBackgroundStart.getValue().toString() + " " + this.jBackgroundEnd.getValue().toString());
+						bgcols.write(this.jBackgroundStart.getValue().toString() + " "
+								+ this.jBackgroundEnd.getValue().toString());
 						bgcols.close();
 					}
 				}
@@ -2679,17 +2935,9 @@ public class Main extends javax.swing.JPanel {
 					}
 					writer = new PrintWriter(Paths.get(this.basePath, "md" + targetNormalized).toFile());
 					temp = "";
-					for (ScienceImage item : observation.getScienceImages()) {
-						TableModel model = jTable1.getModel();
-						int i = 0;
-						while (i < model.getRowCount()
-								&& !model.getValueAt(i, jTable1Cols.get("Image")).equals(item.getImage().getFileName()))
-							i++;
-						if ((boolean) model.getValueAt(i, jTable1Cols.get("Enabled")) == true) {
+					for (ScienceImage item : observation.getScienceImages())
+						if (item.getImage().isEnabled())
 							temp += item.getImage().getFileName() + ".md\n";
-							i++;
-						}
-					}
 					writer.print(temp.trim() + "\n");
 					writer.close();
 				}
@@ -2713,37 +2961,74 @@ public class Main extends javax.swing.JPanel {
 				writer.println("from pyraf import iraf");
 				writer.println("os.chdir(\"" + this.basePath + "\")");
 				writer.println("iraf.asgred(_doprint=1)");
-				// exec prered2
-				writer.println("print(\"prered2\")");
-				writer.println(new String(new char[80]).replace("\0", "#"));
-				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
-				writer.println(new String(new char[80]).replace("\0", "#"));
-				writer.println("iraf.prered2(flat=\"list_flat_" + targetNormalized + "\", comp=\"list_lamps_"
-						+ targetNormalized + "\", object=\"list_obj_" + targetNormalized + "\", outflat=\"flat."
-						+ targetNormalized + "\", trimsec=[1:2040,40:490], mode=\"ql\")");
-				// exec wlcal
-				writer.println("print(\"wlcal\")");
-				writer.println(new String(new char[80]).replace("\0", "#"));
-				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
-				writer.println(new String(new char[80]).replace("\0", "#"));
-				String firstLamp = dataService.getScienceRepository().getLamps().get(0);
-				writer.println("iraf.wlcal(input=\"list_obj_" + targetNormalized + "\", refer=\"" + firstLamp + "\","
-						+ " linelis=\"" + linelist.toLowerCase() + "\", mode=\"ql\")");
-				// exec fcal
-				writer.println("print(\"fcal\")");
-				writer.println(new String(new char[80]).replace("\0", "#"));
-				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("fcal", 78));
-				writer.println(new String(new char[80]).replace("\0", "#"));
-				writer.println("iraf.fcal(obj=\"wl" + targetNormalized + "\", stand=\""
-						+ observation.getStandard().getImage().getFileName() + "\", dir=\"onedstds$"
-						+ dataService.getStandardAtlas()
-								.findByStandardName(observation.getStandard().getImage().getTargetName())
-								.getCatalogueName()
-						+ "/\", " + "star=\""
-						+ dataService.getStandardAtlas()
-								.findByStandardName(observation.getStandard().getImage().getTargetName()).getDatName()
-						+ "\", mode=\"ql\")");
+				if (observation.isDoPrered()) {
+					// exec prered2
+					writer.println("print(\"prered2\")");
+					writer.println(new String(new char[80]).replace("\0", "#"));
+					writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
+					writer.println(new String(new char[80]).replace("\0", "#"));
+					writer.println("iraf.prered2(flat=\"list_flat_" + targetNormalized + "\", comp=\"list_lamps_"
+							+ targetNormalized + "\", object=\"list_obj_" + targetNormalized + "\", outflat=\"flat."
+							+ targetNormalized + "\", trimsec=[1:2040,40:490], mode=\"ql\")");
+				}
 
+				if (observation.isDoWlcal()) {
+					HashSet<LampImage> lamps = new HashSet<>();
+					for (ScienceImage science : observation.getScienceImages()) {
+						if (science.getLamp().getImages().get(0).isEnabled()
+								&& science.getLamp().getImages().get(0).isGrouped())
+							lamps.add(science.getLamp());
+					}
+					if (lamps.size() > 0) {
+						// exec imarith
+						writer.println("print(\"imarith\")");
+						writer.println(new String(new char[80]).replace("\0", "#"));
+						writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("imarith", 78));
+						writer.println(new String(new char[80]).replace("\0", "#"));
+						for (LampImage lamp : lamps)
+							writer.println("iraf.imarith(operand1=\"" + lamp.getImages().get(0).getFileName() + ".b\","
+									+ " op=\"+\",operand2=\"" + lamp.getImages().get(1).getFileName() + ".b\",result=\""
+									+ lamp.getLampName() + normalizedTargetName(observation.getTargetName()) + ".b\")");
+
+						// exec wlcal
+						writer.println("print(\"wlcal\")");
+						writer.println(new String(new char[80]).replace("\0", "#"));
+						writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
+						writer.println(new String(new char[80]).replace("\0", "#"));
+						writer.println("iraf.wlcal(input=\"list_obj_" + targetNormalized + "\", refer=\""
+								+ observation.getScienceImages().get(0).getLamp().getLampName()
+								+ normalizedTargetName(observation.getTargetName()) + "\"," + " linelis=\""
+								+ observation.getScienceImages().get(0).getLamp().getLineList().toLowerCase()
+								+ "\", mode=\"ql\")");
+					} else {
+						// exec wlcal
+						writer.println("print(\"wlcal\")");
+						writer.println(new String(new char[80]).replace("\0", "#"));
+						writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
+						writer.println(new String(new char[80]).replace("\0", "#"));
+						writer.println("iraf.wlcal(input=\"list_obj_" + targetNormalized + "\", refer=\""
+								+ observation.getScienceImages().get(0).getLamp().getLampName() + "\"," + " linelis=\""
+								+ observation.getScienceImages().get(0).getLamp().getLineList().toLowerCase()
+								+ "\", mode=\"ql\")");
+					}
+				}
+				if (observation.isDoFcal()) {
+					// exec fcal
+					writer.println("print(\"fcal\")");
+					writer.println(new String(new char[80]).replace("\0", "#"));
+					writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("fcal", 78));
+					writer.println(new String(new char[80]).replace("\0", "#"));
+					writer.println("iraf.fcal(obj=\"wl" + targetNormalized + "\", stand=\""
+							+ observation.getStandard().getImage().getFileName() + "\", dir=\"onedstds$"
+							+ dataService.getStandardAtlas()
+									.findByStandardName(observation.getStandard().getImage().getTargetName())
+									.getCatalogueName()
+							+ "/\", " + "star=\""
+							+ dataService.getStandardAtlas()
+									.findByStandardName(observation.getStandard().getImage().getTargetName())
+									.getDatName()
+							+ "\", mode=\"ql\")");
+				}
 				// exec background
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("background", 78));
@@ -2752,10 +3037,9 @@ public class Main extends javax.swing.JPanel {
 					for (ScienceImage image : observation.getScienceImages())
 						if (image.getImage().isEnabled()) {
 							writer.println("print(\"background\")");
-							writer.println(
-									"iraf.background(input=\"" + image.getImage().getFileName() + ".fc\", output=\""
-											+ image.getImage().getFileName() + ".bg\", axis=2," + " mode=\"ql\", "
-													+ "Stdin=\"bgcols\")");
+							writer.println("iraf.background(input=\"" + image.getImage().getFileName()
+									+ ".fc\", output=\"" + image.getImage().getFileName() + ".bg\", axis=2,"
+									+ " mode=\"ql\", " + "Stdin=\"bgcols\")");
 						}
 				// exec apall
 				writer.println("print(\"apall\")");
@@ -2783,15 +3067,23 @@ public class Main extends javax.swing.JPanel {
 				if (observation.isDoImcopy())
 					writer.println("iraf.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
 							+ "]\", output=\"" + targetNormalized + ".obj\", mode=\"ql\")");
-			} catch (IOException ex) {
+			} catch (
+
+			IOException ex)
+
+			{
 				log.fatal(ex.getMessage(), ex);
 				JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-			} finally {
+			} finally
+
+			{
 				if (writer != null)
 					writer.close();
 			}
 			log.info("Done.");
+
 		}
+
 	}
 
 	public void writeOneGiantScript() {
@@ -2818,21 +3110,44 @@ public class Main extends javax.swing.JPanel {
 			writer.println("from pyraf import iraf");
 			writer.println("os.chdir(\"" + this.basePath + "\")");
 			writer.println("iraf.asgred()");
-			// exec prered2
-			writer.println("print(\"prered2\")");
-			writer.println(new String(new char[80]).replace("\0", "#"));
-			writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
-			writer.println(new String(new char[80]).replace("\0", "#"));
-			writer.println("iraf.prered2(flat=\"list_flat\", comp=\"list_lamps\", object=\"list_obj\","
-					+ "trimsec=\"[1:2040,40:490]\", outflat=\"flat.all\", mode=\"ql\")");
-			// exec wlcal
-			writer.println("print(\"wlcal\")");
-			writer.println(new String(new char[80]).replace("\0", "#"));
-			writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
-			writer.println(new String(new char[80]).replace("\0", "#"));
-			String firstLamp = dataService.getScienceRepository().getLamps().get(0);
-			writer.println(
-					"iraf.wlcal(input=\"list_obj\", refer=\"" + firstLamp + "\", linelis=\"" + linelist.toLowerCase() + "\", mode=\"ql\")");
+			if (this.generatedList.containsKey("all") && this.generatedList.get("all").contains("list_flat")) {
+				// exec prered2
+				writer.println("print(\"prered2\")");
+				writer.println(new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
+				writer.println(new String(new char[80]).replace("\0", "#"));
+				writer.println("iraf.prered2(flat=\"list_flat\", comp=\"list_lamps\", object=\"list_obj\","
+						+ "trimsec=\"[1:2040,40:490]\", outflat=\"flat.all\", mode=\"ql\")");
+			}
+			List<ImageEntity> groups = dataService.getImageRepository().findByGrouped(true);
+			if (groups != null && groups.size() > 0) {
+				HashSet<LampImage> lamps = new HashSet<>();
+				for (ImageEntity image : groups)
+					if (image.isEnabled())
+						lamps.add(image.getLamp());
+
+				// exec imarith
+				writer.println("print(\"imarith\")");
+				writer.println(new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("imarith", 78));
+				writer.println(new String(new char[80]).replace("\0", "#"));
+				for (LampImage lamp : lamps)
+					writer.println("iraf.imarith(operand1=\"" + lamp.getImages().get(0).getFileName() + ".b\","
+							+ " op=\"+\",operand2=\"" + lamp.getImages().get(1).getFileName() + ".b\",result=\""
+							+ lamp.getLampName() + ".b\")");
+
+			}
+			if (this.generatedList.containsKey("all") && this.generatedList.get("all").contains("list_obj")) {
+				// exec wlcal
+				writer.println("print(\"wlcal\")");
+				writer.println(new String(new char[80]).replace("\0", "#"));
+				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
+				writer.println(new String(new char[80]).replace("\0", "#"));
+				String firstLamp = dataService.getScienceRepository().getLamps().get(0);
+				writer.println("iraf.wlcal(input=\"list_obj\", refer=\"" + firstLamp + "\", linelis=\""
+						+ dataService.getLampRepository().findByLampName(firstLamp).getLineList().toLowerCase()
+						+ "\", mode=\"ql\")");
+			}
 			// exec fcal
 			writer.println("print(\"fcal\")");
 			for (StandardImage standard : dataService.getStandardRepository().findAll()) {
@@ -2860,19 +3175,19 @@ public class Main extends javax.swing.JPanel {
 				String targetNormalized = normalizedTargetName(observation.getTargetName());
 				// exec background
 				if (observation.isDoBackground())
-					if(!Paths.get(this.basePath, "bgcols").toFile().exists()) {
+					if (!Paths.get(this.basePath, "bgcols").toFile().exists()) {
 						PrintWriter bgcols = new PrintWriter(Paths.get(this.basePath, "bgcols").toFile());
-						bgcols.write(this.jBackgroundStart.getValue().toString() + " " + this.jBackgroundEnd.getValue().toString());
+						bgcols.write(this.jBackgroundStart.getValue().toString() + " "
+								+ this.jBackgroundEnd.getValue().toString());
 						bgcols.close();
 					}
-					for (ScienceImage image : observation.getScienceImages())
-						if (image.getImage().isEnabled()) {
-							writer.println("print(\"background\")");
-							writer.println(
-									"iraf.background(input=\"" + image.getImage().getFileName() + ".fc\", output=\""
-											+ image.getImage().getFileName() + ".bg\", axis=2, "
-													+ "mode=\"ql\", Stdin=\"bgcols\")");
-						}
+				for (ScienceImage image : observation.getScienceImages())
+					if (image.getImage().isEnabled()) {
+						writer.println("print(\"background\")");
+						writer.println("iraf.background(input=\"" + image.getImage().getFileName() + ".fc\", output=\""
+								+ image.getImage().getFileName() + ".bg\", axis=2, "
+								+ "mode=\"ql\", Stdin=\"bgcols\")");
+					}
 				// exec apall
 				writer.println("print(\"apall\")");
 				if (observation.isDoApall())
@@ -3081,4 +3396,7 @@ public class Main extends javax.swing.JPanel {
 	private javax.swing.JButton jPrintTODO;
 	private final ButtonGroup groupSteps = new ButtonGroup();
 	private JButton jListGenerated;
+	private JPopupMenu popupMenu;
+	private JMenuItem popupGroup;
+	private JMenuItem popupDisband;
 }

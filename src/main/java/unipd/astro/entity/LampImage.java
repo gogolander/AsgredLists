@@ -42,6 +42,8 @@ public class LampImage implements Serializable {
 
 	public LampImage() {
 		super();
+		lineList = "";
+		lampName = "";
 	}
 	
 	@Id
@@ -49,9 +51,8 @@ public class LampImage implements Serializable {
 	@Column(name="Lamp_Id")
 	private int id;
    
-	@OneToOne
-	@JoinColumn(name="Image_Id", nullable=false)
-	ImageEntity image;
+	@OneToMany(cascade={CascadeType.REMOVE}, mappedBy="lamp")
+	List<ImageEntity> images;
 	
 	@ManyToOne
 	@JoinColumn(name="Flatfield_Id", nullable=true)
@@ -62,6 +63,9 @@ public class LampImage implements Serializable {
 	
 	@OneToMany(mappedBy="lamp")
 	List<StandardImage> standardImages;
+	
+	String lineList;
+	String lampName;
 
 	public static long getSerialversionuid() {
 		return serialVersionUID;
@@ -75,14 +79,6 @@ public class LampImage implements Serializable {
 		return scienceImages;
 	}
 
-	public ImageEntity getImage() {
-		return image;
-	}
-
-	public void setImage(ImageEntity image) {
-		this.image = image;
-	}
-
 	public FlatfieldImage getFlat() {
 		return flat;
 	}
@@ -93,5 +89,29 @@ public class LampImage implements Serializable {
 
 	public int getId() {
 		return id;
+	}
+
+	public List<ImageEntity> getImages() {
+		return images;
+	}
+
+	public void setImages(List<ImageEntity> images) {
+		this.images = images;
+	}
+
+	public String getLineList() {
+		return lineList;
+	}
+
+	public void setLineList(String lineList) {
+		this.lineList = lineList;
+	}
+
+	public String getLampName() {
+		return lampName;
+	}
+
+	public void setLampName(String lampName) {
+		this.lampName = lampName;
 	}
 }

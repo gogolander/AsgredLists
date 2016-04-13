@@ -26,4 +26,5 @@ import unipd.astro.entity.LampImage;
 @Repository("LampRepository")
 @Transactional(propagation = Propagation.REQUIRED)
 public interface LampRepository extends CrudRepository<LampImage, Integer> {
+	LampImage findByLampName(String lampName);
 }
