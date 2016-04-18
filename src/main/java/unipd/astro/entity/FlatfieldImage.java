@@ -16,7 +16,6 @@
  */
 package unipd.astro.entity;
 
-import java.io.Serializable;
 import java.util.List;
 
 import javax.persistence.*;
@@ -27,17 +26,7 @@ import javax.persistence.*;
  */
 @Entity
 @Table(name="FLATFIELDS_IMAGES")
-public class FlatfieldImage implements Serializable {	
-	public void setImages(List<ImageEntity> images) {
-		this.images = images;
-	}
-
-	private static final long serialVersionUID = 1L;
-
-	public FlatfieldImage() {
-		super();
-	}
-	
+public class FlatfieldImage {	
 	@Id
 	@GeneratedValue
 	@Column(name="Flatfield_Id")
@@ -45,6 +34,10 @@ public class FlatfieldImage implements Serializable {
 
 	@OneToMany(mappedBy="flat", cascade={CascadeType.REMOVE})
 	List<ImageEntity> images;
+		
+	public void setImages(List<ImageEntity> images) {
+		this.images = images;
+	}
 	
 	public List<ImageEntity> getImages() {
 		return images;

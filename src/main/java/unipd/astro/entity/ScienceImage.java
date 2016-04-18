@@ -16,7 +16,6 @@
  */
 package unipd.astro.entity;
 
-import java.io.Serializable;
 import javax.persistence.*;
 
 /**
@@ -25,13 +24,7 @@ import javax.persistence.*;
  */
 @Entity
 @Table(name="SCIENCE_IMAGES")
-public class ScienceImage implements Serializable {
-	private static final long serialVersionUID = 1L;
-
-	public ScienceImage() {
-		super();
-	}
-	
+public class ScienceImage {	
 	@Id
 	@GeneratedValue
 	@Column(name="Science_Id")

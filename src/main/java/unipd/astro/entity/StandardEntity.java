@@ -16,8 +16,6 @@
  */
 package unipd.astro.entity;
 
-import java.io.Serializable;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -30,8 +28,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name = "STANDARDS")
-public class StandardEntity implements Serializable {
-    private static final long serialVersionUID = 1L;
+public class StandardEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
@@ -71,10 +68,6 @@ public class StandardEntity implements Serializable {
 
 	public void setAliasName(String aliasName) {
 		this.aliasName = aliasName;
-	}
-
-	public static long getSerialversionuid() {
-		return serialVersionUID;
 	}
 	
 	public String getDatName() {

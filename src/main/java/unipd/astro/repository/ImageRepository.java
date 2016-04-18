@@ -38,27 +38,27 @@ public interface ImageRepository extends CrudRepository<ImageEntity, Integer> {
     List<ImageEntity> findByType(String type);
     List<ImageEntity> findByGrouped(boolean isGrouped);
     
-    @Query("select fileName from ImageEntity image where type=?1")
+    @Query("SELECT fileName FROM ImageEntity image WHERE type=?1")
     List<String> getFileNameByType(String type);
     
-    @Query("select fileName from ImageEntity image where isStandard=?1")
+    @Query("SELECT fileName FROM ImageEntity image WHERE isStandard=?1")
     List<String> getFileNameByIsStandard(boolean isStandard);
     
 	List<ImageEntity> findByIsStandard(boolean isStandard);
 	
-	@Query("select fileName from ImageEntity image where type='IMAGE' and enabled = TRUE")
+	@Query("SELECT fileName FROM ImageEntity image WHERE type='IMAGE' AND enabled = TRUE")
 	List<String> getTargetList();
 	
-	@Query("select distinct target.image.targetName,target.standard.image.fileName" +
-			" from ScienceImage target"+
-			" where target.image.type='IMAGE' and target.image.enabled = TRUE" +
-			" order by target.standard.image.fileName")
+	@Query("SELECT DISTINCT target.image.targetName,target.standard.image.fileName" +
+			" FROM ScienceImage target"+
+			" WHERE target.image.type='IMAGE' AND target.image.enabled = TRUE" +
+			" ORDER BY target.standard.image.fileName")
 	List<Object[]> getTargetNameAndStandardFileName();
 	
-	@Query("select fileName from ImageEntity image where isStandard=?1 and enabled = ?2")
+	@Query("SELECT fileName FROM ImageEntity image WHERE isStandard=?1 AND enabled = ?2")
 	List<String> getFileNameByIsStandardAndIsEnabled(boolean isStandard, boolean isEnabled);
 
-	@Query("select fileName from ImageEntity image where type=?1 and enabled = ?2")
+	@Query("SELECT fileName FROM ImageEntity image WHERE type=?1 AND enabled = ?2")
 	List<String> getFileNameByTypeAndIsEnabled(String type, boolean isEnabled);
 	
 	@Query("SELECT fileName FROM ImageEntity image WHERE image.grouped=?1 AND image.type LIKE 'LAMP'")

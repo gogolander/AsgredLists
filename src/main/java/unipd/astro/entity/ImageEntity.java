@@ -16,9 +16,6 @@
  */
 package unipd.astro.entity;
 
-import java.io.Serializable;
-
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -32,13 +29,7 @@ import unipd.astro.service.DataService;
 
 @Entity
 @Table(name = "IMAGES")
-public class ImageEntity implements Serializable {
-	private static final long serialVersionUID = 1L;
-
-	public static long getSerialVersionUID() {
-		return serialVersionUID;
-	}
-
+public class ImageEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	@Column(name = "ImageEntity_Id")
@@ -69,7 +60,7 @@ public class ImageEntity implements Serializable {
 	@JoinColumn(name = "Flat_Id")
 	private FlatfieldImage flat;
 
-	@ManyToOne(cascade={CascadeType.REMOVE})
+	@ManyToOne
 	@JoinColumn(name = "Lamp_Id")
 	private LampImage lamp;
 	
@@ -78,9 +69,9 @@ public class ImageEntity implements Serializable {
 
 	@OneToOne(mappedBy = "image")
 	private StandardImage standard;
-	
-	public static long getSerialversionuid() {
-		return serialVersionUID;
+
+	public int getId() {
+		return id;
 	}
 
 	public ScienceImage getScience() {
@@ -147,8 +138,28 @@ public class ImageEntity implements Serializable {
 		this.expTime = expTime;
 	}
 
-	public int getId() {
-		return id;
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public boolean isGrouped() {
+		return grouped;
+	}
+
+	public void setGrouped(boolean grouped) {
+		this.grouped = grouped;
+	}
+
+	public LampImage getLamp() {
+		return lamp;
+	}
+
+	public void setLamp(LampImage lamp) {
+		this.lamp = lamp;
 	}
 
 	public static ImageEntity parseEntity(String image) {
@@ -181,29 +192,5 @@ public class ImageEntity implements Serializable {
 		newEntity.setEnabled(true);
 		newEntity.setGrouped(false);
 		return newEntity;
-	}
-
-	public boolean isEnabled() {
-		return enabled;
-	}
-
-	public void setEnabled(boolean enabled) {
-		this.enabled = enabled;
-	}
-
-	public boolean isGrouped() {
-		return grouped;
-	}
-
-	public void setGrouped(boolean grouped) {
-		this.grouped = grouped;
-	}
-
-	public LampImage getLamp() {
-		return lamp;
-	}
-
-	public void setLamp(LampImage lamp) {
-		this.lamp = lamp;
 	}
 }

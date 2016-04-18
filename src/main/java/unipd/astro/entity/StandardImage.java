@@ -16,7 +16,6 @@
  */
 package unipd.astro.entity;
 
-import java.io.Serializable;
 import java.util.List;
 
 import javax.persistence.*;
@@ -27,32 +26,7 @@ import javax.persistence.*;
  */
 @Entity
 @Table(name="STANDARDS_IMAGES")
-public class StandardImage implements Serializable {	
-	private static final long serialVersionUID = 1L;
-
-	public StandardImage() {
-		super();
-	}
-	
-	public List<Observation> getObservations() {
-		return observations;
-	}
-
-	public void setObservation(List<Observation> observations) {
-		this.observations = observations;
-	}
-
-	public void setLamp(LampImage lamp) {
-		this.lamp = lamp;
-	}
-
-	public void setScienceImages(List<ScienceImage> scienceImages) {
-		this.scienceImages = scienceImages;
-	}
-
-	public void setImage(ImageEntity image) {
-		this.image = image;
-	}
+public class StandardImage {
 
 	@Id
 	@GeneratedValue
@@ -75,8 +49,27 @@ public class StandardImage implements Serializable {
 	ImageEntity image;
 	
 	@OneToMany(mappedBy="standard")
-//	@JoinColumn(name="Observation_Id", nullable=true)
 	List<Observation> observations;
+	
+	public List<Observation> getObservations() {
+		return observations;
+	}
+
+	public void setObservation(List<Observation> observations) {
+		this.observations = observations;
+	}
+
+	public void setLamp(LampImage lamp) {
+		this.lamp = lamp;
+	}
+
+	public void setScienceImages(List<ScienceImage> scienceImages) {
+		this.scienceImages = scienceImages;
+	}
+
+	public void setImage(ImageEntity image) {
+		this.image = image;
+	}
 	
 	public List<ScienceImage> getScienceImages() {
 		return scienceImages;

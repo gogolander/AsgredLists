@@ -29,48 +29,48 @@ import unipd.astro.entity.ScienceImage;
 @Repository("ScienceRepository")
 @Transactional(propagation = Propagation.REQUIRED)
 public interface ScienceRepository extends CrudRepository<ScienceImage, Integer> {
-	@Query("select count(s)" +
-				" from ScienceImage s" +
-				" where s in (" +
-					" select image" +
-					" from ScienceImage image" +
-					" where (image.standard is null or image.lamp is null))")
+	@Query("SELECT COUNT(s)" +
+				" FROM ScienceImage s" +
+				" WHERE s IN (" +
+					" SELECT image" +
+					" FROM ScienceImage image" +
+					" WHERE (image.standard IS NULL OR image.lamp IS NULL))")
 	int findConflicts();
 	
-	@Query("select count(s)" +
-			" from ScienceImage s" +
-			" where s in (" +
-				" select image" +
-					" from ScienceImage image" +
-					" where image.image.targetName=?1 and image.standard is null" +
-					" or image.lamp is null)")
+	@Query("SELECT COUNT(s)" +
+			" FROM ScienceImage s" +
+			" WHERE s IN (" +
+				" SELECT image" +
+					" FROM ScienceImage image" +
+					" WHERE image.image.targetName=?1 AND image.standard IS NULL" +
+					" OR image.lamp IS NULL)")
 	int findConflictsForTargetName(String targetName);
 	
-	@Query("select count(s)" +
-			" from ScienceImage s" +
-			" where s in (" +
-				" select image" +
-				" from ScienceImage image" +
-				" where image.lamp is null and image.image.targetName=?1)")
+	@Query("SELECT COUNT(s)" +
+			" FROM ScienceImage s" +
+			" WHERE s IN (" +
+				" SELECT image" +
+				" FROM ScienceImage image" +
+				" WHERE image.lamp IS NULL AND image.image.targetName=?1)")
 	int getIsLampMissingForTargetName(String targetName);
 	
-	@Query("select count(s)" +
-			" from ScienceImage s" +
-			" where s in (" +
-				" select image" +
-				" from ScienceImage image" +
-				" where image.standard is null and image.image.targetName=?1)")
+	@Query("SELECT COUNT(s)" +
+			" FROM ScienceImage s" +
+			" WHERE s in (" +
+				" SELECT image" +
+				" FROM ScienceImage image" +
+				" WHERE image.standard IS NULL AND image.image.targetName=?1)")
 	int getIsStandardMissingForTargetName(String targetName);
 	
-	@Query("select distinct target" +
-			" from ScienceImage target"+
-				" where target.image.targetName=?1 and target.standard.image.fileName=?2")
+	@Query("SELECT DISTINCT target" +
+			" FROM ScienceImage target"+
+				" WHERE target.image.targetName=?1 AND target.standard.image.fileName=?2")
 	List<ScienceImage> getScienceImageByTargetNameAndStandardFileName(String targetName, String standardFileName);
 	
-	@Query("select distinct science.lamp.lampName" +
-			" from ScienceImage science"+
-				" where science.observation.isEnabled = TRUE"+
-				" and science.image.enabled = TRUE"
-				+ " order by science.lamp.lampName asc")
+	@Query("SELECT DISTINCT science.lamp.lampName" +
+			" FROM ScienceImage science"+
+				" WHERE science.observation.isEnabled = TRUE"+
+				" AND science.image.enabled = TRUE"
+				+ " ORDER BY science.lamp.lampName ASC")
 	List<String> getLamps();
 }

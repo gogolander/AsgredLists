@@ -2243,7 +2243,10 @@ public class Main extends javax.swing.JPanel {
 		dataService.getObservationRepository().deleteAll();
 		dataService.getScienceRepository().deleteAll();
 		dataService.getStandardRepository().deleteAll();
-//		dataService.getLampRepository().query();
+		List<ImageEntity> images = dataService.getImageRepository().findByType("LAMP");
+		for (ImageEntity image : images)
+			image.setLamp(null);
+		dataService.getImageRepository().save(images);
 		dataService.getLampRepository().deleteAll();
 		dataService.getFlatRepository().deleteAll();
 		dataService.getImageRepository().deleteAll();
@@ -2419,6 +2422,10 @@ public class Main extends javax.swing.JPanel {
 		dataService.getObservationRepository().deleteAll();
 		dataService.getScienceRepository().deleteAll();
 		dataService.getStandardRepository().deleteAll();
+		List<ImageEntity> images = dataService.getImageRepository().findByType("LAMP");
+		for (ImageEntity image : images)
+			image.setLamp(null);
+		dataService.getImageRepository().save(images);
 		dataService.getLampRepository().deleteAll();
 		dataService.getFlatRepository().deleteAll();
 		log.trace("Database cleared.");
@@ -2428,7 +2435,7 @@ public class Main extends javax.swing.JPanel {
 		 */
 		FlatfieldImage flat = new FlatfieldImage();
 		log.trace("Associating with the images of type \"FLATFIELD\"...");
-		List<ImageEntity> images = dataService.getImageRepository().findByType("FLATFIELD");
+		/* List<ImageEntity> */images = dataService.getImageRepository().findByType("FLATFIELD");
 		flat.setImages(images);
 		for (ImageEntity image : images)
 			image.setFlat(flat);
@@ -2519,6 +2526,7 @@ public class Main extends javax.swing.JPanel {
 				if (lamp.getStandardImages() == null)
 					lamp.setStandardImages(new ArrayList<StandardImage>());
 				lamp.getStandardImages().add(standard);
+				dataService.getLampRepository().save(lamp);
 				lamps.add(lamp);
 			}
 			standards.add(standard);
@@ -2595,13 +2603,9 @@ public class Main extends javax.swing.JPanel {
 			String temp = "", tempLamp = "";
 			// Write them down
 			log.info("list_obj");
-			if (this.generatedList.get("all") != null)
-				this.generatedList.get("all").add("list_obj");
-			else {
-				ArrayList<String> list = new ArrayList<>();
-				list.add("list_obj");
-				this.generatedList.put("all", list);
-			}
+			if (this.generatedList.get("all") == null)
+				this.generatedList.put("all", new ArrayList<>());
+			this.generatedList.get("all").add("list_obj");
 			writer = new PrintWriter(Paths.get(this.basePath, "list_obj").toFile());
 			List<Observation> observations = dataService.getObservationRepository().findByIsEnabled(true);
 			for (Observation observation : observations) {
@@ -2610,10 +2614,6 @@ public class Main extends javax.swing.JPanel {
 						temp += science.getImage().getFileName() + "\t" + science.getLamp().getLampName() + "\n";
 					}
 				}
-				// // Always add the standard to wavelength calibration
-				// temp += observation.getStandard().getImage().getFileName() +
-				// "\t"
-				// + observation.getStandard().getLamp().getLampName() + "\n";
 			}
 			for (String item : dataService.getImageRepository().getFileNameByTypeAndIsEnabled("LAMP", true))
 				tempLamp += item + "\n";
@@ -2622,26 +2622,20 @@ public class Main extends javax.swing.JPanel {
 			writer.close();
 
 			temp = "";
-			log.info("list_lamps");
-			if (this.generatedList.get("all") != null)
+			if (!"".equals(tempLamp)) {
+				log.info("list_lamps");
+				if (this.generatedList.get("all") == null)
+					this.generatedList.put("all", new ArrayList<>());
 				this.generatedList.get("all").add("list_lamps");
-			else {
-				ArrayList<String> list = new ArrayList<>();
-				list.add("list_lamps");
-				this.generatedList.put("all", list);
+				writer = new PrintWriter(Paths.get(this.basePath, "list_lamps").toFile());
+				writer.print(tempLamp.trim());
+				writer.close();
 			}
-			writer = new PrintWriter(Paths.get(this.basePath, "list_lamps").toFile());
-			writer.print(tempLamp.trim());
-			writer.close();
-
 			log.info("list_flat");
-			if (this.generatedList.get("all") != null)
-				this.generatedList.get("all").add("list_flat");
-			else {
-				ArrayList<String> list = new ArrayList<>();
-				list.add("list_flat");
-				this.generatedList.put("all", list);
-			}
+			if (this.generatedList.get("all") == null)
+				this.generatedList.put("all", new ArrayList<>());
+			this.generatedList.get("all").add("list_flat");
+
 			writer = new PrintWriter(Paths.get(this.basePath, "list_flat").toFile());
 			for (FlatfieldImage flat : dataService.getFlatRepository().findAll()) {
 				for (ImageEntity image : flat.getImages())
@@ -2655,13 +2649,9 @@ public class Main extends javax.swing.JPanel {
 				if (observation.isEnabled() && observation.isDoWlcal()) {
 					temp = normalizedTargetName(observation.getTargetName());
 					log.info("wc" + temp);
-					if (this.generatedList.get(observation.getTargetName()) != null)
-						this.generatedList.get(observation.getTargetName()).add("wc" + temp);
-					else {
-						ArrayList<String> list = new ArrayList<>();
-						list.add("wc" + temp);
-						this.generatedList.put(observation.getTargetName(), list);
-					}
+					if (this.generatedList.get(observation.getTargetName()) == null)
+						this.generatedList.put(observation.getTargetName(), new ArrayList<>());
+					this.generatedList.get(observation.getTargetName()).add("wc" + temp);
 					writer = new PrintWriter(Paths.get(this.basePath, "wc" + temp).toFile());
 					temp = "";
 					for (ScienceImage item : observation.getScienceImages())
@@ -2674,61 +2664,62 @@ public class Main extends javax.swing.JPanel {
 
 			// Generate the list of IMA*.fc.fits
 			// This list is used as input for the background task
-			for (Observation observation : observations) {
-				if (observation.isDoFcal()) {
-					temp = normalizedTargetName(observation.getTargetName());
-					log.info("fc" + temp);
-					if (this.generatedList.get(observation.getTargetName()) != null)
-						this.generatedList.get(observation.getTargetName()).add("fc" + temp);
-					else {
-						ArrayList<String> list = new ArrayList<>();
-						list.add("fc" + temp);
-						this.generatedList.put(observation.getTargetName(), list);
-					}
-					writer = new PrintWriter(Paths.get(this.basePath, "fc" + temp).toFile());
-					temp = "";
-					for (ScienceImage item : observation.getScienceImages())
-						if (item.getImage().isEnabled())
-							temp += item.getImage().getFileName() + ".fc\n";
-					writer.print(temp + "\n");
-					writer.close();
-				}
-			}
+			// OBSOLETE
+			// for (Observation observation : observations) {
+			// if (observation.isDoFcal()) {
+			// temp = normalizedTargetName(observation.getTargetName());
+			// log.info("fc" + temp);
+			//
+			// if (this.generatedList.get(observation.getTargetName()) == null)
+			// this.generatedList.put(observation.getTargetName(), new
+			// ArrayList<>());
+			// this.generatedList.get(observation.getTargetName()).add("fc" +
+			// temp);
+			// writer = new PrintWriter(Paths.get(this.basePath, "fc" +
+			// temp).toFile());
+			// temp = "";
+			// for (ScienceImage item : observation.getScienceImages())
+			// if (item.getImage().isEnabled())
+			// temp += item.getImage().getFileName() + ".fc\n";
+			// writer.print(temp + "\n");
+			// writer.close();
+			// }
+			// }
 
 			// Generate the list of IMA*.bg.fits
-			for (Observation observation : observations) {
-				if (observation.isDoBackground()) {
-					temp = normalizedTargetName(observation.getTargetName());
-					log.info("bg" + temp);
-					if (this.generatedList.get(observation.getTargetName()) != null)
-						this.generatedList.get(observation.getTargetName()).add("bg" + temp);
-					else {
-						ArrayList<String> list = new ArrayList<>();
-						list.add("bg" + temp);
-						this.generatedList.put(observation.getTargetName(), list);
-					}
-					writer = new PrintWriter(Paths.get(this.basePath, "bg" + temp).toFile());
-					temp = "";
-					for (ScienceImage item : observation.getScienceImages())
-						if (item.getImage().isEnabled())
-							temp += item.getImage().getFileName() + ".bg\n";
-					writer.print(temp + "\n");
-					writer.close();
-				}
-			}
+			// OBSOLETE
+			// for (Observation observation : observations) {
+			// if (observation.isDoBackground()) {
+			// temp = normalizedTargetName(observation.getTargetName());
+			// log.info("bg" + temp);
+			// if (this.generatedList.get(observation.getTargetName()) != null)
+			// this.generatedList.get(observation.getTargetName()).add("bg" +
+			// temp);
+			// else {
+			// ArrayList<String> list = new ArrayList<>();
+			// list.add("bg" + temp);
+			// this.generatedList.put(observation.getTargetName(), list);
+			// }
+			// writer = new PrintWriter(Paths.get(this.basePath, "bg" +
+			// temp).toFile());
+			// temp = "";
+			// for (ScienceImage item : observation.getScienceImages())
+			// if (item.getImage().isEnabled())
+			// temp += item.getImage().getFileName() + ".bg\n";
+			// writer.print(temp + "\n");
+			// writer.close();
+			// }
+			// }
 
 			// Generate the list of IMA*.md.fits
 			for (Observation observation : observations) {
 				if (observation.isDoApall()) {
 					temp = normalizedTargetName(observation.getTargetName());
 					log.info("md" + temp);
-					if (this.generatedList.get(observation.getTargetName()) != null)
-						this.generatedList.get(observation.getTargetName()).add("md" + temp);
-					else {
-						ArrayList<String> list = new ArrayList<>();
-						list.add("md" + temp);
-						this.generatedList.put(observation.getTargetName(), list);
-					}
+					if (this.generatedList.get(observation.getTargetName()) == null)
+						this.generatedList.put(observation.getTargetName(), new ArrayList<>());
+					this.generatedList.get(observation.getTargetName()).add("md" + temp);
+
 					writer = new PrintWriter(Paths.get(this.basePath, "md" + temp).toFile());
 					temp = "";
 					for (ScienceImage item : observation.getScienceImages())
@@ -2747,14 +2738,10 @@ public class Main extends javax.swing.JPanel {
 						.findByStandardFileNameAndIsEnabledIsTrue(standard.getImage().getFileName())) {
 					if (observation.isDoFcal()) {
 						log.info("std" + standard.getImage().getFileName());
-						if (this.generatedList.get(observation.getTargetName()) != null)
-							this.generatedList.get(observation.getTargetName())
-									.add("std" + standard.getImage().getFileName());
-						else {
-							ArrayList<String> list = new ArrayList<>();
-							list.add("std" + standard.getImage().getFileName());
-							this.generatedList.put(observation.getTargetName(), list);
-						}
+						if (this.generatedList.get(observation.getTargetName()) == null)
+							this.generatedList.put(observation.getTargetName(), new ArrayList<>());
+						this.generatedList.get(observation.getTargetName())
+								.add("std" + standard.getImage().getFileName());
 
 						for (ScienceImage item : observation.getScienceImages()) {
 							/*
@@ -2791,17 +2778,19 @@ public class Main extends javax.swing.JPanel {
 			String targetNormalized = normalizedTargetName(observation.getTargetName());
 			PrintWriter writer = null;
 			try {
+				int multiples = 0;
+				String name = targetNormalized;
+				while (Paths.get(basePath, "exec" + name + ".py").toFile().exists()) {
+					multiples++;
+					name = targetNormalized + "." + multiples;
+				}
 				String temp = "", tempLamp = "";
 				// Write them down
 				log.info("list_obj_" + targetNormalized);
-				if (this.generatedList.get(observation.getTargetName()) != null)
-					this.generatedList.get(observation.getTargetName()).add("list_obj_" + targetNormalized);
-				else {
-					ArrayList<String> list = new ArrayList<>();
-					list.add("list_obj_" + targetNormalized);
-					this.generatedList.put(observation.getTargetName(), list);
-				}
-				writer = new PrintWriter(Paths.get(this.basePath, "list_obj_" + targetNormalized).toFile());
+				if (this.generatedList.get(observation.getTargetName()) == null)
+					this.generatedList.put(observation.getTargetName(), new ArrayList<>());
+				this.generatedList.get(observation.getTargetName()).add("list_obj_" + name);
+				writer = new PrintWriter(Paths.get(this.basePath, "list_obj_" + name).toFile());
 				HashSet<String> lampName = new HashSet<String>();
 				for (ScienceImage science : observation.getScienceImages()) {
 					if (science.getImage().isEnabled()) {
@@ -2830,26 +2819,18 @@ public class Main extends javax.swing.JPanel {
 
 				temp = "";
 				log.info("list_lamps_" + targetNormalized);
-				if (this.generatedList.get(observation.getTargetName()) != null)
-					this.generatedList.get(observation.getTargetName()).add("list_lamps_" + targetNormalized);
-				else {
-					ArrayList<String> list = new ArrayList<>();
-					list.add("list_lamps_" + targetNormalized);
-					this.generatedList.put(observation.getTargetName(), list);
-				}
-				writer = new PrintWriter(Paths.get(this.basePath, "list_lamps_" + targetNormalized).toFile());
+				if (this.generatedList.get(observation.getTargetName()) == null)
+					this.generatedList.put(observation.getTargetName(), new ArrayList<>());
+				this.generatedList.get(observation.getTargetName()).add("list_lamps_" + name);
+				writer = new PrintWriter(Paths.get(this.basePath, "list_lamps_" + name).toFile());
 				writer.print(tempLamp.trim());
 				writer.close();
 
 				log.info("list_flat_" + targetNormalized);
-				if (this.generatedList.get(observation.getTargetName()) != null)
-					this.generatedList.get(observation.getTargetName()).add("list_flat_" + targetNormalized);
-				else {
-					ArrayList<String> list = new ArrayList<>();
-					list.add("list_flat_" + targetNormalized);
-					this.generatedList.put(observation.getTargetName(), list);
-				}
-				writer = new PrintWriter(Paths.get(this.basePath, "list_flat_" + targetNormalized).toFile());
+				if (this.generatedList.get(observation.getTargetName()) == null)
+					this.generatedList.put(observation.getTargetName(), new ArrayList<>());
+				this.generatedList.get(observation.getTargetName()).add("list_flat_" + name);
+				writer = new PrintWriter(Paths.get(this.basePath, "list_flat_" + name).toFile());
 				for (FlatfieldImage flat : dataService.getFlatRepository().findAll()) {
 					for (ImageEntity image : flat.getImages())
 						temp += image.getFileName() + "\n";
@@ -2860,14 +2841,10 @@ public class Main extends javax.swing.JPanel {
 				// Generate the list of IMA*.wc.fits
 				if (observation.isDoWlcal()) {
 					log.info("wc" + targetNormalized);
-					if (this.generatedList.get(observation.getTargetName()) != null)
-						this.generatedList.get(observation.getTargetName()).add("wc" + targetNormalized);
-					else {
-						ArrayList<String> list = new ArrayList<>();
-						list.add("wc" + targetNormalized);
-						this.generatedList.put(observation.getTargetName(), list);
-					}
-					writer = new PrintWriter(Paths.get(this.basePath, "wc" + targetNormalized).toFile());
+					if (this.generatedList.get(observation.getTargetName()) == null)
+						this.generatedList.put(observation.getTargetName(), new ArrayList<>());
+					this.generatedList.get(observation.getTargetName()).add("wc" + name);
+					writer = new PrintWriter(Paths.get(this.basePath, "wc" + name).toFile());
 					temp = "";
 					for (ScienceImage item : observation.getScienceImages())
 						if (item.getImage().isEnabled())
@@ -2878,41 +2855,47 @@ public class Main extends javax.swing.JPanel {
 
 				// Generate the list of IMA*.fc.fits
 				// This list is used as input for the background task
-				if (observation.isDoFcal()) {
-					log.info("fc" + targetNormalized);
-					if (this.generatedList.get(observation.getTargetName()) != null)
-						this.generatedList.get(observation.getTargetName()).add("fc" + targetNormalized);
-					else {
-						ArrayList<String> list = new ArrayList<>();
-						list.add("fc" + targetNormalized);
-						this.generatedList.put(observation.getTargetName(), list);
-					}
-					writer = new PrintWriter(Paths.get(this.basePath, "fc" + targetNormalized).toFile());
-					temp = "";
-					for (ScienceImage item : observation.getScienceImages())
-						if (item.getImage().isEnabled())
-							temp += item.getImage().getFileName() + ".fc\n";
-					writer.print(temp.trim() + "\n");
-					writer.close();
-				}
+				// OBSOLETE
+				// if (observation.isDoFcal()) {
+				// log.info("fc" + targetNormalized);
+				// if (this.generatedList.get(observation.getTargetName()) ==
+				// null)
+				// this.generatedList.put(observation.getTargetName(), new
+				// ArrayList<>());
+				// this.generatedList.get(observation.getTargetName()).add("fc"
+				// + targetNormalized);
+				// writer = new PrintWriter(Paths.get(this.basePath, "fc" +
+				// targetNormalized).toFile());
+				// temp = "";
+				// for (ScienceImage item : observation.getScienceImages())
+				// if (item.getImage().isEnabled())
+				// temp += item.getImage().getFileName() + ".fc\n";
+				// writer.print(temp.trim() + "\n");
+				// writer.close();
+				// }
 
 				// Generate the list of IMA*.bg.fits
 				if (observation.isDoBackground()) {
-					log.info("bg" + targetNormalized);
-					if (this.generatedList.get(observation.getTargetName()) != null)
-						this.generatedList.get(observation.getTargetName()).add("bg" + targetNormalized);
-					else {
-						ArrayList<String> list = new ArrayList<>();
-						list.add("bg" + targetNormalized);
-						this.generatedList.put(observation.getTargetName(), list);
-					}
-					writer = new PrintWriter(Paths.get(this.basePath, "bg" + targetNormalized).toFile());
-					temp = "";
-					for (ScienceImage item : observation.getScienceImages())
-						if (item.getImage().isEnabled())
-							temp += item.getImage().getFileName() + ".bg\n";
-					writer.print(temp.trim() + "\n");
-					writer.close();
+					// OBSOLETE
+					// log.info("bg" + targetNormalized);
+					// if (this.generatedList.get(observation.getTargetName())
+					// != null)
+					// this.generatedList.get(observation.getTargetName()).add("bg"
+					// + targetNormalized);
+					// else {
+					// ArrayList<String> list = new ArrayList<>();
+					// list.add("bg" + targetNormalized);
+					// this.generatedList.put(observation.getTargetName(),
+					// list);
+					// }
+					// writer = new PrintWriter(Paths.get(this.basePath, "bg" +
+					// targetNormalized).toFile());
+					// temp = "";
+					// for (ScienceImage item : observation.getScienceImages())
+					// if (item.getImage().isEnabled())
+					// temp += item.getImage().getFileName() + ".bg\n";
+					// writer.print(temp.trim() + "\n");
+					// writer.close();
 
 					// Generate background cursor file
 					if (!Paths.get(this.basePath, "bgcols").toFile().exists()) {
@@ -2926,14 +2909,10 @@ public class Main extends javax.swing.JPanel {
 				// Generate the list of IMA*.md.fits
 				if (observation.isDoApall()) {
 					log.info("md" + targetNormalized);
-					if (this.generatedList.get(observation.getTargetName()) != null)
-						this.generatedList.get(observation.getTargetName()).add("md" + targetNormalized);
-					else {
-						ArrayList<String> list = new ArrayList<>();
-						list.add("md" + targetNormalized);
-						this.generatedList.put(observation.getTargetName(), list);
-					}
-					writer = new PrintWriter(Paths.get(this.basePath, "md" + targetNormalized).toFile());
+					if (this.generatedList.get(observation.getTargetName()) == null)
+						this.generatedList.put(observation.getTargetName(), new ArrayList<>());
+					this.generatedList.get(observation.getTargetName()).add("md" + name);
+					writer = new PrintWriter(Paths.get(this.basePath, "md" + name).toFile());
 					temp = "";
 					for (ScienceImage item : observation.getScienceImages())
 						if (item.getImage().isEnabled())
@@ -2943,16 +2922,12 @@ public class Main extends javax.swing.JPanel {
 				}
 
 				// Let's generate the PyRAF script
-				log.info("exec" + targetNormalized + ".py");
-				scriptsList.add("exec" + targetNormalized + ".py");
-				if (this.generatedList.get("script") != null)
-					this.generatedList.get("script").add("exec" + targetNormalized + ".py");
-				else {
-					ArrayList<String> list = new ArrayList<>();
-					list.add("exec" + targetNormalized + ".py");
-					this.generatedList.put("script", list);
-				}
-				writer = new PrintWriter(Paths.get(this.basePath, "exec" + targetNormalized + ".py").toFile());
+				log.info(name);
+				scriptsList.add(name);
+				if (this.generatedList.get("script") == null)
+					this.generatedList.put("script", new ArrayList<>());
+				this.generatedList.get("script").add(name);
+				writer = new PrintWriter(Paths.get(this.basePath, "exec" + name + ".py").toFile());
 				writer.println("#!/usr/bin/env python");
 				writer.println("import os");
 				writer.println("import sys");
@@ -2967,9 +2942,9 @@ public class Main extends javax.swing.JPanel {
 					writer.println(new String(new char[80]).replace("\0", "#"));
 					writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
 					writer.println(new String(new char[80]).replace("\0", "#"));
-					writer.println("iraf.prered2(flat=\"list_flat_" + targetNormalized + "\", comp=\"list_lamps_"
-							+ targetNormalized + "\", object=\"list_obj_" + targetNormalized + "\", outflat=\"flat."
-							+ targetNormalized + "\", trimsec=[1:2040,40:490], mode=\"ql\")");
+					writer.println("iraf.prered2(flat=\"list_flat_" + name + "\", comp=\"list_lamps_" + name
+							+ "\", object=\"list_obj_" + name + "\", outflat=\"flat." + name
+							+ "\", trimsec=[1:2040,40:490], mode=\"ql\")");
 				}
 
 				if (observation.isDoWlcal()) {
@@ -2995,7 +2970,7 @@ public class Main extends javax.swing.JPanel {
 						writer.println(new String(new char[80]).replace("\0", "#"));
 						writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
 						writer.println(new String(new char[80]).replace("\0", "#"));
-						writer.println("iraf.wlcal(input=\"list_obj_" + targetNormalized + "\", refer=\""
+						writer.println("iraf.wlcal(input=\"list_obj_" + name + "\", refer=\""
 								+ observation.getScienceImages().get(0).getLamp().getLampName()
 								+ normalizedTargetName(observation.getTargetName()) + "\"," + " linelis=\""
 								+ observation.getScienceImages().get(0).getLamp().getLineList().toLowerCase()
@@ -3006,7 +2981,7 @@ public class Main extends javax.swing.JPanel {
 						writer.println(new String(new char[80]).replace("\0", "#"));
 						writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
 						writer.println(new String(new char[80]).replace("\0", "#"));
-						writer.println("iraf.wlcal(input=\"list_obj_" + targetNormalized + "\", refer=\""
+						writer.println("iraf.wlcal(input=\"list_obj_" + name + "\", refer=\""
 								+ observation.getScienceImages().get(0).getLamp().getLampName() + "\"," + " linelis=\""
 								+ observation.getScienceImages().get(0).getLamp().getLineList().toLowerCase()
 								+ "\", mode=\"ql\")");
@@ -3018,7 +2993,7 @@ public class Main extends javax.swing.JPanel {
 					writer.println(new String(new char[80]).replace("\0", "#"));
 					writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("fcal", 78));
 					writer.println(new String(new char[80]).replace("\0", "#"));
-					writer.println("iraf.fcal(obj=\"wl" + targetNormalized + "\", stand=\""
+					writer.println("iraf.fcal(obj=\"wl" + name + "\", stand=\""
 							+ observation.getStandard().getImage().getFileName() + "\", dir=\"onedstds$"
 							+ dataService.getStandardAtlas()
 									.findByStandardName(observation.getStandard().getImage().getTargetName())
@@ -3047,15 +3022,17 @@ public class Main extends javax.swing.JPanel {
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("apall", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoApall())
-					writer.println("iraf.apall(input=\"@bg" + targetNormalized + "\", output=\"@md" + targetNormalized
-							+ "\", t_order=3, t_niter=5, mode=\"ql\")");
+					for (ScienceImage image : observation.getScienceImages())
+						if (image.getImage().isEnabled())
+							writer.println("iraf.apall(input=\"" + image.getImage().getFileName() + ".bg\", output=\""
+									+ image.getImage().getFileName() + ".md\", t_order=3, t_niter=5, mode=\"ql\")");
 				// exec scombine
 				writer.println("print(\"scombine\")");
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("scombine", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoScombine())
-					writer.println("iraf.scombine(input=\"@md" + targetNormalized + "\", output=\"" + targetNormalized
+					writer.println("iraf.scombine(input=\"@md" + name + "\", output=\"" + name
 							+ ".md\", reject=\"minmax\", mode=\"ql\")");
 				String start = this.jImcopyStart.getValue().toString();
 				String end = this.jImcopyEnd.getValue().toString();
@@ -3065,23 +3042,16 @@ public class Main extends javax.swing.JPanel {
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("imcopy", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoImcopy())
-					writer.println("iraf.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
-							+ "]\", output=\"" + targetNormalized + ".obj\", mode=\"ql\")");
-			} catch (
-
-			IOException ex)
-
-			{
+					writer.println("iraf.imcopy(input=\"" + name + ".md[" + start + ":" + end + "]\", output=\"" + name
+							+ ".obj\", mode=\"ql\")");
+			} catch (IOException ex) {
 				log.fatal(ex.getMessage(), ex);
 				JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-			} finally
-
-			{
+			} finally {
 				if (writer != null)
 					writer.close();
 			}
 			log.info("Done.");
-
 		}
 
 	}
@@ -3092,13 +3062,9 @@ public class Main extends javax.swing.JPanel {
 			log.info("Generating one script...");
 			// Let's generate the PyRAF script
 			log.info("execAsgred.py");
-			if (this.generatedList.get("script") != null)
-				this.generatedList.get("script").add("execAsgred.py");
-			else {
-				ArrayList<String> list = new ArrayList<>();
-				list.add("execAsgred.py");
-				this.generatedList.put("script", list);
-			}
+			if (this.generatedList.get("script") == null)
+				this.generatedList.put("script", new ArrayList<>());
+			this.generatedList.get("script").add("execAsgred.py");
 			scriptsList = new ArrayList<String>();
 			scriptsList.add("execAsgred.py");
 			writer = new PrintWriter(Paths.get(this.basePath, "execAsgred.py").toFile());
@@ -3191,8 +3157,10 @@ public class Main extends javax.swing.JPanel {
 				// exec apall
 				writer.println("print(\"apall\")");
 				if (observation.isDoApall())
-					writer.println("iraf.apall(input=\"@bg" + targetNormalized + "\", output=\"@md" + targetNormalized
-							+ "\", t_order = 3., t_niter = 5)");
+					for (ScienceImage image : observation.getScienceImages())
+						if (image.getImage().isEnabled())
+							writer.println("iraf.apall(input=\"" + image.getImage().getFileName() + ".bg\", output=\""
+									+ image.getImage().getFileName() + ".md\", t_order = 3., t_niter = 5)");
 				// exec scombine
 				writer.println("print(\"scombine\")");
 				if (observation.isDoScombine())
@@ -3207,12 +3175,9 @@ public class Main extends javax.swing.JPanel {
 							+ "]\", output=\"" + targetNormalized + ".obj\")");
 			}
 			writer.close();
-		} catch (
-
-		IOException ex) {
+		} catch (IOException ex) {
 			log.fatal(ex.getMessage(), ex);
 			JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-
 		} finally {
 			if (writer != null)
 				writer.close();

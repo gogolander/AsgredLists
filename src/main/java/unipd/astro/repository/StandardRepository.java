@@ -28,8 +28,8 @@ import unipd.astro.entity.StandardImage;
 @Transactional(propagation = Propagation.REQUIRED)
 public interface StandardRepository extends CrudRepository<StandardImage, Integer> {
 
-	@Query("select standard"
-			+ " from StandardImage standard"
-			+ " where standard.image.fileName=?1")
+	@Query("SELECT standard"
+			+ " FROM StandardImage standard"
+			+ " WHERE standard.image.fileName=?1")
 	StandardImage findByFileName(String fileName);
 }

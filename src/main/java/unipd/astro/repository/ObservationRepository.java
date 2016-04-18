@@ -29,14 +29,14 @@ import unipd.astro.entity.Observation;
 @Repository("ObservationRepository")
 @Transactional(propagation=Propagation.REQUIRED)
 public interface ObservationRepository extends CrudRepository<Observation, Integer> {
-	@Query("select observation" +
-			" from Observation observation"+
-				" where observation.targetName=?1 and observation.standard.image.fileName=?2")
+	@Query("SELECT observation" +
+			" FROM Observation observation"+
+				" WHERE observation.targetName=?1 AND observation.standard.image.fileName=?2")
 	Observation findByTargetNameAndStandardFileName(String targetName, String standardFileName);
 	
-	@Query("select observation" +
-			" from Observation observation"+
-				" where observation.standard.image.fileName=?1 and isEnabled = TRUE")
+	@Query("SELECT observation" +
+			" FROM Observation observation"+
+				" WHERE observation.standard.image.fileName=?1 AND isEnabled = TRUE")
 	List<Observation> findByStandardFileNameAndIsEnabledIsTrue(String standardFileName);
 	List<Observation> findByIsEnabled(boolean isEnabled);
 }
