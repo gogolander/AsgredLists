@@ -30,7 +30,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -74,6 +77,12 @@ import javax.swing.LayoutStyle.ComponentPlacement;
 import java.awt.Font;
 import javax.swing.JCheckBox;
 import javax.swing.JTextPane;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.JPanel;
+import javax.swing.border.TitledBorder;
+import java.awt.BorderLayout;
+import javax.swing.border.LineBorder;
 
 @SuppressWarnings({ "serial", "unchecked", "rawtypes" })
 public class Main extends javax.swing.JPanel {
@@ -97,8 +106,7 @@ public class Main extends javax.swing.JPanel {
 	};
 	private boolean sendRms;
 	private int selectedAction = 0, runningCommand = -1, task = 0, groups = 0;
-	private Style In, Out, Error;
-	private List<String> scriptsList;
+	private Style In, Out, Error, Task;
 	private String basePath;
 	private Execution process;
 	private double rms = 0;
@@ -106,27 +114,34 @@ public class Main extends javax.swing.JPanel {
 		@Override
 		public void OnResponseReceived(String response) {
 			try {
-				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
-						"◀\t" + response + "\n", Out);
+				if (response.startsWith("*"))
+					jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
+							"◀\t" + response.replace("*", "") + "\n", Task);
+				else
+					jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
+							"◀\t" + response + "\n", Out);
 				jConsole.setCaretPosition(jConsole.getDocument().getLength());
 
-				if (response.startsWith("prered2"))
+				if (response.startsWith("*prered2"))
 					task = 1;
-				else if (response.startsWith("wlcal"))
+				else if (response.startsWith("*wlcal"))
 					task = 2;
-				else if (response.startsWith("fcal"))
+				else if (response.startsWith("*fcal"))
 					task = 3;
-				else if (response.startsWith("background"))
+				else if (response.startsWith("*background"))
 					task = 4;
-				else if (response.startsWith("apall"))
+				else if (response.startsWith("*apall"))
 					task = 5;
-				else if (response.startsWith("scombine"))
+				else if (response.startsWith("*scombine"))
 					task = 6;
-				else if (response.startsWith("imcopy"))
+				else if (response.startsWith("*imcopy"))
 					task = 7;
+				else if (response.equals("*end"))
+					task = 8;
 
 				switch (task) {
 				case 1:
+					sendRms = true;
 					if (response.startsWith("Dispersion axis (1=along lines, 2=along columns, 3=along z) (1:3)")
 							|| (response.startsWith("Fit the normalization spectrum for")
 									&& response.endsWith(".b interactively (yes):")))
@@ -143,6 +158,11 @@ public class Main extends javax.swing.JPanel {
 							double actualRms = Double.parseDouble(data[data.length - 1]);
 							if (actualRms < rms)
 								// Yes: accept the interpolation
+								// This is necessary because identify/reidentify
+								// show RMS twice
+								// so we better avoid to send "q" command twice
+								// for the same line
+								// as unintended consequences could arise
 								if (sendRms)
 									process.sendTextToGraphics("q");
 							sendRms = !sendRms;
@@ -154,8 +174,26 @@ public class Main extends javax.swing.JPanel {
 					if (response.startsWith("Find") || response.startsWith("Resize") || response.startsWith("Edit")
 							|| response.startsWith("Trace") || response.startsWith("Fit")
 							|| response.startsWith("Write") || response.startsWith("Extract")
-							|| response.startsWith("Review"))
+							|| response.startsWith("Review")) {
 						process.sendKeyToGraphics("Return");
+						process.sendCommand(runningCommand, "\n");
+					}
+					break;
+				case 8:
+					task = 0;
+					sendRms = true;
+					process.sendCommand(runningCommand, "cd " + basePath);
+					if (generatedList.get("script") != null && generatedList.get("script").size() > 0) {
+						generatedList.get("script").remove(0);
+						// Run the script using "python scriptName.py" instead
+						// of "pyexecute scriptName.py"
+						// as the latter seems to be unable to run more than one
+						// script!
+						// Don't know why.
+						if (generatedList.get("script").size() > 0)
+							process.sendCommand(runningCommand, "!python " + generatedList.get("script").get(0));
+					}
+					break;
 				}
 			} catch (Exception e) {
 				log.fatal(e);
@@ -165,17 +203,17 @@ public class Main extends javax.swing.JPanel {
 		@Override
 		public void OnScriptTerminated() {
 			try {
+				task = 0;
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(), "◀\tterminated.\n",
 						Out);
 				jConsole.setCaretPosition(jConsole.getDocument().getLength());
+				if (generatedList.get("script") != null && generatedList.get("script").size() > 0) {
+					generatedList.get("script").remove(0);
+					if (generatedList.get("script").size() > 0)
+						process.sendCommand(runningCommand, "!python " + generatedList.get("script").get(0));
+				}
 			} catch (BadLocationException e) {
 				log.fatal(e);
-			}
-			if (scriptsList != null && scriptsList.size() > 0) {
-				scriptsList.remove(0);
-				if (scriptsList.size() > 0)
-					runningCommand = process.startScript(Paths.get(basePath + "/" + scriptsList.get(0)).toString(),
-							new String[] { ".exit" }, callback);
 			}
 		}
 
@@ -242,16 +280,107 @@ public class Main extends javax.swing.JPanel {
 	 * regenerated by the Form Editor.
 	 */
 	private void initComponents() {
+		groupAction = new javax.swing.ButtonGroup();
+		groupExplore = new javax.swing.ButtonGroup();
+		jTabbedPane1 = new javax.swing.JTabbedPane();
+		jPythonPanel = new javax.swing.JPanel();
+		jScrollPane3 = new javax.swing.JScrollPane();
+		jConsole = new JTextPane();
+		float[] background = Color.RGBtoHSB(76, 76, 76, null);
+		jConsole.setBackground(Color.getHSBColor(background[0], background[1], background[2]));
+		jCommand = new javax.swing.JTextField();
+		jSend = new javax.swing.JButton();
+		jAdvancedOptionsPanel = new javax.swing.JPanel();
+		jPanelImcopy = new javax.swing.JPanel();
+		jLabel17 = new javax.swing.JLabel();
+		jLabel18 = new javax.swing.JLabel();
+		jImcopyEnd = new javax.swing.JSpinner();
+		jImcopyStart = new javax.swing.JSpinner();
+		jPanelBackground = new javax.swing.JPanel();
+		jBackgroundStart = new javax.swing.JSpinner();
+		jBackgroundEnd = new javax.swing.JSpinner();
+		jLabel15 = new javax.swing.JLabel();
+		jLabel14 = new javax.swing.JLabel();
+		jPanelWlcal = new javax.swing.JPanel();
+		jWlcalThreshold = new javax.swing.JSlider();
+		jLabel12 = new javax.swing.JLabel();
+		jLabel13 = new javax.swing.JLabel();
+		jPanelIrafHome = new javax.swing.JPanel();
+		jIrafHome = new javax.swing.JTextField();
+		this.jIrafHome.setFont(new Font("Dialog", Font.BOLD, 12));
+		this.jIrafHome.setEditable(false);
+		jLabel11 = new javax.swing.JLabel();
+		jSelectIraf = new javax.swing.JButton();
+
+		this.popupMenu = new JPopupMenu();
+		this.popupGroup = new JMenuItem();
+		this.popupGroup.setText("Group together");
+		this.popupGroup.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				popupGroupActionPerformed(e);
+			}
+		});
+		this.popupDisband = new JMenuItem();
+		this.popupDisband.setText("Disband group");
+		this.popupDisband.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				popupDisbandActionPerformed(e);
+			}
+		});
+		this.popupDisplay = new JMenuItem();
+		this.popupDisplay.setText("Display image");
+		this.popupDisplay.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				popupDisplayActionPerformed(e);
+			}
+		});
+		this.popupMenu.add(this.popupGroup);
+		this.popupMenu.add(this.popupDisband);
+		this.popupMenu.add(this.popupDisplay);
+
+		// for (int i = 0; i < jTable1.getColumnCount(); i++)
+		// jTable1Cols.put(jTable1.getModel().getColumnName(i), i);
+		// for (int i = 0; i < jTable2.getColumnCount(); i++)
+		// jTable2Cols.put(jTable2.getModel().getColumnName(i), i);
+		// if (jTable2.getColumnModel().getColumnCount() > 0) {
+		// jTable2.getColumnModel().getColumn(0).setPreferredWidth(50);
+		// jTable2.getColumnModel().getColumn(1).setPreferredWidth(350);
+		// jTable2.getColumnModel().getColumn(2).setPreferredWidth(50);
+		// jTable2.getColumnModel().getColumn(3).setPreferredWidth(50);
+		// jTable2.getColumnModel().getColumn(4).setPreferredWidth(50);
+		// jTable2.getColumnModel().getColumn(5).setPreferredWidth(50);
+		// jTable2.getColumnModel().getColumn(6).setPreferredWidth(50);
+		// jTable2.getColumnModel().getColumn(7).setPreferredWidth(50);
+		// }
+
+		jConsole.setEditable(false);
+		jScrollPane3.setViewportView(jConsole);
+
+		jCommand.addKeyListener(new java.awt.event.KeyAdapter() {
+			public void keyTyped(java.awt.event.KeyEvent evt) {
+				jCommandKeyTyped(evt);
+			}
+		});
+
+		jSend.setText("Send");
+		jSend.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				jSendActionPerformed(evt);
+			}
+		});
 		jPrintTODO = new JButton();
 		jViewScripts = new JButton();
 		jRunScripts = new JButton();
 		jCheckStartFromScrap = new JCheckBox();
-		groupAction = new javax.swing.ButtonGroup();
-		groupExplore = new javax.swing.ButtonGroup();
-		jTabbedPane1 = new javax.swing.JTabbedPane();
 		jInputPanel = new org.jdesktop.swingx.JXPanel();
 		jStep1 = new org.jdesktop.swingx.JXCollapsiblePane();
+		BorderLayout borderLayout = (BorderLayout) this.jStep1.getLayout();
+		borderLayout.setVgap(6);
+		borderLayout.setHgap(6);
 		jFitsListPanel = new org.jdesktop.swingx.JXCollapsiblePane();
+		BorderLayout borderLayout_1 = (BorderLayout) this.jFitsListPanel.getLayout();
+		borderLayout_1.setVgap(6);
+		borderLayout_1.setHgap(6);
 		jLabel1 = new javax.swing.JLabel();
 		jPath = new javax.swing.JTextField();
 		this.jPath.setFont(new Font("Dialog", Font.BOLD, 12));
@@ -270,6 +399,9 @@ public class Main extends javax.swing.JPanel {
 		groupSteps.add(jShowStep1);
 		jStep2 = new org.jdesktop.swingx.JXCollapsiblePane();
 		this.jStep2.setCollapsed(true);
+		BorderLayout borderLayout_2 = (BorderLayout) this.jStep2.getLayout();
+		borderLayout_2.setVgap(6);
+		borderLayout_2.setHgap(6);
 		jScrollPane1 = new javax.swing.JScrollPane();
 		jTable1 = new javax.swing.JTable();
 		jLabel2 = new javax.swing.JLabel();
@@ -289,6 +421,10 @@ public class Main extends javax.swing.JPanel {
 		jShowStep2 = new javax.swing.JToggleButton();
 		groupSteps.add(jShowStep2);
 		jStep3 = new org.jdesktop.swingx.JXCollapsiblePane();
+		this.jStep3.setCollapsed(true);
+		BorderLayout borderLayout_3 = (BorderLayout) this.jStep3.getLayout();
+		borderLayout_3.setVgap(6);
+		borderLayout_3.setHgap(6);
 		jScrollPane2 = new javax.swing.JScrollPane();
 		jTable2 = new javax.swing.JTable();
 		jLabel3 = new javax.swing.JLabel();
@@ -297,6 +433,9 @@ public class Main extends javax.swing.JPanel {
 		groupSteps.add(jShowStep3);
 		jStep4 = new org.jdesktop.swingx.JXCollapsiblePane();
 		this.jStep4.setCollapsed(true);
+		BorderLayout borderLayout_4 = (BorderLayout) this.jStep4.getLayout();
+		borderLayout_4.setVgap(6);
+		borderLayout_4.setHgap(6);
 		jPanel12 = new javax.swing.JPanel();
 		jRadioListsOnly = new javax.swing.JRadioButton();
 		jRadioListsOnly.setSelected(true);
@@ -306,41 +445,6 @@ public class Main extends javax.swing.JPanel {
 		jLabel10 = new javax.swing.JLabel();
 		jShowStep4 = new javax.swing.JToggleButton();
 		groupSteps.add(jShowStep4);
-		jPythonPanel = new javax.swing.JPanel();
-		jScrollPane3 = new javax.swing.JScrollPane();
-		jConsole = new JTextPane();
-		float[] background = Color.RGBtoHSB(76, 76, 76, null);
-		jConsole.setBackground(Color.getHSBColor(background[0], background[1], background[2]));
-		jCommand = new javax.swing.JTextField();
-		jSend = new javax.swing.JButton();
-		jAdvancedOptionsPanel = new javax.swing.JPanel();
-		jPanel14 = new javax.swing.JPanel();
-		jLabel17 = new javax.swing.JLabel();
-		jLabel18 = new javax.swing.JLabel();
-		jImcopyEnd = new javax.swing.JSpinner();
-		jImcopyStart = new javax.swing.JSpinner();
-		jPanel15 = new javax.swing.JPanel();
-		jBackgroundStart = new javax.swing.JSpinner();
-		jBackgroundEnd = new javax.swing.JSpinner();
-		jLabel15 = new javax.swing.JLabel();
-		jLabel14 = new javax.swing.JLabel();
-		jPanel16 = new javax.swing.JPanel();
-		jWlcalThreshold = new javax.swing.JSlider();
-		jLabel12 = new javax.swing.JLabel();
-		jLabel13 = new javax.swing.JLabel();
-		jPanel17 = new javax.swing.JPanel();
-		jIrafHome = new javax.swing.JTextField();
-		this.jIrafHome.setFont(new Font("Dialog", Font.BOLD, 12));
-		this.jIrafHome.setEditable(false);
-		jLabel11 = new javax.swing.JLabel();
-		jSelectIraf = new javax.swing.JButton();
-		jSave = new javax.swing.JButton();
-		jSave.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				jSaveMouseClicked(e);
-			}
-		});
 
 		jStep1.setBorder(javax.swing.BorderFactory.createTitledBorder("STEP 1"));
 
@@ -362,33 +466,26 @@ public class Main extends javax.swing.JPanel {
 		});
 
 		javax.swing.GroupLayout jFitsListPanelLayout = new javax.swing.GroupLayout(jFitsListPanel.getContentPane());
+		jFitsListPanelLayout.setHorizontalGroup(jFitsListPanelLayout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jFitsListPanelLayout.createSequentialGroup().addContainerGap()
+						.addGroup(jFitsListPanelLayout.createParallelGroup(Alignment.LEADING)
+								.addGroup(jFitsListPanelLayout.createSequentialGroup().addGap(344)
+										.addComponent(this.jLoad))
+								.addGroup(jFitsListPanelLayout.createSequentialGroup()
+										.addComponent(this.jPath, GroupLayout.PREFERRED_SIZE, 1022,
+												GroupLayout.PREFERRED_SIZE)
+										.addGap(7).addComponent(this.jExplore))
+								.addComponent(this.jLabel1))
+						.addContainerGap()));
+		jFitsListPanelLayout.setVerticalGroup(jFitsListPanelLayout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jFitsListPanelLayout.createSequentialGroup().addGap(18).addComponent(this.jLabel1)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addGroup(jFitsListPanelLayout.createParallelGroup(Alignment.BASELINE)
+								.addComponent(this.jPath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE)
+								.addComponent(this.jExplore))
+						.addPreferredGap(ComponentPlacement.UNRELATED).addComponent(this.jLoad).addGap(19)));
 		jFitsListPanel.getContentPane().setLayout(jFitsListPanelLayout);
-		jFitsListPanelLayout.setHorizontalGroup(jFitsListPanelLayout
-				.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addGap(0, 0, Short.MAX_VALUE)
-				.addGroup(jFitsListPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-						.addGroup(jFitsListPanelLayout.createSequentialGroup().addContainerGap()
-								.addGroup(jFitsListPanelLayout
-										.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-										.addGroup(jFitsListPanelLayout.createSequentialGroup().addGap(344, 344, 344)
-												.addComponent(jLoad)
-												.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED,
-														514, javax.swing.GroupLayout.PREFERRED_SIZE))
-										.addGroup(jFitsListPanelLayout.createSequentialGroup().addComponent(jPath)
-												.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-												.addComponent(jExplore))
-										.addGroup(jFitsListPanelLayout.createSequentialGroup().addComponent(jLabel1)
-												.addGap(0, 0, Short.MAX_VALUE)))
-								.addContainerGap())));
-		jFitsListPanelLayout.setVerticalGroup(jFitsListPanelLayout
-				.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addGap(0, 125, Short.MAX_VALUE)
-				.addGroup(jFitsListPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-						.addGroup(jFitsListPanelLayout.createSequentialGroup().addGap(18, 18, 18).addComponent(jLabel1)
-								.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-								.addGroup(jFitsListPanelLayout
-										.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-										.addComponent(jPath).addComponent(jExplore))
-								.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-								.addComponent(jLoad).addGap(19, 19, 19))));
 
 		jRadioFitsList.setSelected(true);
 		jRadioFitsList.setText("Select the fits_list");
@@ -458,29 +555,27 @@ public class Main extends javax.swing.JPanel {
 				.setAccessibleName("Select the directory which contains the images you want to reduce:");
 
 		javax.swing.GroupLayout jStep1Layout = new javax.swing.GroupLayout(jStep1.getContentPane());
-		jStep1.getContentPane().setLayout(jStep1Layout);
-		jStep1Layout.setHorizontalGroup(jStep1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+		jStep1Layout.setHorizontalGroup(jStep1Layout.createParallelGroup(Alignment.LEADING)
 				.addGroup(jStep1Layout.createSequentialGroup().addContainerGap()
-						.addGroup(jStep1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-								.addComponent(jFitsListPanel, javax.swing.GroupLayout.DEFAULT_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-						.addGroup(jStep1Layout.createSequentialGroup()
-								.addGroup(jStep1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-										.addComponent(jRadioFitsList).addComponent(jRadioButton2))
-								.addGap(0, 0, Short.MAX_VALUE)).addComponent(jDirectoryPanel,
-										javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE,
-										Short.MAX_VALUE))
+						.addGroup(jStep1Layout.createParallelGroup(Alignment.LEADING)
+								.addComponent(this.jFitsListPanel, GroupLayout.PREFERRED_SIZE, 1139, Short.MAX_VALUE)
+								.addGroup(jStep1Layout.createSequentialGroup()
+										.addGroup(jStep1Layout.createParallelGroup(Alignment.LEADING)
+												.addComponent(this.jRadioFitsList).addComponent(this.jRadioButton2))
+										.addGap(0, 998, Short.MAX_VALUE))
+								.addComponent(this.jDirectoryPanel, GroupLayout.DEFAULT_SIZE, 1163, Short.MAX_VALUE))
 						.addContainerGap()));
-		jStep1Layout.setVerticalGroup(jStep1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jStep1Layout.createSequentialGroup().addComponent(jRadioFitsList)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-						.addComponent(jFitsListPanel, javax.swing.GroupLayout.PREFERRED_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED).addComponent(jRadioButton2)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-						.addComponent(jDirectoryPanel, javax.swing.GroupLayout.PREFERRED_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		jStep1Layout.setVerticalGroup(jStep1Layout.createParallelGroup(Alignment.LEADING)
+				.addGroup(jStep1Layout.createSequentialGroup().addComponent(this.jRadioFitsList)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(this.jFitsListPanel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE)
+						.addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jRadioButton2)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(this.jDirectoryPanel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE)
+						.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		jStep1.getContentPane().setLayout(jStep1Layout);
 
 		jShowStep1.setText("Showing step 1");
 		this.jShowStep1
@@ -492,24 +587,6 @@ public class Main extends javax.swing.JPanel {
 		});
 
 		jStep2.setBorder(javax.swing.BorderFactory.createTitledBorder("STEP 2"));
-
-		this.popupMenu = new JPopupMenu();
-		this.popupGroup = new JMenuItem();
-		this.popupGroup.setText("Group together");
-		this.popupGroup.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				popupGroupActionPerformed(e);
-			}
-		});
-		this.popupDisband = new JMenuItem();
-		this.popupDisband.setText("Disband group");
-		this.popupDisband.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				popupDisbandActionPerformed(e);
-			}
-		});
-		this.popupMenu.add(this.popupGroup);
-		this.popupMenu.add(this.popupDisband);
 
 		jTable1.setModel(new DefaultTableModel(new Object[][] {}, new String[] { "Enabled", "Image", "Target name",
 				"Type", "Is standard?", "Exp Time", "Lines list", "Lamp", "Standard" }) {
@@ -529,8 +606,6 @@ public class Main extends javax.swing.JPanel {
 		this.jTable1.getColumnModel().getColumn(6).setPreferredWidth(60);
 		this.jTable1.getColumnModel().getColumn(7).setPreferredWidth(90);
 		this.jTable1.getColumnModel().getColumn(8).setPreferredWidth(90);
-		for (int i = 0; i < jTable1.getColumnCount(); i++)
-			jTable1Cols.put(jTable1.getModel().getColumnName(i), i);
 		jTable1.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_ALL_COLUMNS);
 		jTable1.setShowVerticalLines(false);
 		jTable1.getTableHeader().setReorderingAllowed(false);
@@ -649,45 +724,52 @@ public class Main extends javax.swing.JPanel {
 
 		javax.swing.GroupLayout jOptionsPanelLayout = new javax.swing.GroupLayout(jOptionsPanel);
 		jOptionsPanelLayout.setHorizontalGroup(jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jOptionsPanelLayout.createSequentialGroup()
-						.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING, false)
-								.addGroup(Alignment.LEADING,
-										jOptionsPanelLayout.createSequentialGroup().addContainerGap().addComponent(
-												this.jLabel4, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE,
-												Short.MAX_VALUE))
-								.addGroup(Alignment.LEADING,
-										jOptionsPanelLayout.createSequentialGroup().addGap(20)
-												.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
-														.addComponent(this.jLabel5).addComponent(this.jLabel6)
-														.addComponent(this.jLabel7).addComponent(this.jLabel8)
-														.addComponent(this.jLabel9))
-								.addPreferredGap(ComponentPlacement.RELATED)
-								.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
-										.addComponent(this.jPanel6, GroupLayout.PREFERRED_SIZE,
-												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-										.addComponent(this.jPanel10, GroupLayout.PREFERRED_SIZE,
-												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-										.addComponent(this.jPanel11, GroupLayout.PREFERRED_SIZE,
-												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-										.addComponent(this.jPanel8, GroupLayout.PREFERRED_SIZE,
-												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-										.addComponent(this.jPanel9, GroupLayout.PREFERRED_SIZE,
-												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))))
+				.addGroup(jOptionsPanelLayout.createSequentialGroup().addGroup(jOptionsPanelLayout
+						.createParallelGroup(Alignment.TRAILING, false)
+						.addGroup(Alignment.LEADING,
+								jOptionsPanelLayout.createSequentialGroup().addContainerGap().addComponent(this.jLabel4,
+										GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+						.addGroup(Alignment.LEADING,
+								jOptionsPanelLayout.createSequentialGroup().addGap(20)
+										.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
+												.addComponent(this.jLabel5).addComponent(this.jLabel6)
+												.addComponent(this.jLabel7).addComponent(this.jLabel8)
+												.addComponent(this.jLabel9))
+										.addPreferredGap(ComponentPlacement.RELATED)
+										.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
+												.addComponent(this.jPanel6, GroupLayout.PREFERRED_SIZE,
+														GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+												.addComponent(this.jPanel10, GroupLayout.PREFERRED_SIZE,
+														GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+												.addComponent(this.jPanel11, GroupLayout.PREFERRED_SIZE,
+														GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+												.addComponent(this.jPanel8, GroupLayout.PREFERRED_SIZE,
+														GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+												.addComponent(this.jPanel9, GroupLayout.PREFERRED_SIZE,
+														GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))))
 						.addContainerGap(22, Short.MAX_VALUE)));
-		jOptionsPanelLayout.setVerticalGroup(jOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jOptionsPanelLayout.createSequentialGroup().addContainerGap().addComponent(this.jLabel4)
-						.addPreferredGap(ComponentPlacement.RELATED)
+		jOptionsPanelLayout.setVerticalGroup(
+				jOptionsPanelLayout.createParallelGroup(Alignment.LEADING).addGroup(jOptionsPanelLayout
+						.createSequentialGroup().addContainerGap().addComponent(this.jLabel4).addPreferredGap(
+								ComponentPlacement.RELATED)
 						.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
-								.addGroup(jOptionsPanelLayout.createSequentialGroup().addGroup(jOptionsPanelLayout
-										.createParallelGroup(Alignment.TRAILING)
-										.addGroup(jOptionsPanelLayout.createSequentialGroup()
-												.addGroup(jOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
-														.addComponent(this.jLabel5).addComponent(this.jPanel6,
-																GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-																GroupLayout.PREFERRED_SIZE))
-												.addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jLabel6))
-										.addComponent(this.jPanel8, GroupLayout.PREFERRED_SIZE,
-												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+								.addGroup(jOptionsPanelLayout
+										.createSequentialGroup().addGroup(
+												jOptionsPanelLayout
+														.createParallelGroup(
+																Alignment.TRAILING)
+														.addGroup(jOptionsPanelLayout.createSequentialGroup()
+																.addGroup(jOptionsPanelLayout
+																		.createParallelGroup(Alignment.TRAILING)
+																		.addComponent(this.jLabel5)
+																		.addComponent(this.jPanel6,
+																				GroupLayout.PREFERRED_SIZE,
+																				GroupLayout.DEFAULT_SIZE,
+																				GroupLayout.PREFERRED_SIZE))
+																.addPreferredGap(ComponentPlacement.RELATED)
+																.addComponent(this.jLabel6))
+														.addComponent(this.jPanel8, GroupLayout.PREFERRED_SIZE,
+																GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 										.addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jLabel7))
 								.addComponent(this.jPanel9, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
 										GroupLayout.PREFERRED_SIZE))
@@ -713,45 +795,37 @@ public class Main extends javax.swing.JPanel {
 		});
 
 		javax.swing.GroupLayout jStep2Layout = new javax.swing.GroupLayout(jStep2.getContentPane());
-		jStep2Layout
-				.setHorizontalGroup(
-						jStep2Layout.createParallelGroup(Alignment.LEADING)
-								.addGroup(
-										jStep2Layout.createSequentialGroup().addContainerGap()
-												.addGroup(jStep2Layout
-														.createParallelGroup(
-																Alignment.LEADING)
-														.addGroup(jStep2Layout.createSequentialGroup()
-																.addGroup(jStep2Layout
-																		.createParallelGroup(Alignment.LEADING)
-																		.addComponent(this.jLabel2)
-																		.addComponent(this.jScrollPane1,
-																				GroupLayout.DEFAULT_SIZE, 972,
-																				Short.MAX_VALUE))
-										.addGap(18)
-										.addGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
-												.addComponent(this.jOptionsPanel, GroupLayout.PREFERRED_SIZE, 142,
-														GroupLayout.PREFERRED_SIZE)
-												.addComponent(this.jSolve, GroupLayout.PREFERRED_SIZE, 175,
-														GroupLayout.PREFERRED_SIZE))).addComponent(this.jStep2Next,
-																Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 95,
-																GroupLayout.PREFERRED_SIZE))
-												.addContainerGap()));
-		jStep2Layout.setVerticalGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
-				.addGroup(jStep2Layout.createSequentialGroup().addContainerGap()
+		jStep2Layout.setHorizontalGroup(jStep2Layout.createParallelGroup(Alignment.LEADING).addGroup(jStep2Layout
+				.createSequentialGroup().addContainerGap()
+				.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING).addGroup(jStep2Layout
+						.createSequentialGroup()
+						.addGroup(jStep2Layout.createParallelGroup(Alignment.LEADING).addComponent(this.jLabel2)
+								.addComponent(this.jScrollPane1, GroupLayout.DEFAULT_SIZE, 972, Short.MAX_VALUE))
+						.addGap(18)
 						.addGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
-								.addGroup(jStep2Layout.createSequentialGroup().addComponent(this.jLabel2).addGap(18)
-										.addComponent(this.jScrollPane1, GroupLayout.PREFERRED_SIZE, 167,
-												GroupLayout.PREFERRED_SIZE))
-								.addGroup(jStep2Layout.createSequentialGroup()
-										.addComponent(this.jOptionsPanel, 0, 0, Short.MAX_VALUE)
-										.addPreferredGap(ComponentPlacement.RELATED)
-										.addComponent(this.jSolve, GroupLayout.PREFERRED_SIZE, 54,
-												GroupLayout.PREFERRED_SIZE)
-										.addGap(6)))
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addComponent(this.jStep2Next, GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)
-						.addContainerGap()));
+								.addComponent(this.jOptionsPanel, GroupLayout.PREFERRED_SIZE, 142,
+										GroupLayout.PREFERRED_SIZE)
+								.addComponent(this.jSolve, GroupLayout.PREFERRED_SIZE, 175,
+										GroupLayout.PREFERRED_SIZE)))
+						.addComponent(this.jStep2Next, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 95,
+								GroupLayout.PREFERRED_SIZE))
+				.addContainerGap()));
+		jStep2Layout
+				.setVerticalGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
+						.addGroup(jStep2Layout.createSequentialGroup().addContainerGap()
+								.addGroup(jStep2Layout.createParallelGroup(Alignment.TRAILING)
+										.addGroup(jStep2Layout.createSequentialGroup().addComponent(this.jLabel2)
+												.addGap(18).addComponent(this.jScrollPane1, GroupLayout.PREFERRED_SIZE,
+														167, GroupLayout.PREFERRED_SIZE))
+										.addGroup(jStep2Layout.createSequentialGroup()
+												.addComponent(this.jOptionsPanel, 0, 0, Short.MAX_VALUE)
+												.addPreferredGap(ComponentPlacement.RELATED)
+												.addComponent(this.jSolve, GroupLayout.PREFERRED_SIZE, 54,
+														GroupLayout.PREFERRED_SIZE)
+												.addGap(6)))
+								.addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jStep2Next,
+										GroupLayout.PREFERRED_SIZE, 24, GroupLayout.PREFERRED_SIZE)
+								.addContainerGap()));
 		jStep2.getContentPane().setLayout(jStep2Layout);
 		jShowStep2.setText("Go to step 2");
 		this.jShowStep2
@@ -763,28 +837,18 @@ public class Main extends javax.swing.JPanel {
 		});
 
 		jStep3.setBorder(javax.swing.BorderFactory.createTitledBorder("STEP 3"));
-		jStep3.setCollapsed(true);
 
-		jTable2.setModel(new javax.swing.table.DefaultTableModel(
-				new Object[][] { { new Boolean(true), null, new Boolean(true), new Boolean(true), new Boolean(true),
-						new Boolean(true), new Boolean(true), new Boolean(true), new Boolean(true) } },
-				new String[] { "Enabled", "Target", "prered2", "wlcal", "fcal", "background", "apall", "scombine",
-						"imcopy" }) {
-			Class[] types = new Class[] { java.lang.Boolean.class, java.lang.String.class, java.lang.Boolean.class,
-					java.lang.Boolean.class, java.lang.Boolean.class, java.lang.Boolean.class, java.lang.Boolean.class,
-					java.lang.Boolean.class, java.lang.Boolean.class };
-			boolean[] canEdit = new boolean[] { true, false, true, true, true, true, true, true, true };
+		jTable2.setModel(new DefaultTableModel(new Object[][] {}, new String[] { "Enabled", "Target", "prered2",
+				"wlcal", "fcal", "background", "apall", "scombine", "imcopy" }) {
+			Class[] columnTypes = new Class[] { Boolean.class, String.class, Boolean.class, Boolean.class,
+					Boolean.class, Boolean.class, Boolean.class, Boolean.class, Boolean.class };
 
 			public Class getColumnClass(int columnIndex) {
-				return types[columnIndex];
-			}
-
-			public boolean isCellEditable(int rowIndex, int columnIndex) {
-				return canEdit[columnIndex];
+				return columnTypes[columnIndex];
 			}
 		});
-		for (int i = 0; i < jTable2.getColumnCount(); i++)
-			jTable2Cols.put(jTable2.getModel().getColumnName(i), i);
+		this.jTable2.getColumnModel().getColumn(1).setPreferredWidth(300);
+		this.jTable2.getColumnModel().getColumn(1).setMinWidth(90);
 		jTable2.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_LAST_COLUMN);
 		jTable2.setShowVerticalLines(false);
 		jTable2.addPropertyChangeListener(new java.beans.PropertyChangeListener() {
@@ -792,16 +856,6 @@ public class Main extends javax.swing.JPanel {
 				jTable2PropertyChange(evt);
 			}
 		});
-		if (jTable2.getColumnModel().getColumnCount() > 0) {
-			jTable2.getColumnModel().getColumn(0).setPreferredWidth(50);
-			jTable2.getColumnModel().getColumn(1).setPreferredWidth(350);
-			jTable2.getColumnModel().getColumn(2).setPreferredWidth(50);
-			jTable2.getColumnModel().getColumn(3).setPreferredWidth(50);
-			jTable2.getColumnModel().getColumn(4).setPreferredWidth(50);
-			jTable2.getColumnModel().getColumn(5).setPreferredWidth(50);
-			jTable2.getColumnModel().getColumn(6).setPreferredWidth(50);
-			jTable2.getColumnModel().getColumn(7).setPreferredWidth(50);
-		}
 		jScrollPane2.setViewportView(jTable2);
 
 		jLabel3.setText("Set what task to apply to images:");
@@ -813,30 +867,29 @@ public class Main extends javax.swing.JPanel {
 				jStep3NextActionPerformed(evt);
 			}
 		});
-
-		javax.swing.GroupLayout jStep3Layout = new javax.swing.GroupLayout(jStep3.getContentPane());
-		jStep3.getContentPane().setLayout(jStep3Layout);
-		jStep3Layout.setHorizontalGroup(jStep3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jStep3Layout.createSequentialGroup().addContainerGap()
-						.addGroup(jStep3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-								.addGroup(jStep3Layout.createSequentialGroup().addComponent(jLabel3)
-										.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-						.addGroup(jStep3Layout.createSequentialGroup().addComponent(jScrollPane2).addContainerGap())))
-				.addGroup(javax.swing.GroupLayout.Alignment.TRAILING,
-						jStep3Layout.createSequentialGroup()
-								.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(jStep3Next, javax.swing.GroupLayout.PREFERRED_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+		GroupLayout groupLayout_1 = new GroupLayout(this.jStep3.getContentPane());
+		groupLayout_1.setHorizontalGroup(groupLayout_1.createParallelGroup(Alignment.LEADING)
+				.addGroup(groupLayout_1.createSequentialGroup().addGap(12).addComponent(this.jLabel3))
+				.addGroup(Alignment.TRAILING,
+						groupLayout_1.createSequentialGroup().addContainerGap(1068, Short.MAX_VALUE)
+								.addComponent(this.jStep3Next, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE)
+								.addContainerGap())
+				.addGroup(groupLayout_1.createSequentialGroup().addContainerGap()
+						.addComponent(this.jScrollPane2, GroupLayout.DEFAULT_SIZE, 1151, Short.MAX_VALUE)
 						.addContainerGap()));
-		jStep3Layout.setVerticalGroup(jStep3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(javax.swing.GroupLayout.Alignment.TRAILING,
-						jStep3Layout.createSequentialGroup().addContainerGap().addComponent(jLabel3).addGap(18, 18, 18)
-								.addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 167,
-										javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-						.addComponent(jStep3Next, javax.swing.GroupLayout.PREFERRED_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		groupLayout_1
+				.setVerticalGroup(
+						groupLayout_1.createParallelGroup(Alignment.LEADING)
+								.addGroup(groupLayout_1.createSequentialGroup().addGap(12).addComponent(this.jLabel3)
+										.addGap(18)
+										.addComponent(this.jScrollPane2, GroupLayout.PREFERRED_SIZE, 155,
+												GroupLayout.PREFERRED_SIZE)
+										.addGap(18)
+										.addComponent(this.jStep3Next, GroupLayout.PREFERRED_SIZE,
+												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+										.addContainerGap()));
+		this.jStep3.getContentPane().setLayout(groupLayout_1);
 		jShowStep3.setText("Go to step 3");
 		jShowStep3
 				.addActionListener(this.jStep3.getActionMap().get(org.jdesktop.swingx.JXCollapsiblePane.TOGGLE_ACTION));
@@ -877,7 +930,7 @@ public class Main extends javax.swing.JPanel {
 				.addGroup(jPanel12Layout.createSequentialGroup().addContainerGap()
 						.addGroup(jPanel12Layout.createParallelGroup(Alignment.LEADING).addComponent(jRadioListsOnly)
 								.addComponent(jRadioListsAndOneScript).addComponent(jRadioListsAndMultipleScripts))
-				.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+						.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 		jPanel12Layout.setVerticalGroup(jPanel12Layout.createParallelGroup(Alignment.LEADING)
 				.addGroup(jPanel12Layout.createSequentialGroup().addContainerGap().addComponent(jRadioListsOnly)
 						.addPreferredGap(ComponentPlacement.UNRELATED).addComponent(jRadioListsAndOneScript)
@@ -953,24 +1006,21 @@ public class Main extends javax.swing.JPanel {
 										GroupLayout.PREFERRED_SIZE))
 						.addComponent(this.jLabel10))
 				.addGap(15)));
-		jStep4Layout
-				.setVerticalGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
-						.addGroup(jStep4Layout.createSequentialGroup().addContainerGap().addComponent(
-								this.jLabel10)
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING).addComponent(this.jPrintTODO,
-								GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
+		jStep4Layout.setVerticalGroup(jStep4Layout.createParallelGroup(Alignment.LEADING).addGroup(jStep4Layout
+				.createSequentialGroup().addContainerGap().addComponent(this.jLabel10)
+				.addPreferredGap(ComponentPlacement.RELATED)
+				.addGroup(jStep4Layout.createParallelGroup(Alignment.LEADING)
+						.addComponent(this.jPrintTODO, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
 						.addComponent(this.jRunScripts, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
 						.addGroup(jStep4Layout.createSequentialGroup()
 								.addComponent(this.jViewScripts, GroupLayout.PREFERRED_SIZE, 52,
 										GroupLayout.PREFERRED_SIZE)
 								.addGap(18).addComponent(this.jListGenerated))
 						.addComponent(this.jPanel12, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-								GroupLayout.PREFERRED_SIZE).addGroup(
-										jStep4Layout.createSequentialGroup()
-												.addComponent(this.jDoIt, GroupLayout.PREFERRED_SIZE, 52,
-														GroupLayout.PREFERRED_SIZE)
-												.addGap(18).addComponent(this.jCheckStartFromScrap)))
+								GroupLayout.PREFERRED_SIZE)
+						.addGroup(jStep4Layout.createSequentialGroup()
+								.addComponent(this.jDoIt, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
+								.addGap(18).addComponent(this.jCheckStartFromScrap)))
 				.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 		jStep4.getContentPane().setLayout(jStep4Layout);
 		jShowStep4.setText("Go to step 4");
@@ -982,64 +1032,48 @@ public class Main extends javax.swing.JPanel {
 			}
 		});
 
-		javax.swing.GroupLayout jInputPanelLayout = new javax.swing.GroupLayout(jInputPanel);
-		jInputPanel.setLayout(jInputPanelLayout);
-		jInputPanelLayout.setHorizontalGroup(jInputPanelLayout
-				.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jInputPanelLayout.createSequentialGroup().addContainerGap()
-						.addGroup(jInputPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-								.addComponent(jStep3, javax.swing.GroupLayout.DEFAULT_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(jStep1, javax.swing.GroupLayout.DEFAULT_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(jStep2, javax.swing.GroupLayout.Alignment.TRAILING,
-										javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE,
-										Short.MAX_VALUE)
-								.addComponent(jStep4, javax.swing.GroupLayout.Alignment.TRAILING,
-										javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE,
-										Short.MAX_VALUE)
-								.addComponent(jShowStep1, javax.swing.GroupLayout.Alignment.TRAILING)
-								.addComponent(jShowStep2, javax.swing.GroupLayout.Alignment.TRAILING)
-								.addComponent(jShowStep3, javax.swing.GroupLayout.Alignment.TRAILING)
-								.addComponent(jShowStep4, javax.swing.GroupLayout.Alignment.TRAILING))
-						.addContainerGap()));
-		jInputPanelLayout.setVerticalGroup(jInputPanelLayout
-				.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jInputPanelLayout.createSequentialGroup().addContainerGap()
-						.addComponent(jStep1, javax.swing.GroupLayout.PREFERRED_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED).addComponent(jShowStep1)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-						.addComponent(jStep2, javax.swing.GroupLayout.PREFERRED_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED).addComponent(jShowStep2)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-						.addComponent(jStep3, javax.swing.GroupLayout.PREFERRED_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED).addComponent(jShowStep3)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-						.addComponent(jStep4, javax.swing.GroupLayout.PREFERRED_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED).addComponent(jShowStep4)
-						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
-
 		jTabbedPane1.addTab("Data input and Control", jInputPanel);
-
-		jConsole.setEditable(false);
-		jScrollPane3.setViewportView(jConsole);
-
-		jCommand.addKeyListener(new java.awt.event.KeyAdapter() {
-			public void keyTyped(java.awt.event.KeyEvent evt) {
-				jCommandKeyTyped(evt);
-			}
-		});
-
-		jSend.setText("Send");
-		jSend.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				jSendActionPerformed(evt);
-			}
-		});
+		GroupLayout gl_jInputPanel = new GroupLayout(this.jInputPanel);
+		gl_jInputPanel
+				.setHorizontalGroup(
+						gl_jInputPanel.createParallelGroup(Alignment.LEADING).addGroup(gl_jInputPanel
+								.createSequentialGroup().addGroup(gl_jInputPanel.createParallelGroup(Alignment.LEADING)
+										.addGroup(Alignment.TRAILING, gl_jInputPanel.createSequentialGroup().addGap(12)
+												.addGroup(gl_jInputPanel.createParallelGroup(Alignment.LEADING, false)
+														.addComponent(this.jStep2, 0, 0, Short.MAX_VALUE)
+														.addComponent(this.jStep3, GroupLayout.DEFAULT_SIZE,
+																GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+														.addComponent(this.jStep1, 0, 0, Short.MAX_VALUE)))
+										.addGroup(Alignment.TRAILING,
+												gl_jInputPanel.createSequentialGroup().addContainerGap().addComponent(
+														this.jStep4, GroupLayout.PREFERRED_SIZE, 1185, Short.MAX_VALUE))
+										.addGroup(Alignment.TRAILING, gl_jInputPanel.createSequentialGroup()
+												.addContainerGap(1054, Short.MAX_VALUE).addComponent(this.jShowStep1))
+										.addGroup(Alignment.TRAILING, gl_jInputPanel.createSequentialGroup()
+												.addContainerGap(1077, Short.MAX_VALUE).addComponent(this.jShowStep4))
+										.addGroup(Alignment.TRAILING, gl_jInputPanel.createSequentialGroup()
+												.addContainerGap(1077, Short.MAX_VALUE).addComponent(this.jShowStep3))
+										.addGroup(Alignment.TRAILING, gl_jInputPanel.createSequentialGroup()
+												.addContainerGap(1074, Short.MAX_VALUE).addComponent(this.jShowStep2)))
+								.addContainerGap()));
+		gl_jInputPanel.setVerticalGroup(gl_jInputPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jInputPanel.createSequentialGroup().addContainerGap()
+						.addComponent(this.jStep1, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE)
+						.addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jShowStep1)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(this.jStep2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE)
+						.addGap(6).addComponent(this.jShowStep2).addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(this.jStep3, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE)
+						.addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jShowStep3)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(this.jStep4, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE)
+						.addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jShowStep4)
+						.addContainerGap(125, Short.MAX_VALUE)));
+		this.jInputPanel.setLayout(gl_jInputPanel);
 
 		javax.swing.GroupLayout jPythonPanelLayout = new javax.swing.GroupLayout(jPythonPanel);
 		jPythonPanel.setLayout(jPythonPanelLayout);
@@ -1064,7 +1098,7 @@ public class Main extends javax.swing.JPanel {
 
 		jTabbedPane1.addTab("Execution", jPythonPanel);
 
-		jPanel14.setBorder(javax.swing.BorderFactory.createTitledBorder("imcopy"));
+		jPanelImcopy.setBorder(javax.swing.BorderFactory.createTitledBorder("imcopy"));
 
 		jLabel17.setText("Spectrum starts at column:");
 
@@ -1084,28 +1118,43 @@ public class Main extends javax.swing.JPanel {
 			}
 		});
 
-		javax.swing.GroupLayout jPanel14Layout = new javax.swing.GroupLayout(jPanel14);
-		jPanel14.setLayout(jPanel14Layout);
-		jPanel14Layout.setHorizontalGroup(jPanel14Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jPanel14Layout.createSequentialGroup().addContainerGap().addComponent(jLabel17)
-						.addGap(18, 18, 18)
-						.addComponent(jImcopyStart, javax.swing.GroupLayout.PREFERRED_SIZE, 123,
-								javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addGap(18, 18, 18).addComponent(jLabel18).addGap(18, 18, 18)
-						.addComponent(jImcopyEnd, javax.swing.GroupLayout.PREFERRED_SIZE, 123,
-								javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
-		jPanel14Layout.setVerticalGroup(jPanel14Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jPanel14Layout.createSequentialGroup().addContainerGap()
-						.addGroup(jPanel14Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-								.addComponent(jLabel17)
-								.addComponent(jImcopyStart, javax.swing.GroupLayout.PREFERRED_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addComponent(jLabel18).addComponent(jImcopyEnd, javax.swing.GroupLayout.PREFERRED_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		this.label_1 = new JLabel("Advanced options:");
 
-		jPanel15.setBorder(javax.swing.BorderFactory.createTitledBorder("background"));
+		this.jImcopyOptions = new JTextField();
+		this.jImcopyOptions.setColumns(10);
+
+		javax.swing.GroupLayout gl_jPanelImcopy = new javax.swing.GroupLayout(jPanelImcopy);
+		gl_jPanelImcopy.setHorizontalGroup(gl_jPanelImcopy.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelImcopy.createSequentialGroup().addContainerGap()
+						.addGroup(gl_jPanelImcopy.createParallelGroup(Alignment.LEADING)
+								.addGroup(gl_jPanelImcopy.createSequentialGroup().addComponent(this.jLabel17).addGap(18)
+										.addComponent(this.jImcopyStart, GroupLayout.PREFERRED_SIZE, 66,
+												GroupLayout.PREFERRED_SIZE)
+										.addGap(18).addComponent(this.jLabel18).addGap(18).addComponent(this.jImcopyEnd,
+												GroupLayout.PREFERRED_SIZE, 66, GroupLayout.PREFERRED_SIZE))
+								.addGroup(gl_jPanelImcopy.createSequentialGroup()
+										.addComponent(this.label_1, GroupLayout.PREFERRED_SIZE, 131,
+												GroupLayout.PREFERRED_SIZE)
+										.addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jImcopyOptions,
+												GroupLayout.DEFAULT_SIZE, 528, Short.MAX_VALUE)))
+						.addContainerGap()));
+		gl_jPanelImcopy.setVerticalGroup(gl_jPanelImcopy.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelImcopy.createSequentialGroup().addContainerGap()
+						.addGroup(gl_jPanelImcopy.createParallelGroup(Alignment.BASELINE)
+								.addComponent(this.jLabel17)
+								.addComponent(this.jImcopyStart, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE)
+								.addComponent(this.jLabel18).addComponent(this.jImcopyEnd, GroupLayout.PREFERRED_SIZE,
+										GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_jPanelImcopy.createParallelGroup(Alignment.LEADING)
+								.addGroup(gl_jPanelImcopy.createSequentialGroup().addGap(20).addComponent(this.label_1))
+								.addGroup(gl_jPanelImcopy.createSequentialGroup().addGap(18).addComponent(
+										this.jImcopyOptions, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE)))
+						.addContainerGap(19, Short.MAX_VALUE)));
+		jPanelImcopy.setLayout(gl_jPanelImcopy);
+
+		jPanelBackground.setBorder(javax.swing.BorderFactory.createTitledBorder("background"));
 
 		jBackgroundStart.setModel(new javax.swing.SpinnerNumberModel(1000, 0, 2048, 1));
 		jBackgroundStart.addMouseWheelListener(new java.awt.event.MouseWheelListener() {
@@ -1123,32 +1172,12 @@ public class Main extends javax.swing.JPanel {
 
 		jLabel15.setText("and column");
 
-		jLabel14.setText("Get background from column");
+		jLabel14.setText("Extract from column");
+		this.lblOptions = new JLabel("Advanced options:");
+		this.jBackgroundOptions = new JTextField();
+		this.jBackgroundOptions.setColumns(10);
 
-		javax.swing.GroupLayout jPanel15Layout = new javax.swing.GroupLayout(jPanel15);
-		jPanel15.setLayout(jPanel15Layout);
-		jPanel15Layout.setHorizontalGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jPanel15Layout.createSequentialGroup().addContainerGap().addComponent(jLabel14)
-						.addGap(18, 18, 18)
-						.addComponent(jBackgroundStart, javax.swing.GroupLayout.PREFERRED_SIZE, 123,
-								javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addGap(18, 18, 18).addComponent(jLabel15).addGap(18, 18, 18)
-						.addComponent(jBackgroundEnd, javax.swing.GroupLayout.PREFERRED_SIZE, 123,
-								javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
-		jPanel15Layout.setVerticalGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jPanel15Layout.createSequentialGroup().addContainerGap()
-						.addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-								.addComponent(jBackgroundStart, javax.swing.GroupLayout.PREFERRED_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addComponent(jBackgroundEnd, javax.swing.GroupLayout.PREFERRED_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addComponent(jLabel14).addComponent(jLabel15)).addContainerGap()));
-
-		jPanel16.setBorder(javax.swing.BorderFactory.createTitledBorder("wlcal"));
-
-		jWlcalThreshold.setPaintLabels(true);
-		jWlcalThreshold.setPaintTicks(true);
+		jPanelWlcal.setBorder(javax.swing.BorderFactory.createTitledBorder("wlcal"));
 		jWlcalThreshold.setSnapToTicks(true);
 		jWlcalThreshold.setValue(10);
 		jWlcalThreshold.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
@@ -1164,35 +1193,41 @@ public class Main extends javax.swing.JPanel {
 		});
 
 		jLabel12.setText("wlcal RMS threshold");
+		this.lblAdvancedOptions = new JLabel("Advanced options:");
+		this.jWlcalOptions = new JTextField();
+		this.jWlcalOptions.setColumns(10);
 
-		jLabel13.setText("00");
-
-		javax.swing.GroupLayout jPanel16Layout = new javax.swing.GroupLayout(jPanel16);
-		jPanel16.setLayout(jPanel16Layout);
-		jPanel16Layout
-				.setHorizontalGroup(jPanel16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-						.addGroup(jPanel16Layout.createSequentialGroup().addContainerGap().addComponent(jLabel12)
-								.addGap(30, 30, 30)
-								.addComponent(jWlcalThreshold, javax.swing.GroupLayout.DEFAULT_SIZE, 892,
-										Short.MAX_VALUE)
-								.addContainerGap())
-				.addGroup(javax.swing.GroupLayout.Alignment.TRAILING,
-						jPanel16Layout.createSequentialGroup()
-								.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(jLabel13).addGap(488, 488, 488)));
-		jPanel16Layout.setVerticalGroup(jPanel16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jPanel16Layout.createSequentialGroup().addContainerGap().addComponent(jLabel13)
-						.addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-						.addGroup(jPanel16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-								.addComponent(jWlcalThreshold, javax.swing.GroupLayout.PREFERRED_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-								.addComponent(jLabel12))
-						.addContainerGap()));
+		javax.swing.GroupLayout gl_jPanelWlcal = new javax.swing.GroupLayout(jPanelWlcal);
+		gl_jPanelWlcal.setHorizontalGroup(gl_jPanelWlcal.createParallelGroup(Alignment.TRAILING).addGroup(gl_jPanelWlcal
+				.createSequentialGroup().addContainerGap()
+				.addGroup(gl_jPanelWlcal.createParallelGroup(Alignment.LEADING).addGroup(gl_jPanelWlcal
+						.createSequentialGroup()
+						.addGroup(gl_jPanelWlcal.createParallelGroup(Alignment.LEADING)
+								.addGroup(gl_jPanelWlcal.createSequentialGroup().addComponent(this.jLabel12)
+										.addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jWlcalThreshold,
+												GroupLayout.DEFAULT_SIZE, 390, Short.MAX_VALUE))
+								.addGroup(gl_jPanelWlcal.createSequentialGroup().addComponent(this.lblAdvancedOptions)
+										.addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jWlcalOptions,
+												GroupLayout.PREFERRED_SIZE, 402, GroupLayout.PREFERRED_SIZE)))
+						.addContainerGap()).addGroup(Alignment.TRAILING,
+								gl_jPanelWlcal.createSequentialGroup().addComponent(this.jLabel13).addGap(198)))));
+		gl_jPanelWlcal.setVerticalGroup(gl_jPanelWlcal.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelWlcal.createSequentialGroup().addComponent(this.jLabel13)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addGroup(gl_jPanelWlcal.createParallelGroup(Alignment.TRAILING).addComponent(this.jLabel12)
+								.addComponent(this.jWlcalThreshold, GroupLayout.PREFERRED_SIZE,
+										GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addGap(19)
+						.addGroup(gl_jPanelWlcal.createParallelGroup(Alignment.BASELINE)
+								.addComponent(this.lblAdvancedOptions).addComponent(this.jWlcalOptions,
+										GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addGap(18)));
+		jPanelWlcal.setLayout(gl_jPanelWlcal);
 
 		jWlcalThreshold.setMinorTickSpacing(1);
 		jWlcalThreshold.setMajorTickSpacing(10);
 
-		jPanel17.setBorder(javax.swing.BorderFactory.createTitledBorder("IRAF home"));
+		jPanelIrafHome.setBorder(javax.swing.BorderFactory.createTitledBorder("IRAF home"));
 
 		jLabel11.setText("IRAF home");
 
@@ -1203,20 +1238,39 @@ public class Main extends javax.swing.JPanel {
 			}
 		});
 
-		javax.swing.GroupLayout jPanel17Layout = new javax.swing.GroupLayout(jPanel17);
-		jPanel17.setLayout(jPanel17Layout);
-		jPanel17Layout.setHorizontalGroup(jPanel17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jPanel17Layout.createSequentialGroup().addContainerGap().addComponent(jLabel11)
-						.addGap(18, 18, 18).addComponent(jIrafHome).addGap(18, 18, 18).addComponent(jSelectIraf)
-						.addContainerGap()));
-		jPanel17Layout.setVerticalGroup(jPanel17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(jPanel17Layout.createSequentialGroup().addContainerGap()
-						.addGroup(jPanel17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-								.addComponent(jLabel11)
-								.addComponent(jIrafHome, javax.swing.GroupLayout.PREFERRED_SIZE,
-										javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addComponent(jSelectIraf))
-						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		javax.swing.GroupLayout gl_jPanelIrafHome = new javax.swing.GroupLayout(jPanelIrafHome);
+		gl_jPanelIrafHome
+				.setHorizontalGroup(gl_jPanelIrafHome.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_jPanelIrafHome.createSequentialGroup().addContainerGap()
+								.addComponent(this.jLabel11).addGap(18)
+								.addComponent(this.jIrafHome, GroupLayout.PREFERRED_SIZE, 956,
+										GroupLayout.PREFERRED_SIZE)
+								.addGap(18).addComponent(this.jSelectIraf).addContainerGap()));
+		gl_jPanelIrafHome.setVerticalGroup(gl_jPanelIrafHome.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelIrafHome.createSequentialGroup().addContainerGap()
+						.addGroup(gl_jPanelIrafHome.createParallelGroup(Alignment.BASELINE).addComponent(this.jLabel11)
+								.addComponent(this.jIrafHome, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE)
+								.addComponent(this.jSelectIraf))
+						.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		jPanelIrafHome.setLayout(gl_jPanelIrafHome);
+
+		this.jPanelApall = new JPanel();
+		this.jPanelApall.setBorder(new TitledBorder(null, "apall", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		this.jPanelPrered2 = new JPanel();
+		this.jPanelPrered2
+				.setBorder(new TitledBorder(null, "prered2", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+
+		this.jPanelScombine = new JPanel();
+		this.jPanelScombine
+				.setBorder(new TitledBorder(null, "scombine", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		jSave = new javax.swing.JButton();
+		jSave.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				jSaveMouseClicked(e);
+			}
+		});
 
 		jSave.setText("Save as Default");
 
@@ -1228,38 +1282,187 @@ public class Main extends javax.swing.JPanel {
 			}
 		});
 
-		javax.swing.GroupLayout jAdvancedOptionsPanelLayout = new javax.swing.GroupLayout(jAdvancedOptionsPanel);
-		jAdvancedOptionsPanelLayout
-				.setHorizontalGroup(jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
-						.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup().addContainerGap()
-								.addGroup(jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.TRAILING)
-										.addComponent(jPanel14, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
-										.addComponent(jPanel15, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
-										.addComponent(jPanel16, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
-										.addComponent(jPanel17, GroupLayout.DEFAULT_SIZE, 1173, Short.MAX_VALUE)
-										.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup()
-												.addComponent(btnRestoreDefaults).addGap(18).addComponent(jSave)))
+		this.label = new JLabel("Advanced options:");
+
+		this.jScombineOptions = new JTextField();
+		this.jScombineOptions.setColumns(10);
+		GroupLayout gl_jPanelScombine = new GroupLayout(this.jPanelScombine);
+		gl_jPanelScombine.setHorizontalGroup(gl_jPanelScombine.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelScombine.createSequentialGroup().addContainerGap()
+						.addComponent(this.label, GroupLayout.PREFERRED_SIZE, 131, GroupLayout.PREFERRED_SIZE)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(this.jScombineOptions, GroupLayout.DEFAULT_SIZE, 414, Short.MAX_VALUE)
 						.addContainerGap()));
-		jAdvancedOptionsPanelLayout.setVerticalGroup(jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.LEADING)
-				.addGroup(jAdvancedOptionsPanelLayout.createSequentialGroup().addContainerGap()
-						.addComponent(jPanel17, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-								GroupLayout.PREFERRED_SIZE)
-						.addGap(18)
-						.addComponent(jPanel16, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-								GroupLayout.PREFERRED_SIZE)
-						.addGap(18)
-						.addComponent(jPanel15, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-								GroupLayout.PREFERRED_SIZE)
-						.addGap(18)
-						.addComponent(jPanel14, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-								GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.RELATED, 59, Short.MAX_VALUE)
-						.addGroup(jAdvancedOptionsPanelLayout.createParallelGroup(Alignment.BASELINE)
-								.addComponent(jSave).addComponent(btnRestoreDefaults))
+		gl_jPanelScombine.setVerticalGroup(gl_jPanelScombine.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelScombine.createSequentialGroup()
+						.addGroup(gl_jPanelScombine.createParallelGroup(Alignment.BASELINE).addComponent(this.label)
+								.addComponent(this.jScombineOptions, GroupLayout.PREFERRED_SIZE,
+										GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		this.jPanelScombine.setLayout(gl_jPanelScombine);
+
+		this.lblAdvancedOptions_1 = new JLabel("Advanced options:");
+
+		this.jPrered2Options = new JTextField();
+		this.jPrered2Options.setColumns(10);
+		GroupLayout gl_jPanelPrered2 = new GroupLayout(this.jPanelPrered2);
+		gl_jPanelPrered2.setHorizontalGroup(gl_jPanelPrered2.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelPrered2.createSequentialGroup().addContainerGap()
+						.addComponent(this.lblAdvancedOptions_1).addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(this.jPrered2Options, GroupLayout.DEFAULT_SIZE, 414, Short.MAX_VALUE)
 						.addContainerGap()));
-		jAdvancedOptionsPanel.setLayout(jAdvancedOptionsPanelLayout);
+		gl_jPanelPrered2.setVerticalGroup(gl_jPanelPrered2.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelPrered2.createSequentialGroup()
+						.addGroup(gl_jPanelPrered2.createParallelGroup(Alignment.BASELINE)
+								.addComponent(this.lblAdvancedOptions_1).addComponent(this.jPrered2Options,
+										GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE))
+						.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		this.jPanelPrered2.setLayout(gl_jPanelPrered2);
+
+		this.lblOptions_1 = new JLabel("Advanced options:");
+
+		this.jApallOptions = new JTextField();
+		this.jApallOptions.setColumns(10);
+		GroupLayout gl_jPanelApall = new GroupLayout(this.jPanelApall);
+		gl_jPanelApall.setHorizontalGroup(gl_jPanelApall.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelApall.createSequentialGroup().addContainerGap().addComponent(this.lblOptions_1)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(this.jApallOptions, GroupLayout.DEFAULT_SIZE, 414, Short.MAX_VALUE)
+						.addContainerGap()));
+		gl_jPanelApall.setVerticalGroup(gl_jPanelApall.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelApall.createSequentialGroup()
+						.addGroup(gl_jPanelApall.createParallelGroup(Alignment.BASELINE).addComponent(this.lblOptions_1)
+								.addComponent(this.jApallOptions, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE))
+						.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		this.jPanelApall.setLayout(gl_jPanelApall);
 
 		jTabbedPane1.addTab("Advanced Options for PyRAF tasks", jAdvancedOptionsPanel);
+
+		this.panel = new JPanel();
+		this.panel.setBorder(new TitledBorder(new LineBorder(new Color(184, 207, 229)), "fcal", TitledBorder.LEADING,
+				TitledBorder.TOP, null, new Color(51, 51, 51)));
+
+		this.label_2 = new JLabel("Advanced options:");
+
+		this.jFcalOptions = new JTextField();
+		this.jFcalOptions.setColumns(10);
+		GroupLayout gl_panel = new GroupLayout(this.panel);
+		gl_panel.setHorizontalGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_panel.createSequentialGroup().addContainerGap().addComponent(this.label_2)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(this.jFcalOptions, GroupLayout.DEFAULT_SIZE, 414, Short.MAX_VALUE)
+						.addContainerGap()));
+		gl_panel.setVerticalGroup(gl_panel.createParallelGroup(Alignment.LEADING).addGap(0, 44, Short.MAX_VALUE)
+				.addGroup(gl_panel.createSequentialGroup()
+						.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE).addComponent(this.label_2)
+								.addComponent(this.jFcalOptions, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE))
+						.addContainerGap(73, Short.MAX_VALUE)));
+		this.panel.setLayout(gl_panel);
+		GroupLayout gl_jAdvancedOptionsPanel = new GroupLayout(this.jAdvancedOptionsPanel);
+		gl_jAdvancedOptionsPanel.setHorizontalGroup(
+				gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.LEADING).addGroup(gl_jAdvancedOptionsPanel
+						.createSequentialGroup().addGroup(gl_jAdvancedOptionsPanel
+								.createParallelGroup(Alignment.LEADING, false).addGroup(gl_jAdvancedOptionsPanel
+										.createSequentialGroup().addGap(882).addComponent(btnRestoreDefaults).addGap(18)
+										.addComponent(this.jSave))
+								.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup().addContainerGap()
+										.addComponent(this.jPanelIrafHome, GroupLayout.PREFERRED_SIZE,
+												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+								.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+										.addGroup(gl_jAdvancedOptionsPanel
+												.createParallelGroup(Alignment.LEADING)
+												.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+														.addGap(12)
+														.addGroup(
+																gl_jAdvancedOptionsPanel
+																		.createParallelGroup(Alignment.TRAILING)
+																		.addComponent(this.jPanelPrered2,
+																				GroupLayout.PREFERRED_SIZE, 591,
+																				GroupLayout.PREFERRED_SIZE)
+																		.addComponent(this.panel,
+																				GroupLayout.PREFERRED_SIZE, 591,
+																				GroupLayout.PREFERRED_SIZE)))
+												.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+														.addContainerGap().addComponent(this.jPanelScombine,
+																GroupLayout.PREFERRED_SIZE, 591,
+																GroupLayout.PREFERRED_SIZE))
+												.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+														.addContainerGap().addComponent(this.jPanelApall,
+																GroupLayout.PREFERRED_SIZE, 591,
+																GroupLayout.PREFERRED_SIZE)))
+										.addGap(18)
+										.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.LEADING, false)
+												.addComponent(this.jPanelImcopy, Alignment.TRAILING, 0, 0,
+														Short.MAX_VALUE)
+												.addComponent(this.jPanelBackground, GroupLayout.DEFAULT_SIZE,
+														GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+												.addComponent(this.jPanelWlcal, GroupLayout.PREFERRED_SIZE, 578,
+														Short.MAX_VALUE))))
+						.addGap(20)));
+		gl_jAdvancedOptionsPanel.setVerticalGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup().addContainerGap()
+						.addComponent(this.jPanelIrafHome, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE)
+						.addGap(18)
+						.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.TRAILING)
+								.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+										.addComponent(this.jPanelPrered2, GroupLayout.PREFERRED_SIZE, 48,
+												GroupLayout.PREFERRED_SIZE)
+										.addGap(18).addComponent(this.panel, GroupLayout.PREFERRED_SIZE, 44,
+												GroupLayout.PREFERRED_SIZE))
+								.addComponent(this.jPanelWlcal, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE))
+						.addGap(18)
+						.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.BASELINE)
+								.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+										.addComponent(this.jPanelBackground, GroupLayout.PREFERRED_SIZE, 110,
+												GroupLayout.PREFERRED_SIZE)
+										.addGap(12)
+										.addComponent(this.jPanelImcopy, GroupLayout.PREFERRED_SIZE,
+												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+										.addPreferredGap(ComponentPlacement.RELATED, 12, Short.MAX_VALUE)
+										.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.BASELINE)
+												.addComponent(this.jSave).addComponent(btnRestoreDefaults))
+										.addGap(30))
+								.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+										.addComponent(this.jPanelScombine, GroupLayout.PREFERRED_SIZE, 46,
+												GroupLayout.PREFERRED_SIZE)
+										.addGap(18).addComponent(this.jPanelApall, GroupLayout.PREFERRED_SIZE, 44,
+												GroupLayout.PREFERRED_SIZE)
+										.addContainerGap()))));
+		GroupLayout gl_jPanelBackground = new GroupLayout(this.jPanelBackground);
+		gl_jPanelBackground.setHorizontalGroup(gl_jPanelBackground.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelBackground.createSequentialGroup().addGap(12).addGroup(gl_jPanelBackground
+						.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_jPanelBackground.createSequentialGroup().addComponent(this.jLabel14).addGap(18)
+								.addComponent(this.jBackgroundStart, GroupLayout.PREFERRED_SIZE, 66,
+										GroupLayout.PREFERRED_SIZE)
+								.addGap(12).addComponent(this.jLabel15).addGap(18).addComponent(this.jBackgroundEnd,
+										GroupLayout.PREFERRED_SIZE, 66, GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_jPanelBackground.createSequentialGroup().addComponent(this.lblOptions)
+								.addPreferredGap(ComponentPlacement.RELATED)
+								.addComponent(this.jBackgroundOptions, GroupLayout.DEFAULT_SIZE, 395, Short.MAX_VALUE)))
+						.addContainerGap()));
+		gl_jPanelBackground.setVerticalGroup(gl_jPanelBackground.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelBackground.createSequentialGroup().addGap(12).addGroup(gl_jPanelBackground
+						.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_jPanelBackground.createSequentialGroup().addGap(2).addComponent(this.jLabel14))
+						.addComponent(this.jBackgroundStart, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE)
+						.addGroup(gl_jPanelBackground.createSequentialGroup().addGap(2).addComponent(this.jLabel15))
+						.addComponent(this.jBackgroundEnd, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+								GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_jPanelBackground.createParallelGroup(Alignment.LEADING)
+								.addGroup(gl_jPanelBackground.createSequentialGroup().addGap(20)
+										.addComponent(this.lblOptions))
+								.addGroup(gl_jPanelBackground.createSequentialGroup().addGap(18).addComponent(
+										this.jBackgroundOptions, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
+										GroupLayout.PREFERRED_SIZE)))));
+		this.jPanelBackground.setLayout(gl_jPanelBackground);
+		this.jAdvancedOptionsPanel.setLayout(gl_jAdvancedOptionsPanel);
 		jTabbedPane1.addMouseListener(new MouseListener() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -1282,19 +1485,20 @@ public class Main extends javax.swing.JPanel {
 			public void mouseExited(MouseEvent e) {
 			}
 		});
-		javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-		this.setLayout(layout);
-		layout.setHorizontalGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addGroup(
-				javax.swing.GroupLayout.Alignment.TRAILING,
-				layout.createSequentialGroup().addContainerGap()
-						.addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
-		layout.setVerticalGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-				.addGroup(layout.createSequentialGroup().addContainerGap()
-						.addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE,
-								javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-						.addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		GroupLayout groupLayout = new GroupLayout(this);
+		groupLayout
+				.setHorizontalGroup(groupLayout.createParallelGroup(Alignment.LEADING)
+						.addGroup(groupLayout.createSequentialGroup()
+								.addComponent(this.jTabbedPane1, GroupLayout.PREFERRED_SIZE, 1224,
+										GroupLayout.PREFERRED_SIZE)
+								.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		groupLayout
+				.setVerticalGroup(groupLayout.createParallelGroup(Alignment.LEADING)
+						.addGroup(groupLayout.createSequentialGroup()
+								.addComponent(this.jTabbedPane1, GroupLayout.PREFERRED_SIZE, 535,
+										GroupLayout.PREFERRED_SIZE)
+								.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+		setLayout(groupLayout);
 	}
 
 	private void startUp() {
@@ -1327,12 +1531,12 @@ public class Main extends javax.swing.JPanel {
 			dataService = DataService.getInstance();
 
 		this.process = new Execution();
-		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
 				process.dispose();
 			}
-		}));
+		});
 
 		this.jIrafHome.setText(dataService.getProperty("iraf.home"));
 		this.jBackgroundStart.setValue(Integer.valueOf(dataService.getProperty("iraf.bg.col1")));
@@ -1340,6 +1544,13 @@ public class Main extends javax.swing.JPanel {
 		this.jImcopyStart.setValue(Integer.valueOf(dataService.getProperty("iraf.imcopy.start")));
 		this.jImcopyEnd.setValue(Integer.valueOf(dataService.getProperty("iraf.imcopy.end")));
 		this.jWlcalThreshold.setValue(Integer.valueOf(dataService.getProperty("iraf.wlcal.rms_threshold")));
+		this.jWlcalOptions.setText(dataService.getProperty("iraf.wlcal.options"));
+		this.jPrered2Options.setText(dataService.getProperty("iraf.prered2.options"));
+		this.jFcalOptions.setText(dataService.getProperty("iraf.fcal.options"));
+		this.jBackgroundOptions.setText(dataService.getProperty("iraf.bg.options"));
+		this.jApallOptions.setText(dataService.getProperty("iraf.apall.options"));
+		this.jScombineOptions.setText(dataService.getProperty("iraf.scombine.options"));
+		this.jImcopyOptions.setText(dataService.getProperty("iraf.imcopy.options"));
 
 		this.groupExplore.add(this.jRadioFitsList);
 		this.groupExplore.add(this.jRadioButton2);
@@ -1434,11 +1645,24 @@ public class Main extends javax.swing.JPanel {
 		Error.addAttribute(StyleConstants.FontSize, new Integer(12));
 		Error.addAttribute(StyleConstants.FontFamily, "arial");
 		Error.addAttribute(StyleConstants.Bold, new Boolean(true));
+
+		Task = sc.addStyle("Task", null);
+		Task.addAttribute(StyleConstants.Foreground, new Color(255, 210, 0));
+		Task.addAttribute(StyleConstants.FontSize, new Integer(12));
+		Task.addAttribute(StyleConstants.FontFamily, "arial");
+		Task.addAttribute(StyleConstants.Bold, new Boolean(true));
+
+		for (int i = 0; i < jTable1.getColumnCount(); i++)
+			jTable1Cols.put(jTable1.getModel().getColumnName(i), i);
+
+		for (int i = 0; i < jTable2.getColumnCount(); i++)
+			jTable2Cols.put(jTable2.getModel().getColumnName(i), i);
 	}
 
 	private void jRunScriptsActionPerformed(ActionEvent e) {
 		if (this.generatedList.get("script") != null && this.generatedList.get("script").size() > 0) {
 			log.info("Executing scripts...");
+
 			this.jTabbedPane1.setSelectedIndex(1);
 			try {
 				jConsole.getStyledDocument().insertString(jConsole.getStyledDocument().getLength(),
@@ -1450,8 +1674,7 @@ public class Main extends javax.swing.JPanel {
 			if (this.runningCommand != -1) {
 				sendRms = true;
 				process.sendCommand(runningCommand, "cd " + this.basePath);
-				for (String script : this.generatedList.get("script"))
-					process.sendCommand(runningCommand, "pyexecute " + script);
+				process.sendCommand(runningCommand, "!python " + this.generatedList.get("script").get(0));
 			}
 		} else
 			log.info("Nothing to do.");
@@ -1462,14 +1685,17 @@ public class Main extends javax.swing.JPanel {
 	 * Show the scripts using gEdit
 	 */
 	private void jViewScriptsActionPerformed(ActionEvent e) {
-		for (String script : scriptsList) {
-			try {
-				Desktop.getDesktop().open(Paths.get(this.basePath + "/" + script).toFile());
-			} catch (IOException ex) {
-				JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-				ex.printStackTrace();
+		if (generatedList != null && generatedList.get("script") != null && generatedList.get("script").size() > 0)
+			for (String script : generatedList.get("script")) {
+				try {
+					Desktop.getDesktop().open(Paths.get(this.basePath, script).toFile());
+				} catch (IOException ex) {
+					JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+					ex.printStackTrace();
+				}
 			}
-		}
+		else
+			JOptionPane.showMessageDialog(this, "Nothing to show.", "Information", JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	private void jSaveMouseClicked(MouseEvent e) {
@@ -1481,6 +1707,13 @@ public class Main extends javax.swing.JPanel {
 			properties.setProperty("iraf.imcopy.start", this.jImcopyStart.getValue().toString());
 			properties.setProperty("iraf.imcopy.end", this.jImcopyEnd.getValue().toString());
 			properties.setProperty("iraf.wlcal.rms_threshold", String.valueOf(this.jWlcalThreshold.getValue()));
+			properties.setProperty("iraf.bg.options", this.jBackgroundOptions.getText());
+			properties.setProperty("iraf.apall.options", this.jApallOptions.getText());
+			properties.setProperty("iraf.prered2.options", this.jPrered2Options.getText());
+			properties.setProperty("iraf.wlcal.options", this.jWlcalOptions.getText());
+			properties.setProperty("iraf.fcal.options", this.jFcalOptions.getText());
+			properties.setProperty("iraf.scombine.options", this.jScombineOptions.getText());
+			properties.setProperty("iraf.imcopy.options", this.jImcopyOptions.getText());
 			properties.store(new FileOutputStream(
 					Paths.get(System.getProperty("user.home"), "asgredLists.properties").toString()), "");
 			JOptionPane.showMessageDialog(this, "Saved.", "All done", JOptionPane.INFORMATION_MESSAGE);
@@ -1498,6 +1731,13 @@ public class Main extends javax.swing.JPanel {
 		this.jImcopyStart.setValue(Integer.valueOf(dataService.getProperty("iraf.imcopy.start")));
 		this.jImcopyEnd.setValue(Integer.valueOf(dataService.getProperty("iraf.imcopy.end")));
 		this.jWlcalThreshold.setValue(Integer.valueOf(dataService.getProperty("iraf.wlcal.rms_threshold")));
+		this.jBackgroundOptions.setText(dataService.getProperty("iraf.bg.options"));
+		this.jApallOptions.setText(dataService.getProperty("iraf.apall.options"));
+		this.jPrered2Options.setText(dataService.getProperty("iraf.prered2.options"));
+		this.jWlcalOptions.setText(dataService.getProperty("iraf.wlcal.options"));
+		this.jFcalOptions.setText(dataService.getProperty("iraf.fcal.options"));
+		this.jScombineOptions.setText(dataService.getProperty("iraf.scombine.options"));
+		this.jImcopyOptions.setText(dataService.getProperty("iraf.imcopy.options"));
 	}
 
 	private void jSelectIrafActionPerformed(java.awt.event.ActionEvent evt) {
@@ -1594,10 +1834,10 @@ public class Main extends javax.swing.JPanel {
 			if (this.jCheckStartFromScrap.isSelected()) {
 				if (this.runningCommand >= 0 && this.process.isPyraf(runningCommand))
 					this.process.sendCommands(runningCommand,
-							new String[] { "cd " + this.basePath, "!rm *.wc.fits", "!rm *.fc.fits", "!rm *.bg.fits",
-									"!rm *.md.fits", "!rm *.py", "!rm wc*", "!rm fc*", "!rm md*", "!rm std*",
-									"!rm list_*", "!rm *.b.fits", "!rm *.bf.fits", "!rm flat.*", "!rm *.std",
-									"!rm *.sens.fits", "!rm -r database/", "!rm *.obj.fits" });
+							new String[] { "cd " + this.basePath, "!rm prered*", "!rm *.wc.fits", "!rm *.fc.fits",
+									"!rm *.bg.fits", "!rm *.md.fits", "!rm *.py", "!rm wc*", "!rm fc*", "!rm md*",
+									"!rm std*", "!rm *.b.fits", "!rm *.bf.fits", "!rm flat.*", "!rm *.std",
+									"!rm *.sens.fits", "!rm -r database/", "!rm *.obj.fits", });
 				Thread.sleep(500);
 			}
 
@@ -1779,10 +2019,6 @@ public class Main extends javax.swing.JPanel {
 				}
 				// Propagate consequences for lamps
 				else if (image.getType().equals("LAMP")) {
-					// HashSet<String> items = new HashSet<>();
-					// for (int i = 0; i < comboLamps.getItemCount(); i++)
-					// if (!image.getFileName().equals(comboLamps.getItemAt(i)))
-					// items.add((String) comboLamps.getItemAt(i));
 					// if it is grouped
 					if (image.isGrouped()) {
 						// disband the group and remove all associations
@@ -1808,10 +2044,6 @@ public class Main extends javax.swing.JPanel {
 								model.setValueAt(image.getTargetName(), i, jTable1Cols.get("Target name"));
 							}
 						}
-						// remove it from comboLamps
-						// comboLamps.removeAllItems();
-						// for (String item : items)
-						// comboLamps.addItem(item);
 					} else {
 						// if it is not grouped
 						// remove all associations
@@ -1823,10 +2055,6 @@ public class Main extends javax.swing.JPanel {
 								model.setValueAt("", i, jTable1Cols.get("Lamp"));
 							}
 						}
-						// remove it from comboLamps
-						// comboLamps.removeAllItems();
-						// for (String item : items)
-						// comboLamps.addItem(item);
 					}
 					updateComboLamps();
 				}
@@ -1849,29 +2077,6 @@ public class Main extends javax.swing.JPanel {
 					tempStandards.put(key, (String) this.jTable1.getValueAt(x, y));
 				}
 			}
-			// else if (y == jTable1Cols.get("Lines list")) {
-			// // change lineslist
-			// // TODO: add support for different lines list for different
-			// // lamps
-			// if (((String) this.jTable1.getValueAt(x, y)) == null
-			// || ((String) this.jTable1.getValueAt(x, y)).isEmpty()) {
-			// if (((String) this.jTable1.getValueAt(x,
-			// y)).toLowerCase().equals("fear"))
-			// linelist = "FeAr";
-			// else if (((String) this.jTable1.getValueAt(x,
-			// y)).toLowerCase().equals("hefear"))
-			// linelist = "HeFeAr";
-			// else if (((String) this.jTable1.getValueAt(x,
-			// y)).toLowerCase().equals("ne"))
-			// linelist = "Ne";
-			// else if (((String) this.jTable1.getValueAt(x,
-			// y)).toLowerCase().equals("hgar"))
-			// linelist = "HgAr";
-			// else if (((String) this.jTable1.getValueAt(x,
-			// y)).toLowerCase().equals("hgarne"))
-			// linelist = "HgArNe";
-			// }
-			// }
 		}
 	}
 
@@ -2088,11 +2293,22 @@ public class Main extends javax.swing.JPanel {
 	}
 
 	private void jTable1MouseClicked(MouseEvent e) {
-		if (e.getButton() == MouseEvent.BUTTON3 && jTable1.getSelectedRowCount() == 2) {
-			popupMenu.setLocation(e.getLocationOnScreen());
-			popupMenu.setVisible(true);
-		} else
-			popupMenu.setVisible(false);
+		if (e.getButton() == MouseEvent.BUTTON3) {
+			if (jTable1.getSelectedRowCount() == 2) {
+				popupMenu.setLocation(e.getLocationOnScreen());
+				popupMenu.setVisible(true);
+				popupGroup.setVisible(true);
+				popupDisband.setVisible(true);
+				popupDisplay.setVisible(true);
+			} else {
+				jTable1.setRowSelectionInterval(jTable1.rowAtPoint(e.getPoint()), jTable1.rowAtPoint(e.getPoint()));
+				popupMenu.setLocation(e.getLocationOnScreen());
+				popupMenu.setVisible(true);
+				popupGroup.setVisible(false);
+				popupDisband.setVisible(false);
+				popupDisplay.setVisible(true);
+			}
+		}
 	}
 
 	private void jTabbedPane1MouseClicked(MouseEvent e) {
@@ -2223,6 +2439,15 @@ public class Main extends javax.swing.JPanel {
 		}
 		jTable1.clearSelection();
 		updateComboLamps();
+	}
+
+	private void popupDisplayActionPerformed(ActionEvent e) {
+		popupMenu.setVisible(false);
+		if (jTable1.getSelectedRow() != -1) {
+			String filename = (String) jTable1.getValueAt(jTable1.getSelectedRow(), jTable1Cols.get("Image"));
+			process.sendCommand(runningCommand, "cd " + this.basePath);
+			process.sendCommand(runningCommand, "display " + filename + " 1");
+		}
 	}
 
 	public void parseFile(String filePath) throws FileNotFoundException, IOException {
@@ -2422,6 +2647,7 @@ public class Main extends javax.swing.JPanel {
 		dataService.getObservationRepository().deleteAll();
 		dataService.getScienceRepository().deleteAll();
 		dataService.getStandardRepository().deleteAll();
+		// Needed for integrity constrains when deleting all
 		List<ImageEntity> images = dataService.getImageRepository().findByType("LAMP");
 		for (ImageEntity image : images)
 			image.setLamp(null);
@@ -2435,7 +2661,7 @@ public class Main extends javax.swing.JPanel {
 		 */
 		FlatfieldImage flat = new FlatfieldImage();
 		log.trace("Associating with the images of type \"FLATFIELD\"...");
-		/* List<ImageEntity> */images = dataService.getImageRepository().findByType("FLATFIELD");
+		images = dataService.getImageRepository().findByType("FLATFIELD");
 		flat.setImages(images);
 		for (ImageEntity image : images)
 			image.setFlat(flat);
@@ -2481,9 +2707,7 @@ public class Main extends javax.swing.JPanel {
 					if (lamp != null) {
 						if (lamp.getImages().size() < 2) {
 							image.setLamp(lamp);
-							// lamp.setFlat(flat);
 							lamp.getImages().add(image);
-							// lamps.add(lamp);
 						}
 					} else {
 						lamp = new LampImage();
@@ -2602,19 +2826,17 @@ public class Main extends javax.swing.JPanel {
 			log.info("Generating all lists...");
 			String temp = "", tempLamp = "";
 			// Write them down
-			log.info("list_obj");
+			log.info("preredObject");
 			if (this.generatedList.get("all") == null)
 				this.generatedList.put("all", new ArrayList<>());
-			this.generatedList.get("all").add("list_obj");
-			writer = new PrintWriter(Paths.get(this.basePath, "list_obj").toFile());
+			this.generatedList.get("all").add("preredObject");
+			writer = new PrintWriter(Paths.get(this.basePath, "preredObject").toFile());
 			List<Observation> observations = dataService.getObservationRepository().findByIsEnabled(true);
-			for (Observation observation : observations) {
-				for (ScienceImage science : observation.getScienceImages()) {
-					if (science.getImage().isEnabled()) {
+			for (Observation observation : observations)
+				for (ScienceImage science : observation.getScienceImages())
+					if (science.getImage().isEnabled())
 						temp += science.getImage().getFileName() + "\t" + science.getLamp().getLampName() + "\n";
-					}
-				}
-			}
+
 			for (String item : dataService.getImageRepository().getFileNameByTypeAndIsEnabled("LAMP", true))
 				tempLamp += item + "\n";
 
@@ -2623,25 +2845,25 @@ public class Main extends javax.swing.JPanel {
 
 			temp = "";
 			if (!"".equals(tempLamp)) {
-				log.info("list_lamps");
+				log.info("preredLamps");
 				if (this.generatedList.get("all") == null)
 					this.generatedList.put("all", new ArrayList<>());
-				this.generatedList.get("all").add("list_lamps");
-				writer = new PrintWriter(Paths.get(this.basePath, "list_lamps").toFile());
+				this.generatedList.get("all").add("preredLamps");
+				writer = new PrintWriter(Paths.get(this.basePath, "preredLamps").toFile());
 				writer.print(tempLamp.trim());
 				writer.close();
 			}
-			log.info("list_flat");
+			log.info("preredFlat");
 			if (this.generatedList.get("all") == null)
 				this.generatedList.put("all", new ArrayList<>());
-			this.generatedList.get("all").add("list_flat");
+			this.generatedList.get("all").add("preredFlat");
 
-			writer = new PrintWriter(Paths.get(this.basePath, "list_flat").toFile());
+			writer = new PrintWriter(Paths.get(this.basePath, "preredFlat").toFile());
 			for (FlatfieldImage flat : dataService.getFlatRepository().findAll()) {
 				for (ImageEntity image : flat.getImages())
 					temp += image.getFileName() + "\n";
 			}
-			writer.print(temp + "\n");
+			writer.print(temp.trim() + "\n");
 			writer.close();
 
 			// Generate the list of IMA*.wc.fits
@@ -2661,55 +2883,6 @@ public class Main extends javax.swing.JPanel {
 					writer.close();
 				}
 			}
-
-			// Generate the list of IMA*.fc.fits
-			// This list is used as input for the background task
-			// OBSOLETE
-			// for (Observation observation : observations) {
-			// if (observation.isDoFcal()) {
-			// temp = normalizedTargetName(observation.getTargetName());
-			// log.info("fc" + temp);
-			//
-			// if (this.generatedList.get(observation.getTargetName()) == null)
-			// this.generatedList.put(observation.getTargetName(), new
-			// ArrayList<>());
-			// this.generatedList.get(observation.getTargetName()).add("fc" +
-			// temp);
-			// writer = new PrintWriter(Paths.get(this.basePath, "fc" +
-			// temp).toFile());
-			// temp = "";
-			// for (ScienceImage item : observation.getScienceImages())
-			// if (item.getImage().isEnabled())
-			// temp += item.getImage().getFileName() + ".fc\n";
-			// writer.print(temp + "\n");
-			// writer.close();
-			// }
-			// }
-
-			// Generate the list of IMA*.bg.fits
-			// OBSOLETE
-			// for (Observation observation : observations) {
-			// if (observation.isDoBackground()) {
-			// temp = normalizedTargetName(observation.getTargetName());
-			// log.info("bg" + temp);
-			// if (this.generatedList.get(observation.getTargetName()) != null)
-			// this.generatedList.get(observation.getTargetName()).add("bg" +
-			// temp);
-			// else {
-			// ArrayList<String> list = new ArrayList<>();
-			// list.add("bg" + temp);
-			// this.generatedList.put(observation.getTargetName(), list);
-			// }
-			// writer = new PrintWriter(Paths.get(this.basePath, "bg" +
-			// temp).toFile());
-			// temp = "";
-			// for (ScienceImage item : observation.getScienceImages())
-			// if (item.getImage().isEnabled())
-			// temp += item.getImage().getFileName() + ".bg\n";
-			// writer.print(temp + "\n");
-			// writer.close();
-			// }
-			// }
 
 			// Generate the list of IMA*.md.fits
 			for (Observation observation : observations) {
@@ -2773,7 +2946,6 @@ public class Main extends javax.swing.JPanel {
 
 	public void writeScriptForEachTarget() {
 		log.info("Generating a script for each target...");
-		scriptsList = new ArrayList<>();
 		for (Observation observation : dataService.getObservationRepository().findByIsEnabled(true)) {
 			String targetNormalized = normalizedTargetName(observation.getTargetName());
 			PrintWriter writer = null;
@@ -2784,13 +2956,49 @@ public class Main extends javax.swing.JPanel {
 					multiples++;
 					name = targetNormalized + "." + multiples;
 				}
+				// Observations will be organized in subfolders to avoid
+				// conflicts and overwriting images
+				log.info("create new subfolder: " + name);
+				if (Paths.get(this.basePath, name).toFile().exists()
+						&& Paths.get(this.basePath, name).toFile().isDirectory()) {
+					deleteDir(Paths.get(this.basePath, name));
+				}
+				Paths.get(this.basePath, name).toFile().mkdir();
+				// Copy all images needed
+				for (ScienceImage science : observation.getScienceImages()) {
+					// copy FLATFIELD
+					for (ImageEntity flat : science.getFlat().getImages())
+						Files.copy(Paths.get(this.basePath, flat.getFileName() + ".fits"),
+								Paths.get(this.basePath, name, flat.getFileName() + ".fits"),
+								StandardCopyOption.REPLACE_EXISTING);
+					// copy LAMP
+					for (ImageEntity lamp : science.getLamp().getImages())
+						Files.copy(Paths.get(this.basePath, lamp.getFileName() + ".fits"),
+								Paths.get(this.basePath, name, lamp.getFileName() + ".fits"),
+								StandardCopyOption.REPLACE_EXISTING);
+					// copy standard IMAGE
+					Files.copy(Paths.get(this.basePath, observation.getStandard().getImage().getFileName() + ".fits"),
+							Paths.get(this.basePath, name,
+									observation.getStandard().getImage().getFileName() + ".fits"),
+							StandardCopyOption.REPLACE_EXISTING);
+					// copy standard LAMP
+					for (ImageEntity standardLamp : observation.getStandard().getLamp().getImages())
+						Files.copy(Paths.get(this.basePath, standardLamp.getFileName() + ".fits"),
+								Paths.get(this.basePath, name, standardLamp.getFileName() + ".fits"),
+								StandardCopyOption.REPLACE_EXISTING);
+
+					// copy target IMAGE
+					Files.copy(Paths.get(this.basePath, science.getImage().getFileName() + ".fits"),
+							Paths.get(this.basePath, name, science.getImage().getFileName() + ".fits"),
+							StandardCopyOption.REPLACE_EXISTING);
+				}
 				String temp = "", tempLamp = "";
 				// Write them down
-				log.info("list_obj_" + targetNormalized);
+				log.info("preredObject" + targetNormalized);
 				if (this.generatedList.get(observation.getTargetName()) == null)
 					this.generatedList.put(observation.getTargetName(), new ArrayList<>());
-				this.generatedList.get(observation.getTargetName()).add("list_obj_" + name);
-				writer = new PrintWriter(Paths.get(this.basePath, "list_obj_" + name).toFile());
+				this.generatedList.get(observation.getTargetName()).add("preredObject" + name);
+				writer = new PrintWriter(Paths.get(this.basePath, name, "preredObject" + name).toFile());
 				HashSet<String> lampName = new HashSet<String>();
 				for (ScienceImage science : observation.getScienceImages()) {
 					if (science.getImage().isEnabled()) {
@@ -2803,14 +3011,21 @@ public class Main extends javax.swing.JPanel {
 							lampName.add(image.getFileName());
 					}
 				}
+
+				if (!observation.getScienceImages().get(0).getImage().isStandard())
+					for (ImageEntity image : observation.getStandard().getLamp().getImages())
+						lampName.add(image.getFileName());
+
 				// Always add the standard to the wavelength calibration
-				if (observation.getStandard().getLamp().getImages().size() == 1)
-					temp += observation.getStandard().getImage().getFileName() + "\t"
-							+ observation.getStandard().getLamp().getLampName() + "\n";
-				else
-					temp += observation.getStandard().getImage().getFileName() + "\t"
-							+ observation.getStandard().getLamp().getLampName()
-							+ normalizedTargetName(observation.getTargetName()) + "\n";
+				if (!observation.getScienceImages().get(0).getImage().isStandard()) {
+					if (observation.getStandard().getLamp().getImages().size() == 1)
+						temp += observation.getStandard().getImage().getFileName() + "\t"
+								+ observation.getStandard().getLamp().getLampName() + "\n";
+					else
+						temp += observation.getStandard().getImage().getFileName() + "\t"
+								+ observation.getStandard().getLamp().getLampName()
+								+ normalizedTargetName(observation.getTargetName()) + "\n";
+				}
 				for (String item : lampName)
 					tempLamp += item + "\n";
 
@@ -2818,19 +3033,19 @@ public class Main extends javax.swing.JPanel {
 				writer.close();
 
 				temp = "";
-				log.info("list_lamps_" + targetNormalized);
+				log.info("preredLamp" + name);
 				if (this.generatedList.get(observation.getTargetName()) == null)
 					this.generatedList.put(observation.getTargetName(), new ArrayList<>());
-				this.generatedList.get(observation.getTargetName()).add("list_lamps_" + name);
-				writer = new PrintWriter(Paths.get(this.basePath, "list_lamps_" + name).toFile());
+				this.generatedList.get(observation.getTargetName()).add("preredLamp" + name);
+				writer = new PrintWriter(Paths.get(this.basePath, name, "preredLamp" + name).toFile());
 				writer.print(tempLamp.trim());
 				writer.close();
 
-				log.info("list_flat_" + targetNormalized);
+				log.info("preredFlat" + name);
 				if (this.generatedList.get(observation.getTargetName()) == null)
 					this.generatedList.put(observation.getTargetName(), new ArrayList<>());
-				this.generatedList.get(observation.getTargetName()).add("list_flat_" + name);
-				writer = new PrintWriter(Paths.get(this.basePath, "list_flat_" + name).toFile());
+				this.generatedList.get(observation.getTargetName()).add("preredFlat" + name);
+				writer = new PrintWriter(Paths.get(this.basePath, name, "preredFlat" + name).toFile());
 				for (FlatfieldImage flat : dataService.getFlatRepository().findAll()) {
 					for (ImageEntity image : flat.getImages())
 						temp += image.getFileName() + "\n";
@@ -2844,7 +3059,7 @@ public class Main extends javax.swing.JPanel {
 					if (this.generatedList.get(observation.getTargetName()) == null)
 						this.generatedList.put(observation.getTargetName(), new ArrayList<>());
 					this.generatedList.get(observation.getTargetName()).add("wc" + name);
-					writer = new PrintWriter(Paths.get(this.basePath, "wc" + name).toFile());
+					writer = new PrintWriter(Paths.get(this.basePath, name, "wc" + name).toFile());
 					temp = "";
 					for (ScienceImage item : observation.getScienceImages())
 						if (item.getImage().isEnabled())
@@ -2853,53 +3068,11 @@ public class Main extends javax.swing.JPanel {
 					writer.close();
 				}
 
-				// Generate the list of IMA*.fc.fits
-				// This list is used as input for the background task
-				// OBSOLETE
-				// if (observation.isDoFcal()) {
-				// log.info("fc" + targetNormalized);
-				// if (this.generatedList.get(observation.getTargetName()) ==
-				// null)
-				// this.generatedList.put(observation.getTargetName(), new
-				// ArrayList<>());
-				// this.generatedList.get(observation.getTargetName()).add("fc"
-				// + targetNormalized);
-				// writer = new PrintWriter(Paths.get(this.basePath, "fc" +
-				// targetNormalized).toFile());
-				// temp = "";
-				// for (ScienceImage item : observation.getScienceImages())
-				// if (item.getImage().isEnabled())
-				// temp += item.getImage().getFileName() + ".fc\n";
-				// writer.print(temp.trim() + "\n");
-				// writer.close();
-				// }
-
 				// Generate the list of IMA*.bg.fits
 				if (observation.isDoBackground()) {
-					// OBSOLETE
-					// log.info("bg" + targetNormalized);
-					// if (this.generatedList.get(observation.getTargetName())
-					// != null)
-					// this.generatedList.get(observation.getTargetName()).add("bg"
-					// + targetNormalized);
-					// else {
-					// ArrayList<String> list = new ArrayList<>();
-					// list.add("bg" + targetNormalized);
-					// this.generatedList.put(observation.getTargetName(),
-					// list);
-					// }
-					// writer = new PrintWriter(Paths.get(this.basePath, "bg" +
-					// targetNormalized).toFile());
-					// temp = "";
-					// for (ScienceImage item : observation.getScienceImages())
-					// if (item.getImage().isEnabled())
-					// temp += item.getImage().getFileName() + ".bg\n";
-					// writer.print(temp.trim() + "\n");
-					// writer.close();
-
 					// Generate background cursor file
-					if (!Paths.get(this.basePath, "bgcols").toFile().exists()) {
-						PrintWriter bgcols = new PrintWriter(Paths.get(this.basePath, "bgcols").toFile());
+					if (!Paths.get(this.basePath, name, "bgcols").toFile().exists()) {
+						PrintWriter bgcols = new PrintWriter(Paths.get(this.basePath, name, "bgcols").toFile());
 						bgcols.write(this.jBackgroundStart.getValue().toString() + " "
 								+ this.jBackgroundEnd.getValue().toString());
 						bgcols.close();
@@ -2912,7 +3085,7 @@ public class Main extends javax.swing.JPanel {
 					if (this.generatedList.get(observation.getTargetName()) == null)
 						this.generatedList.put(observation.getTargetName(), new ArrayList<>());
 					this.generatedList.get(observation.getTargetName()).add("md" + name);
-					writer = new PrintWriter(Paths.get(this.basePath, "md" + name).toFile());
+					writer = new PrintWriter(Paths.get(this.basePath, name, "md" + name).toFile());
 					temp = "";
 					for (ScienceImage item : observation.getScienceImages())
 						if (item.getImage().isEnabled())
@@ -2922,29 +3095,31 @@ public class Main extends javax.swing.JPanel {
 				}
 
 				// Let's generate the PyRAF script
-				log.info(name);
-				scriptsList.add(name);
+				log.info("exec" + name + ".py");
 				if (this.generatedList.get("script") == null)
 					this.generatedList.put("script", new ArrayList<>());
-				this.generatedList.get("script").add(name);
+				this.generatedList.get("script").add("exec" + name + ".py");
 				writer = new PrintWriter(Paths.get(this.basePath, "exec" + name + ".py").toFile());
-				writer.println("#!/usr/bin/env python");
+				writer.println("#!/usr/bin/env python3");
 				writer.println("import os");
 				writer.println("import sys");
 				writer.println("os.chdir(\"" + dataService.getProperty("iraf.home") + "\")");
 
 				writer.println("from pyraf import iraf");
-				writer.println("os.chdir(\"" + this.basePath + "\")");
-				writer.println("iraf.asgred(_doprint=1)");
+				writer.println("os.chdir(\"" + Paths.get(this.basePath, name).toString() + "\")");
+				writer.println("iraf.asgred()");
+				writer.println("print(\"*reduction for " + observation.getTargetName() + "...\")");
 				if (observation.isDoPrered()) {
 					// exec prered2
-					writer.println("print(\"prered2\")");
 					writer.println(new String(new char[80]).replace("\0", "#"));
 					writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
 					writer.println(new String(new char[80]).replace("\0", "#"));
-					writer.println("iraf.prered2(flat=\"list_flat_" + name + "\", comp=\"list_lamps_" + name
-							+ "\", object=\"list_obj_" + name + "\", outflat=\"flat." + name
-							+ "\", trimsec=[1:2040,40:490], mode=\"ql\")");
+					writer.println("print(\"*prered2 for " + observation.getTargetName() + "...\")");
+					String command = "iraf.prered2(flat=\"preredFlat" + name + "\", " + "comp=\"preredLamp" + name
+							+ "\", " + "object=\"preredObject" + name + "\", " + "outflat=\"flat." + name + "\"";
+					if (!"".equals(this.jPrered2Options.getText()))
+						command += ", " + this.jPrered2Options.getText();
+					writer.println(command + ")");
 				}
 
 				if (observation.isDoWlcal()) {
@@ -2956,44 +3131,49 @@ public class Main extends javax.swing.JPanel {
 					}
 					if (lamps.size() > 0) {
 						// exec imarith
-						writer.println("print(\"imarith\")");
 						writer.println(new String(new char[80]).replace("\0", "#"));
 						writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("imarith", 78));
 						writer.println(new String(new char[80]).replace("\0", "#"));
-						for (LampImage lamp : lamps)
+						for (LampImage lamp : lamps) {
+							writer.println("print(\"*imarith for " + lamp.getLampName() + "...\")");
 							writer.println("iraf.imarith(operand1=\"" + lamp.getImages().get(0).getFileName() + ".b\","
 									+ " op=\"+\",operand2=\"" + lamp.getImages().get(1).getFileName() + ".b\",result=\""
 									+ lamp.getLampName() + normalizedTargetName(observation.getTargetName()) + ".b\")");
+						}
 
 						// exec wlcal
-						writer.println("print(\"wlcal\")");
 						writer.println(new String(new char[80]).replace("\0", "#"));
 						writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
 						writer.println(new String(new char[80]).replace("\0", "#"));
-						writer.println("iraf.wlcal(input=\"list_obj_" + name + "\", refer=\""
+						writer.println("print(\"*wlcal for " + observation.getTargetName() + "...\")");
+						String command = "iraf.wlcal(input=\"preredObject" + name + "\", refer=\""
 								+ observation.getScienceImages().get(0).getLamp().getLampName()
 								+ normalizedTargetName(observation.getTargetName()) + "\"," + " linelis=\""
-								+ observation.getScienceImages().get(0).getLamp().getLineList().toLowerCase()
-								+ "\", mode=\"ql\")");
+								+ observation.getScienceImages().get(0).getLamp().getLineList().toLowerCase() + "\"";
+						if (!"".equals(this.jWlcalOptions.getText()))
+							command += ", " + this.jWlcalOptions.getText();
+						writer.println(command + ")");
 					} else {
 						// exec wlcal
-						writer.println("print(\"wlcal\")");
 						writer.println(new String(new char[80]).replace("\0", "#"));
 						writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
 						writer.println(new String(new char[80]).replace("\0", "#"));
-						writer.println("iraf.wlcal(input=\"list_obj_" + name + "\", refer=\""
+						writer.println("print(\"*wlcal for " + observation.getTargetName() + "\")");
+						String command = "iraf.wlcal(input=\"preredObject" + name + "\", refer=\""
 								+ observation.getScienceImages().get(0).getLamp().getLampName() + "\"," + " linelis=\""
-								+ observation.getScienceImages().get(0).getLamp().getLineList().toLowerCase()
-								+ "\", mode=\"ql\")");
+								+ observation.getScienceImages().get(0).getLamp().getLineList().toLowerCase() + "\"";
+						if (!"".equals(this.jWlcalOptions.getText()))
+							command += ", " + this.jWlcalOptions.getText();
+						writer.println(command + ")");
 					}
 				}
 				if (observation.isDoFcal()) {
 					// exec fcal
-					writer.println("print(\"fcal\")");
 					writer.println(new String(new char[80]).replace("\0", "#"));
 					writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("fcal", 78));
 					writer.println(new String(new char[80]).replace("\0", "#"));
-					writer.println("iraf.fcal(obj=\"wl" + name + "\", stand=\""
+					writer.println("print(\"*fcal for " + observation.getStandard().getImage().getTargetName() + "\")");
+					String command = "iraf.fcal(obj=\"wc" + name + "\", stand=\""
 							+ observation.getStandard().getImage().getFileName() + "\", dir=\"onedstds$"
 							+ dataService.getStandardAtlas()
 									.findByStandardName(observation.getStandard().getImage().getTargetName())
@@ -3002,7 +3182,10 @@ public class Main extends javax.swing.JPanel {
 							+ dataService.getStandardAtlas()
 									.findByStandardName(observation.getStandard().getImage().getTargetName())
 									.getDatName()
-							+ "\", mode=\"ql\")");
+							+ "\"";
+					if (!"".equals(this.jFcalOptions.getText()))
+						command += ", " + this.jFcalOptions.getText();
+					writer.println(command + ")");
 				}
 				// exec background
 				writer.println(new String(new char[80]).replace("\0", "#"));
@@ -3011,39 +3194,54 @@ public class Main extends javax.swing.JPanel {
 				if (observation.isDoBackground())
 					for (ScienceImage image : observation.getScienceImages())
 						if (image.getImage().isEnabled()) {
-							writer.println("print(\"background\")");
-							writer.println("iraf.background(input=\"" + image.getImage().getFileName()
-									+ ".fc\", output=\"" + image.getImage().getFileName() + ".bg\", axis=2,"
-									+ " mode=\"ql\", " + "Stdin=\"bgcols\")");
+							writer.println("print(\"*background " + image.getImage().getFileName() + "...\")");
+							String command = "iraf.background(input=\"" + image.getImage().getFileName()
+									+ ".fc\", output=\"" + image.getImage().getFileName() + ".bg\"";
+							if (!"".equals(this.jBackgroundOptions.getText()))
+								command += ", " + this.jBackgroundOptions.getText();
+							writer.println(command + ", Stdin=\"bgcols\"");
 						}
 				// exec apall
-				writer.println("print(\"apall\")");
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("apall", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				if (observation.isDoApall())
 					for (ScienceImage image : observation.getScienceImages())
-						if (image.getImage().isEnabled())
-							writer.println("iraf.apall(input=\"" + image.getImage().getFileName() + ".bg\", output=\""
-									+ image.getImage().getFileName() + ".md\", t_order=3, t_niter=5, mode=\"ql\")");
+						if (image.getImage().isEnabled()) {
+							writer.println("print(\"*apall " + image.getImage().getFileName() + "...\")");
+							String command = "iraf.apall(input=\"" + image.getImage().getFileName() + ".bg\", output=\""
+									+ image.getImage().getFileName() + ".md\"";
+							if (!"".equals(this.jApallOptions.getText()))
+								command += ", " + this.jApallOptions.getText();
+							writer.println(command + ")");
+						}
 				// exec scombine
-				writer.println("print(\"scombine\")");
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("scombine", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
-				if (observation.isDoScombine())
-					writer.println("iraf.scombine(input=\"@md" + name + "\", output=\"" + name
-							+ ".md\", reject=\"minmax\", mode=\"ql\")");
+				if (observation.isDoScombine()) {
+					writer.println("print(\"*scombine " + observation.getTargetName() + "...\")");
+					String command = "iraf.scombine(input=\"@md" + name + "\", output=\"" + name + ".md\"";
+					if (!"".equals(this.jScombineOptions.getText()))
+						command += ", " + this.jScombineOptions.getText();
+					writer.println(command + ")");
+				}
 				String start = this.jImcopyStart.getValue().toString();
 				String end = this.jImcopyEnd.getValue().toString();
 				// exec imcopy
-				writer.println("print(\"imcopy\")");
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("imcopy", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
-				if (observation.isDoImcopy())
-					writer.println("iraf.imcopy(input=\"" + name + ".md[" + start + ":" + end + "]\", output=\"" + name
-							+ ".obj\", mode=\"ql\")");
+				if (observation.isDoImcopy()) {
+					writer.println("print(\"*imcopy " + observation.getTargetName() + "...\")");
+					String command = "iraf.imcopy(input=\"" + name + ".md[" + start + ":" + end + "]\", output=\""
+							+ name + ".obj\"";
+					if (!"".equals(this.jImcopyOptions.getText()))
+						command += ", " + this.jImcopyOptions.getText();
+					writer.println(command + ")");
+				}
+				writer.println("print(\"*reduction done for " + observation.getTargetName() + "\")");
+				writer.println("print(\"*end\")");
 			} catch (IOException ex) {
 				log.fatal(ex.getMessage(), ex);
 				JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -3053,7 +3251,6 @@ public class Main extends javax.swing.JPanel {
 			}
 			log.info("Done.");
 		}
-
 	}
 
 	public void writeOneGiantScript() {
@@ -3065,10 +3262,8 @@ public class Main extends javax.swing.JPanel {
 			if (this.generatedList.get("script") == null)
 				this.generatedList.put("script", new ArrayList<>());
 			this.generatedList.get("script").add("execAsgred.py");
-			scriptsList = new ArrayList<String>();
-			scriptsList.add("execAsgred.py");
 			writer = new PrintWriter(Paths.get(this.basePath, "execAsgred.py").toFile());
-			writer.println("#!/usr/bin/env python");
+			writer.println("#!/usr/bin/env python3");
 			writer.println("import os");
 			writer.println("import sys");
 			writer.println("os.chdir(\"" + this.jIrafHome.getText() + "\")");
@@ -3076,14 +3271,17 @@ public class Main extends javax.swing.JPanel {
 			writer.println("from pyraf import iraf");
 			writer.println("os.chdir(\"" + this.basePath + "\")");
 			writer.println("iraf.asgred()");
-			if (this.generatedList.containsKey("all") && this.generatedList.get("all").contains("list_flat")) {
+			if (this.generatedList.containsKey("all") && this.generatedList.get("all").contains("preredFlat")) {
 				// exec prered2
-				writer.println("print(\"prered2\")");
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("prered2", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
-				writer.println("iraf.prered2(flat=\"list_flat\", comp=\"list_lamps\", object=\"list_obj\","
-						+ "trimsec=\"[1:2040,40:490]\", outflat=\"flat.all\", mode=\"ql\")");
+				writer.println("print(\"*prered2 for all...\")");
+				String command = "iraf.prered2(flat=\"preredFlat\", comp=\"preredLamps\", object=\"preredObject\","
+						+ " outflat=\"flat.all\"";
+				if (!"".equals(this.jPrered2Options.getText()))
+					command += ", " + this.jPrered2Options.getText();
+				writer.println(command + ")");
 			}
 			List<ImageEntity> groups = dataService.getImageRepository().findByGrouped(true);
 			if (groups != null && groups.size() > 0) {
@@ -3093,29 +3291,31 @@ public class Main extends javax.swing.JPanel {
 						lamps.add(image.getLamp());
 
 				// exec imarith
-				writer.println("print(\"imarith\")");
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("imarith", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
-				for (LampImage lamp : lamps)
+				for (LampImage lamp : lamps) {
+					writer.println("print(\"*imarith for " + lamp.getLampName() + "...\")");
 					writer.println("iraf.imarith(operand1=\"" + lamp.getImages().get(0).getFileName() + ".b\","
 							+ " op=\"+\",operand2=\"" + lamp.getImages().get(1).getFileName() + ".b\",result=\""
 							+ lamp.getLampName() + ".b\")");
-
+				}
 			}
-			if (this.generatedList.containsKey("all") && this.generatedList.get("all").contains("list_obj")) {
+
+			if (this.generatedList.containsKey("all") && this.generatedList.get("all").contains("preredObject")) {
 				// exec wlcal
-				writer.println("print(\"wlcal\")");
 				writer.println(new String(new char[80]).replace("\0", "#"));
 				writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils.center("wlcal", 78));
 				writer.println(new String(new char[80]).replace("\0", "#"));
+				writer.println("print(\"*wlcal for all...\")");
 				String firstLamp = dataService.getScienceRepository().getLamps().get(0);
-				writer.println("iraf.wlcal(input=\"list_obj\", refer=\"" + firstLamp + "\", linelis=\""
-						+ dataService.getLampRepository().findByLampName(firstLamp).getLineList().toLowerCase()
-						+ "\", mode=\"ql\")");
+				String command = "iraf.wlcal(input=\"preredObject\", refer=\"" + firstLamp + "\", linelis=\""
+						+ dataService.getLampRepository().findByLampName(firstLamp).getLineList().toLowerCase() + "\"";
+				if (!"".equals(this.jWlcalOptions.getText()))
+					command += ", " + this.jWlcalOptions.getText();
+				writer.println(command + ")");
 			}
 			// exec fcal
-			writer.println("print(\"fcal\")");
 			for (StandardImage standard : dataService.getStandardRepository().findAll()) {
 				if (dataService.getObservationRepository()
 						.findByStandardFileNameAndIsEnabledIsTrue(standard.getImage().getFileName()).size() > 0) {
@@ -3123,13 +3323,17 @@ public class Main extends javax.swing.JPanel {
 					writer.printf("#%78s#\n", org.apache.commons.lang3.StringUtils
 							.center("Flux calibration for " + standard.getImage().getTargetName(), 78));
 					writer.println(new String(new char[80]).replace("\0", "#"));
-					writer.println("iraf.fcal(obj=\"std" + standard.getImage().getFileName() + "\", stand=\""
+					writer.println("print(\"*fcal for " + standard.getImage().getTargetName() + "...\")");
+					String command = "iraf.fcal(obj=\"std" + standard.getImage().getFileName() + "\", stand=\""
 							+ standard.getImage().getFileName() + "\", dir=\"onedstds$"
 							+ dataService.getStandardAtlas().findByStandardName(standard.getImage().getTargetName())
 									.getCatalogueName()
 							+ "/\", " + "star=\"" + dataService.getStandardAtlas()
 									.findByStandardName(standard.getImage().getTargetName()).getDatName()
-							+ "\")");
+							+ "\"";
+					if (!"".equals(this.jFcalOptions.getText()))
+						command += ", " + this.jFcalOptions.getText();
+					writer.println(command + ")");
 				}
 			}
 
@@ -3149,32 +3353,47 @@ public class Main extends javax.swing.JPanel {
 					}
 				for (ScienceImage image : observation.getScienceImages())
 					if (image.getImage().isEnabled()) {
-						writer.println("print(\"background\")");
-						writer.println("iraf.background(input=\"" + image.getImage().getFileName() + ".fc\", output=\""
-								+ image.getImage().getFileName() + ".bg\", axis=2, "
-								+ "mode=\"ql\", Stdin=\"bgcols\")");
+						writer.println("print(\"*background " + image.getImage().getFileName() + "...\")");
+						String command = "iraf.background(input=\"" + image.getImage().getFileName()
+								+ ".fc\", output=\"" + image.getImage().getFileName() + ".bg\"";
+						if (!"".equals(this.jBackgroundOptions.getText()))
+							command += ", " + this.jBackgroundOptions.getText();
+						writer.println(command + ", Stdin=\"bgcols\")");
 					}
 				// exec apall
-				writer.println("print(\"apall\")");
 				if (observation.isDoApall())
 					for (ScienceImage image : observation.getScienceImages())
-						if (image.getImage().isEnabled())
-							writer.println("iraf.apall(input=\"" + image.getImage().getFileName() + ".bg\", output=\""
-									+ image.getImage().getFileName() + ".md\", t_order = 3., t_niter = 5)");
+						if (image.getImage().isEnabled()) {
+							writer.println("print(\"*apall " + image.getImage().getFileName() + "...\")");
+							String command = "iraf.apall(input=\"" + image.getImage().getFileName() + ".bg\", output=\""
+									+ image.getImage().getFileName() + ".md\"";
+							if (!"".equals(this.jApallOptions.getText()))
+								command += ", " + this.jApallOptions.getText();
+							writer.println(command + ")");
+						}
 				// exec scombine
-				writer.println("print(\"scombine\")");
-				if (observation.isDoScombine())
-					writer.println("iraf.scombine(input=\"@md" + targetNormalized + "\", output=\"" + targetNormalized
-							+ ".md\", reject=\"minmax\")");
+				if (observation.isDoScombine()) {
+					writer.println("print(\"*scombine for " + observation.getTargetName() + "...\")");
+					String command = "iraf.scombine(input=\"@md" + targetNormalized + "\", output=\"" + targetNormalized
+							+ ".md\"";
+					if (!"".equals(this.jScombineOptions.getText()))
+						command += ", " + this.jScombineOptions.getText();
+					writer.println(command + ")");
+				}
 				String start = this.jImcopyStart.getValue().toString();
 				String end = this.jImcopyEnd.getValue().toString();
 				// exec imcopy
-				writer.println("print(\"imcopy\")");
-				if (observation.isDoImcopy())
-					writer.println("iraf.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
-							+ "]\", output=\"" + targetNormalized + ".obj\")");
+				if (observation.isDoImcopy()) {
+					writer.println("print(\"*imcopy for " + observation.getTargetName() + "...\")");
+					String command = "iraf.imcopy(input=\"" + targetNormalized + ".md[" + start + ":" + end
+							+ "]\", output=\"" + targetNormalized + ".obj\"";
+					if (!"".equals(this.jImcopyOptions.getText()))
+						command += ", " + this.jImcopyOptions.getText();
+					writer.println(command + ")");
+				}
 			}
-			writer.close();
+			writer.println("print(\"*reduction done for all...\")");
+			writer.println("print(\"*end\")");
 		} catch (IOException ex) {
 			log.fatal(ex.getMessage(), ex);
 			JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -3234,7 +3453,6 @@ public class Main extends javax.swing.JPanel {
 					temp += "\n\n";
 					documentToPrint.getStyledDocument().insertString(documentToPrint.getStyledDocument().getLength(),
 							temp, text);
-
 				} catch (Exception ex) {
 
 				}
@@ -3253,8 +3471,6 @@ public class Main extends javax.swing.JPanel {
 		} catch (Exception e) {
 			log.error(e);
 			JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-		} finally {
-
 		}
 	}
 
@@ -3277,6 +3493,21 @@ public class Main extends javax.swing.JPanel {
 		if (tmp.contains("\""))
 			tmp = tmp.replace("\"", "");
 		return tmp;
+	}
+
+	public void deleteDir(Path directory) {
+		log.info("delete the folder " + directory.toString() + "...");
+		for (File entry : directory.toFile().listFiles()) {
+			if (entry.isDirectory())
+				deleteDir(Paths.get(entry.getAbsolutePath()));
+			else
+				try {
+					log.info("\tdelete the file " + entry.getName() + "...");
+					Files.delete(Paths.get(entry.getPath()));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+		}
 	}
 
 	private javax.swing.ButtonGroup groupAction;
@@ -3319,10 +3550,10 @@ public class Main extends javax.swing.JPanel {
 	private javax.swing.JPanel jPanel10;
 	private javax.swing.JPanel jPanel11;
 	private javax.swing.JPanel jPanel12;
-	private javax.swing.JPanel jPanel14;
-	private javax.swing.JPanel jPanel15;
-	private javax.swing.JPanel jPanel16;
-	private javax.swing.JPanel jPanel17;
+	private javax.swing.JPanel jPanelImcopy;
+	private javax.swing.JPanel jPanelBackground;
+	private javax.swing.JPanel jPanelWlcal;
+	private javax.swing.JPanel jPanelIrafHome;
 	private javax.swing.JPanel jPanel6;
 	private javax.swing.JPanel jPanel8;
 	private javax.swing.JPanel jPanel9;
@@ -3364,4 +3595,23 @@ public class Main extends javax.swing.JPanel {
 	private JPopupMenu popupMenu;
 	private JMenuItem popupGroup;
 	private JMenuItem popupDisband;
+	private JMenuItem popupDisplay;
+	private JLabel lblOptions;
+	private JTextField jBackgroundOptions;
+	private JPanel jPanelApall;
+	private JLabel lblOptions_1;
+	private JTextField jApallOptions;
+	private JLabel lblAdvancedOptions;
+	private JTextField jWlcalOptions;
+	private JPanel jPanelPrered2;
+	private JLabel lblAdvancedOptions_1;
+	private JTextField jPrered2Options;
+	private JPanel jPanelScombine;
+	private JLabel label;
+	private JTextField jScombineOptions;
+	private JLabel label_1;
+	private JTextField jImcopyOptions;
+	private JPanel panel;
+	private JLabel label_2;
+	private JTextField jFcalOptions;
 }

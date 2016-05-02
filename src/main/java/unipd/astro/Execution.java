@@ -30,7 +30,7 @@ import org.apache.log4j.Logger;
  * @author Vincenzo Abate <gogolander@gmail.com>
  */
 public class Execution {
-	private static int TIMEOUT = 10;
+	private static int TIMEOUT = 50;
 	private static Logger log = Logger.getLogger(Execution.class.getName());
 	private ArrayList<InterruptableThread> openThread;
 

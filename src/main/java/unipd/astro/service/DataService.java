@@ -147,10 +147,9 @@ public class DataService {
 				initProperties();
 			appProperties.setProperty(key, value);
 			log.info("Saving...");
-			appProperties.store(new FileOutputStream(
-										Paths.get(System.getProperty("user.home"),
-												"asgredLists.properties").toFile()),
-										"Default value created by " + AsgredLists.class.getName());
+			appProperties.store(
+					new FileOutputStream(Paths.get(System.getProperty("user.home"), "asgredLists.properties").toFile()),
+					"Default value created by " + AsgredLists.class.getName());
 			log.info("Done.");
 		} catch (FileNotFoundException e) {
 			log.error(e);
@@ -162,15 +161,18 @@ public class DataService {
 	private void initProperties() {
 		try {
 			String[] params = new String[] { "iraf.home", "iraf.wlcal.rms_threshold", "iraf.bg.col1", "iraf.bg.col2",
-					"iraf.imcopy.start", "iraf.imcopy.end" };
-			String[] defaultValues = new String[] { System.getProperty("user.home"), "10", "1000", "1010", "50",
-					"2048" };
+					"iraf.imcopy.start", "iraf.imcopy.end", "iraf.bg.options", "iraf.apall.options",
+					"iraf.prered2.options", "iraf.wlcal.options", "iraf.scombine.options", "iraf.imcopy.options",
+					"iraf.fcal.options" };
+			String[] defaultValues = new String[] { System.getProperty("user.home"), "10", "1000", "1010", "50", "2040",
+					"axis=2, order=7, mode=\"ql\"", "t_order = 3., t_niter = 5, b_order=7",
+					"trimsec=\"[1:2040,40:490]\", mode=\"ql\"", "mode=\"ql\"", "reject=\"minmax\"", "", "" };
 
 			log.info("Does the file ${user.home}/asgredLists.properties exist?");
 			try {
 				appProperties = new Properties();
-				appProperties.load(new FileInputStream(Paths.get(System.getProperty("user.home"),
-												"asgredLists.properties").toFile()));
+				appProperties.load(new FileInputStream(
+						Paths.get(System.getProperty("user.home"), "asgredLists.properties").toFile()));
 				try {
 					log.info("Yes. Is it valid?");
 					boolean conflicts = false;
@@ -183,8 +185,9 @@ public class DataService {
 						for (int i = 0; i < params.length; i++)
 							appProperties.setProperty(params[i], defaultValues[i]);
 						log.info("Saving...");
-						appProperties.store(new FileOutputStream(
-								Paths.get(System.getProperty("user.home"), "asgredLists.properties").toFile()),
+						appProperties.store(
+								new FileOutputStream(
+										Paths.get(System.getProperty("user.home"), "asgredLists.properties").toFile()),
 								"Default value created by " + AsgredLists.class.getName());
 						log.info("Done.");
 					} else
@@ -198,8 +201,8 @@ public class DataService {
 				for (int i = 0; i < params.length; i++)
 					properties.setProperty(params[i], defaultValues[i]);
 				log.info("Saving...");
-				properties.store(new FileOutputStream(Paths.get(System.getProperty("user.home"),
-																	"asgredLists.properties").toFile()), "");
+				properties.store(new FileOutputStream(
+						Paths.get(System.getProperty("user.home"), "asgredLists.properties").toFile()), "");
 				log.info("Done.");
 			}
 			log.info("asgredLists.properties set.");
@@ -211,16 +214,21 @@ public class DataService {
 	public void restoreProperties() {
 		try {
 			String[] params = new String[] { "iraf.home", "iraf.wlcal.rms_threshold", "iraf.bg.col1", "iraf.bg.col2",
-					"iraf.imcopy.start", "iraf.imcopy.end" };
-			String[] defaultValues = new String[] { System.getProperty("user.home"), "10", "1000", "1010", "50",
-					"2048" };
+					"iraf.imcopy.start", "iraf.imcopy.end", "iraf.bg.options", "iraf.apall.options",
+					"iraf.prered2.options", "iraf.wlcal.options", "iraf.scombine.options", "iraf.imcopy.options",
+					"iraf.fcal.options" };
+			String[] defaultValues = new String[] { System.getProperty("user.home"), "10", "1000", "1010", "50", "2040",
+					"axis=2, order=7, mode=\"ql\"", "t_order = 3., t_niter = 5, b_order=7",
+					"trimsec=\"[1:2040,40:490]\", mode=\"ql\"", "mode=\"ql\"", "reject=\"minmax\"", "", "" };
+
 			log.info("Restoring default values...");
 			Properties properties = new Properties();
 			for (int i = 0; i < params.length; i++)
 				properties.setProperty(params[i], defaultValues[i]);
 			log.info("Saving...");
-			properties.store(new FileOutputStream(Paths.get(System.getProperty("user.home"),
-																"asgredLists.properties").toFile()), "");
+			properties.store(
+					new FileOutputStream(Paths.get(System.getProperty("user.home"), "asgredLists.properties").toFile()),
+					"");
 			log.info("Done.");
 		} catch (Exception ex) {
 			log.error(ex);
