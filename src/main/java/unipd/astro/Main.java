@@ -104,7 +104,7 @@ public class Main extends javax.swing.JPanel {
 			((JComboBox) evt.getSource()).setSelectedIndex(-1);
 		}
 	};
-	private boolean sendRms;
+	private boolean sendRms = true;
 	private int selectedAction = 0, runningCommand = -1, task = 0, groups = 0;
 	private Style In, Out, Error, Task;
 	private String basePath;
@@ -165,8 +165,11 @@ public class Main extends javax.swing.JPanel {
 								// as unintended consequences could arise
 								if (sendRms)
 									process.sendTextToGraphics("q");
+								else
+									log.info("sendRms is false!");
 							sendRms = !sendRms;
-						}
+						} else if ("| Fit TWODIMENSIONAL Dispersion Solution |".equals(response))
+							sendRms = true;
 					}
 					break;
 				case 3:
@@ -337,21 +340,6 @@ public class Main extends javax.swing.JPanel {
 		this.popupMenu.add(this.popupGroup);
 		this.popupMenu.add(this.popupDisband);
 		this.popupMenu.add(this.popupDisplay);
-
-		// for (int i = 0; i < jTable1.getColumnCount(); i++)
-		// jTable1Cols.put(jTable1.getModel().getColumnName(i), i);
-		// for (int i = 0; i < jTable2.getColumnCount(); i++)
-		// jTable2Cols.put(jTable2.getModel().getColumnName(i), i);
-		// if (jTable2.getColumnModel().getColumnCount() > 0) {
-		// jTable2.getColumnModel().getColumn(0).setPreferredWidth(50);
-		// jTable2.getColumnModel().getColumn(1).setPreferredWidth(350);
-		// jTable2.getColumnModel().getColumn(2).setPreferredWidth(50);
-		// jTable2.getColumnModel().getColumn(3).setPreferredWidth(50);
-		// jTable2.getColumnModel().getColumn(4).setPreferredWidth(50);
-		// jTable2.getColumnModel().getColumn(5).setPreferredWidth(50);
-		// jTable2.getColumnModel().getColumn(6).setPreferredWidth(50);
-		// jTable2.getColumnModel().getColumn(7).setPreferredWidth(50);
-		// }
 
 		jConsole.setEditable(false);
 		jScrollPane3.setViewportView(jConsole);
@@ -910,7 +898,7 @@ public class Main extends javax.swing.JPanel {
 		});
 
 		groupAction.add(jRadioListsAndOneScript);
-		jRadioListsAndOneScript.setText("Geneare lists and only one PyRAF script for all objects");
+		jRadioListsAndOneScript.setText("Generate lists and only one PyRAF script for all objects");
 		jRadioListsAndOneScript.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				jRadioListsAndOneScriptActionPerformed(evt);
@@ -1834,11 +1822,14 @@ public class Main extends javax.swing.JPanel {
 			if (this.jCheckStartFromScrap.isSelected()) {
 				if (this.runningCommand >= 0 && this.process.isPyraf(runningCommand))
 					this.process.sendCommands(runningCommand,
-							new String[] { "cd " + this.basePath, "!rm prered*", "!rm *.wc.fits", "!rm *.fc.fits",
-									"!rm *.bg.fits", "!rm *.md.fits", "!rm *.py", "!rm wc*", "!rm fc*", "!rm md*",
-									"!rm std*", "!rm *.b.fits", "!rm *.bf.fits", "!rm flat.*", "!rm *.std",
-									"!rm *.sens.fits", "!rm -r database/", "!rm *.obj.fits", });
-				Thread.sleep(500);
+							new String[] { "cd " + this.basePath, "!rm prered*",
+									"!rm *.wc.fits", "!rm *.fc.fits", "!rm *.bg.fits",
+									"!rm *.md.fits", "!rm *.py", "!rm wc*", "!rm fc*",
+									"!rm md*", "!rm std*", "!rm *.b.fits",
+									"!rm *.bf.fits", "!rm flat.*", "!rm *.std",
+									"!rm *.sens.fits", "!rm -r database/",
+									"!rm *.obj.fits", });
+				Thread.sleep(1500);
 			}
 
 			if (this.generatedList != null)
@@ -3200,6 +3191,8 @@ public class Main extends javax.swing.JPanel {
 							if (!"".equals(this.jBackgroundOptions.getText()))
 								command += ", " + this.jBackgroundOptions.getText();
 							writer.println(command + ", Stdin=\"bgcols\"");
+							writer.println(
+									"iraf.display(image=\"" + image.getImage().getFileName() + ".bg\", frame=\"1\")");
 						}
 				// exec apall
 				writer.println(new String(new char[80]).replace("\0", "#"));
@@ -3359,6 +3352,8 @@ public class Main extends javax.swing.JPanel {
 						if (!"".equals(this.jBackgroundOptions.getText()))
 							command += ", " + this.jBackgroundOptions.getText();
 						writer.println(command + ", Stdin=\"bgcols\")");
+						writer.println(
+								"iraf.display(image=\"" + image.getImage().getFileName() + ".bg\", frame=\"1\")");
 					}
 				// exec apall
 				if (observation.isDoApall())

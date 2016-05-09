@@ -87,8 +87,9 @@ public class Execution {
 								nBytes = process.getInputStream().read(buffer);
 								if (callback != null)
 									for (String response : new String(buffer, 0, nBytes).split("\n"))
-										callback.OnResponseReceived(
-												response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+										if (!"".equals(response))
+											callback.OnResponseReceived(
+													response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 							}
 							while ((nBytes = process.getErrorStream().available()) != 0) {
 								log.trace("Error received.");
@@ -96,7 +97,9 @@ public class Execution {
 								nBytes = process.getErrorStream().read(buffer);
 								if (callback != null)
 									for (String error : new String(buffer, 0, nBytes).split("\n"))
-										callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+										if (!"".equals(error))
+											callback.OnErrorReceived(
+													error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 							}
 
 						}
@@ -174,8 +177,9 @@ public class Execution {
 								nBytes = process.getInputStream().read(buffer);
 								if (callback != null)
 									for (String response : new String(buffer, 0, nBytes).split("\n"))
-										callback.OnResponseReceived(
-												response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+										if (!"".equals(response))
+											callback.OnResponseReceived(
+													response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 							}
 							while ((nBytes = process.getErrorStream().available()) != 0) {
 								log.trace("Error received.");
@@ -183,7 +187,9 @@ public class Execution {
 								nBytes = process.getErrorStream().read(buffer);
 								if (callback != null)
 									for (String error : new String(buffer, 0, nBytes).split("\n"))
-										callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+										if (!"".equals(error))
+											callback.OnErrorReceived(
+													error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 							}
 						}
 					} catch (Exception ex) {
@@ -215,9 +221,10 @@ public class Execution {
 		thread.start();
 		return openThread.size() - 1;
 	}
-	
+
 	/**
 	 * Exec a sequence of commands.
+	 * 
 	 * @param launchCommand
 	 * @param commands
 	 * @param callback
@@ -261,8 +268,9 @@ public class Execution {
 								nBytes = process.getInputStream().read(buffer);
 								if (callback != null)
 									for (String response : new String(buffer, 0, nBytes).split("\n"))
-										callback.OnResponseReceived(
-												response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+										if (!"".equals(response))
+											callback.OnResponseReceived(
+													response.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 							}
 							while ((nBytes = process.getErrorStream().available()) != 0) {
 								log.trace("Error received.");
@@ -270,7 +278,9 @@ public class Execution {
 								nBytes = process.getErrorStream().read(buffer);
 								if (callback != null)
 									for (String error : new String(buffer, 0, nBytes).split("\n"))
-										callback.OnErrorReceived(error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
+										if (!"".equals(error))
+											callback.OnErrorReceived(
+													error.replaceAll("\\e\\[[\\d;]*[^\\d;]", "").trim());
 							}
 						}
 					} catch (Exception ex) {
@@ -441,32 +451,34 @@ public class Execution {
 			log.fatal(ex.getMessage());
 		}
 	}
-	
+
 	/**
 	 * Send a text to a graphics window not directly controlled by pyraf
 	 */
 	public void sendTextToGraphics(String text) {
 		try {
 			log.info("Sending the text \"" + text + "\"...");
-			Runtime.getRuntime().exec("sh " + Main.class.getClassLoader().getResource("sendText.sh").getPath() 
-					+ "  " + text);
+			Runtime.getRuntime().exec("xdotool windowactivate $(xdotool search --name 'graphics1')");
+			Thread.sleep(TIMEOUT);
+			Runtime.getRuntime().exec("xdotool type --clearmodifiers " + text);
 			log.info("Done.");
 		} catch (Exception ex) {
-			log.fatal(ex.getMessage());
+			log.fatal(ex);
 		}
 	}
-	
+
 	/**
 	 * Send a key to a graphics window not directly controlled by pyraf
 	 */
 	public void sendKeyToGraphics(String key) {
 		try {
 			log.info("Sending the text \"" + key + "\"...");
-			Runtime.getRuntime().exec("sh " + Main.class.getClassLoader().getResource("sendKey.sh").getPath() 
-					+ "  " + key);
+			Runtime.getRuntime().exec("xdotool windowactivate $(xdotool search --name 'graphics1')");
+			Thread.sleep(TIMEOUT);
+			Runtime.getRuntime().exec("xdotool key --clearmodifiers " + key);
 			log.info("Done.");
 		} catch (Exception ex) {
-			log.fatal(ex.getMessage());
+			log.fatal(ex);
 		}
 	}
 
