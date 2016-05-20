@@ -83,6 +83,7 @@ import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
 import java.awt.BorderLayout;
 import javax.swing.border.LineBorder;
+import javax.swing.JTextArea;
 
 @SuppressWarnings({ "serial", "unchecked", "rawtypes" })
 public class Main extends javax.swing.JPanel {
@@ -1310,20 +1311,29 @@ public class Main extends javax.swing.JPanel {
 
 		this.lblOptions_1 = new JLabel("Advanced options:");
 
-		this.jApallOptions = new JTextField();
+		this.jApallOptions = new JTextArea();
+		this.jApallOptions.setLineWrap(true);
+		this.jApallOptions.setWrapStyleWord(true);
+		this.jApallOptions.setRows(2);
 		this.jApallOptions.setColumns(10);
 		GroupLayout gl_jPanelApall = new GroupLayout(this.jPanelApall);
-		gl_jPanelApall.setHorizontalGroup(gl_jPanelApall.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_jPanelApall.createSequentialGroup().addContainerGap().addComponent(this.lblOptions_1)
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addComponent(this.jApallOptions, GroupLayout.DEFAULT_SIZE, 414, Short.MAX_VALUE)
-						.addContainerGap()));
-		gl_jPanelApall.setVerticalGroup(gl_jPanelApall.createParallelGroup(Alignment.LEADING)
+		gl_jPanelApall.setHorizontalGroup(
+			gl_jPanelApall.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_jPanelApall.createSequentialGroup()
-						.addGroup(gl_jPanelApall.createParallelGroup(Alignment.BASELINE).addComponent(this.lblOptions_1)
-								.addComponent(this.jApallOptions, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-										GroupLayout.PREFERRED_SIZE))
-						.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
+					.addContainerGap()
+					.addComponent(this.lblOptions_1)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(this.jApallOptions, GroupLayout.PREFERRED_SIZE, 404, Short.MAX_VALUE)
+					.addContainerGap())
+		);
+		gl_jPanelApall.setVerticalGroup(
+			gl_jPanelApall.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jPanelApall.createSequentialGroup()
+					.addGroup(gl_jPanelApall.createParallelGroup(Alignment.BASELINE)
+						.addComponent(this.lblOptions_1)
+						.addComponent(this.jApallOptions, GroupLayout.PREFERRED_SIZE, 39, GroupLayout.PREFERRED_SIZE))
+					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+		);
 		this.jPanelApall.setLayout(gl_jPanelApall);
 
 		jTabbedPane1.addTab("Advanced Options for PyRAF tasks", jAdvancedOptionsPanel);
@@ -1351,76 +1361,66 @@ public class Main extends javax.swing.JPanel {
 		this.panel.setLayout(gl_panel);
 		GroupLayout gl_jAdvancedOptionsPanel = new GroupLayout(this.jAdvancedOptionsPanel);
 		gl_jAdvancedOptionsPanel.setHorizontalGroup(
-				gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.LEADING).addGroup(gl_jAdvancedOptionsPanel
-						.createSequentialGroup().addGroup(gl_jAdvancedOptionsPanel
-								.createParallelGroup(Alignment.LEADING, false).addGroup(gl_jAdvancedOptionsPanel
-										.createSequentialGroup().addGap(882).addComponent(btnRestoreDefaults).addGap(18)
-										.addComponent(this.jSave))
-								.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup().addContainerGap()
-										.addComponent(this.jPanelIrafHome, GroupLayout.PREFERRED_SIZE,
-												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+			gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+					.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.LEADING, false)
+						.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+							.addGap(882)
+							.addComponent(btnRestoreDefaults)
+							.addGap(18)
+							.addComponent(this.jSave))
+						.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+							.addContainerGap()
+							.addComponent(this.jPanelIrafHome, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+							.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.LEADING)
 								.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
-										.addGroup(gl_jAdvancedOptionsPanel
-												.createParallelGroup(Alignment.LEADING)
-												.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
-														.addGap(12)
-														.addGroup(
-																gl_jAdvancedOptionsPanel
-																		.createParallelGroup(Alignment.TRAILING)
-																		.addComponent(this.jPanelPrered2,
-																				GroupLayout.PREFERRED_SIZE, 591,
-																				GroupLayout.PREFERRED_SIZE)
-																		.addComponent(this.panel,
-																				GroupLayout.PREFERRED_SIZE, 591,
-																				GroupLayout.PREFERRED_SIZE)))
-												.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
-														.addContainerGap().addComponent(this.jPanelScombine,
-																GroupLayout.PREFERRED_SIZE, 591,
-																GroupLayout.PREFERRED_SIZE))
-												.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
-														.addContainerGap().addComponent(this.jPanelApall,
-																GroupLayout.PREFERRED_SIZE, 591,
-																GroupLayout.PREFERRED_SIZE)))
-										.addGap(18)
-										.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.LEADING, false)
-												.addComponent(this.jPanelImcopy, Alignment.TRAILING, 0, 0,
-														Short.MAX_VALUE)
-												.addComponent(this.jPanelBackground, GroupLayout.DEFAULT_SIZE,
-														GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-												.addComponent(this.jPanelWlcal, GroupLayout.PREFERRED_SIZE, 578,
-														Short.MAX_VALUE))))
-						.addGap(20)));
-		gl_jAdvancedOptionsPanel.setVerticalGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup().addContainerGap()
-						.addComponent(this.jPanelIrafHome, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-								GroupLayout.PREFERRED_SIZE)
-						.addGap(18)
-						.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.TRAILING)
+									.addGap(12)
+									.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.TRAILING)
+										.addComponent(this.jPanelPrered2, GroupLayout.PREFERRED_SIZE, 591, GroupLayout.PREFERRED_SIZE)
+										.addComponent(this.panel, GroupLayout.PREFERRED_SIZE, 591, GroupLayout.PREFERRED_SIZE)))
 								.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
-										.addComponent(this.jPanelPrered2, GroupLayout.PREFERRED_SIZE, 48,
-												GroupLayout.PREFERRED_SIZE)
-										.addGap(18).addComponent(this.panel, GroupLayout.PREFERRED_SIZE, 44,
-												GroupLayout.PREFERRED_SIZE))
-								.addComponent(this.jPanelWlcal, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-										GroupLayout.PREFERRED_SIZE))
-						.addGap(18)
-						.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.BASELINE)
+									.addContainerGap()
+									.addComponent(this.jPanelScombine, GroupLayout.PREFERRED_SIZE, 591, GroupLayout.PREFERRED_SIZE))
 								.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
-										.addComponent(this.jPanelBackground, GroupLayout.PREFERRED_SIZE, 110,
-												GroupLayout.PREFERRED_SIZE)
-										.addGap(12)
-										.addComponent(this.jPanelImcopy, GroupLayout.PREFERRED_SIZE,
-												GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-										.addPreferredGap(ComponentPlacement.RELATED, 12, Short.MAX_VALUE)
-										.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.BASELINE)
-												.addComponent(this.jSave).addComponent(btnRestoreDefaults))
-										.addGap(30))
-								.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
-										.addComponent(this.jPanelScombine, GroupLayout.PREFERRED_SIZE, 46,
-												GroupLayout.PREFERRED_SIZE)
-										.addGap(18).addComponent(this.jPanelApall, GroupLayout.PREFERRED_SIZE, 44,
-												GroupLayout.PREFERRED_SIZE)
-										.addContainerGap()))));
+									.addContainerGap()
+									.addComponent(this.jPanelApall, GroupLayout.PREFERRED_SIZE, 591, GroupLayout.PREFERRED_SIZE)))
+							.addGap(18)
+							.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.LEADING, false)
+								.addComponent(this.jPanelImcopy, Alignment.TRAILING, 0, 0, Short.MAX_VALUE)
+								.addComponent(this.jPanelBackground, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+								.addComponent(this.jPanelWlcal, GroupLayout.PREFERRED_SIZE, 578, Short.MAX_VALUE))))
+					.addGap(20))
+		);
+		gl_jAdvancedOptionsPanel.setVerticalGroup(
+			gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+					.addContainerGap()
+					.addComponent(this.jPanelIrafHome, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addGap(18)
+					.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.TRAILING)
+						.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+							.addComponent(this.jPanelPrered2, GroupLayout.PREFERRED_SIZE, 48, GroupLayout.PREFERRED_SIZE)
+							.addGap(18)
+							.addComponent(this.panel, GroupLayout.PREFERRED_SIZE, 44, GroupLayout.PREFERRED_SIZE))
+						.addComponent(this.jPanelWlcal, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+					.addGap(18)
+					.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.BASELINE)
+						.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+							.addComponent(this.jPanelBackground, GroupLayout.PREFERRED_SIZE, 110, GroupLayout.PREFERRED_SIZE)
+							.addGap(12)
+							.addComponent(this.jPanelImcopy, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+							.addGroup(gl_jAdvancedOptionsPanel.createParallelGroup(Alignment.BASELINE)
+								.addComponent(this.jSave)
+								.addComponent(btnRestoreDefaults))
+							.addGap(30))
+						.addGroup(gl_jAdvancedOptionsPanel.createSequentialGroup()
+							.addComponent(this.jPanelScombine, GroupLayout.PREFERRED_SIZE, 46, GroupLayout.PREFERRED_SIZE)
+							.addGap(18)
+							.addComponent(this.jPanelApall, GroupLayout.PREFERRED_SIZE, 64, GroupLayout.PREFERRED_SIZE)
+							.addContainerGap())))
+		);
 		GroupLayout gl_jPanelBackground = new GroupLayout(this.jPanelBackground);
 		gl_jPanelBackground.setHorizontalGroup(gl_jPanelBackground.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_jPanelBackground.createSequentialGroup().addGap(12).addGroup(gl_jPanelBackground
@@ -1539,7 +1539,11 @@ public class Main extends javax.swing.JPanel {
 		this.jApallOptions.setText(dataService.getProperty("iraf.apall.options"));
 		this.jScombineOptions.setText(dataService.getProperty("iraf.scombine.options"));
 		this.jImcopyOptions.setText(dataService.getProperty("iraf.imcopy.options"));
+		for (int idx = 0; idx < jTable1.getColumnCount(); idx++)
+			jTable1Cols.put(jTable1.getModel().getColumnName(idx), idx);
 
+		for (int idx = 0; idx < jTable2.getColumnCount(); idx++)
+			jTable2Cols.put(jTable2.getModel().getColumnName(idx), idx);
 		this.groupExplore.add(this.jRadioFitsList);
 		this.groupExplore.add(this.jRadioButton2);
 		this.jLabel13.setText(String.valueOf(this.jWlcalThreshold.getValue()) + "%");
@@ -1587,6 +1591,8 @@ public class Main extends javax.swing.JPanel {
 			}
 		});
 
+		this.jTable1.getColumnModel().getColumn(jTable1Cols.get("Type"))
+		.setCellEditor(new DefaultCellEditor(new JComboBox(new String[] { "IMAGE", "FLATFIELD", "LAMP" })));
 		this.jTable2.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
 			@Override
 			public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
@@ -1639,12 +1645,6 @@ public class Main extends javax.swing.JPanel {
 		Task.addAttribute(StyleConstants.FontSize, new Integer(12));
 		Task.addAttribute(StyleConstants.FontFamily, "arial");
 		Task.addAttribute(StyleConstants.Bold, new Boolean(true));
-
-		for (int i = 0; i < jTable1.getColumnCount(); i++)
-			jTable1Cols.put(jTable1.getModel().getColumnName(i), i);
-
-		for (int i = 0; i < jTable2.getColumnCount(); i++)
-			jTable2Cols.put(jTable2.getModel().getColumnName(i), i);
 	}
 
 	private void jRunScriptsActionPerformed(ActionEvent e) {
@@ -3595,7 +3595,7 @@ public class Main extends javax.swing.JPanel {
 	private JTextField jBackgroundOptions;
 	private JPanel jPanelApall;
 	private JLabel lblOptions_1;
-	private JTextField jApallOptions;
+	private JTextArea jApallOptions;
 	private JLabel lblAdvancedOptions;
 	private JTextField jWlcalOptions;
 	private JPanel jPanelPrered2;

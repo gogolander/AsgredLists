@@ -111,7 +111,8 @@ public class AsgredLists {
             frame.setVisible(true);
             SplashScreen.getInstance().close();
         } catch (Exception ex) {
-        	log.error(ex);
+        	System.out.println(ex.getMessage());
+        	log.error(ex.getMessage());
         }
     }
 }

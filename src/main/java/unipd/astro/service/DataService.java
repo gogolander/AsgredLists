@@ -165,7 +165,7 @@ public class DataService {
 					"iraf.prered2.options", "iraf.wlcal.options", "iraf.scombine.options", "iraf.imcopy.options",
 					"iraf.fcal.options" };
 			String[] defaultValues = new String[] { System.getProperty("user.home"), "10", "1000", "1010", "50", "2040",
-					"axis=2, order=7, mode=\"ql\"", "t_order = 3., t_niter = 5, b_order=7",
+					"lo = 3, hi = 2, niterate=10, axis=2, order=7, mode=\"ql\"", "b_order=1,b_sampl=\"-30:-20,20:30\",width=5,radius=10,t_order=5,t_niter=10,t_low_r=3,t_high=2",
 					"trimsec=\"[1:2040,40:490]\", mode=\"ql\"", "mode=\"ql\"", "reject=\"minmax\"", "", "" };
 
 			log.info("Does the file ${user.home}/asgredLists.properties exist?");
@@ -176,9 +176,10 @@ public class DataService {
 				try {
 					log.info("Yes. Is it valid?");
 					boolean conflicts = false;
+					//Conflicts in asgredLists.properties are empty options, e.g. iraf.bg.options = ""
 					for (int i = 0; i < params.length && !conflicts; i++)
-						conflicts = (appProperties.getProperty(params[i]) == null
-								|| appProperties.getProperty(params[i]).isEmpty());
+						//Check errors in all properties except fcal options and imcopy options: they are allowed to be empty.
+						conflicts = ("".equals(appProperties.getProperty(params[i])) && i != 11 && i != 12);
 
 					if (conflicts) {
 						log.info("No. Setting to default value all entries...");

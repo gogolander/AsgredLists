@@ -4,7 +4,7 @@
 
 	<groupId>unipd.astro</groupId>
 	<artifactId>asgred</artifactId>
-	<version>2.5.2</version>
+	<version>2.5.4</version>
 
 	<name>AsgredLists</name>
 
@@ -179,13 +179,6 @@
 				</includes>
 				<targetPath>./</targetPath>
 			</resource>
-			<resource>
-				<directory>lib</directory>
-				<includes>
-					<include>**/*</include>
-				</includes>
-				<targetPath>lib</targetPath>
-			</resource>
 		</resources>
 		<plugins>
 			<plugin>
@@ -216,7 +209,7 @@
 							<goal>copy-dependencies</goal>
 						</goals>
 						<configuration>
-							<outputDirectory>${project.build.directory}/lib</outputDirectory>
+							<outputDirectory>${project.build.directory}/jar</outputDirectory>
 							<overWriteReleases>true</overWriteReleases>
 							<overWriteSnapshots>true</overWriteSnapshots>
 							<overWriteIfNewer>true</overWriteIfNewer>
@@ -231,7 +224,7 @@
 					<archive>
 						<manifest>
 							<addClasspath>true</addClasspath>
-							<classpathPrefix>lib</classpathPrefix>
+							<classpathPrefix>jar</classpathPrefix>
 							<mainClass>unipd.astro.AsgredLists</mainClass>
 						</manifest>
 					</archive>
